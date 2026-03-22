@@ -9,7 +9,9 @@
 ## Phase 1 · Bootloader
 
 ### `001_boot_real_mode`
-**效果**：QEMU 图形窗口左上角出现 `Cinux Booting...`，串口出现 `Stage2 OK`
+**效果**：QEMU 图形窗口左上角依次出现 `Cinux Booting...` → `Stage2 OK`（均通过 BIOS INT 0x10 屏幕输出）
+
+> **验证手段**：全程 BIOS `INT $0x10 AH=0x0E` 屏幕字符输出，不碰串口
 
 - ☐ `boot/mbr.S`：`.code16`，`ljmp $0,$real_start` 规范化 CS，清零 `%ds %es %ss %sp`，`movb %dl, boot_drive` 保存启动盘号
 - ☐ 实现 `print_string`：`lodsb` + BIOS `INT $0x10 AH=0x0E` 循环输出，以 `\0` 结尾
@@ -17,28 +19,30 @@
 - ☐ 末尾加 DAP 结构（`dap`）：size=0x10，sectors=4，dest=`0x0000:0x8000`，LBA=1
 - ☐ 调 `INT $0x13 AH=0x42`（扩展磁盘读）将 stage2 载入 `0x8000`
 - ☐ `ljmp $0, $0x8000` 跳转 stage2
-- ☐ `boot/stage2.S`：入口打印 `Stage2 OK`，后续步骤在此文件继续
+- ☐ `boot/stage2.S`：入口用 BIOS `INT $0x10` 打印 `Stage2 OK`，后续步骤在此文件继续
 - ☐ `scripts/build_image.sh` 更新：sector 0 写 MBR，sector 1+ 写 stage2.bin
 - ☐ 开启 A20：`INT $0x15 AX=0x2401`
 
 ---
 
 ### `002_boot_gdt_protected`
-**效果**：串口输出 `[PM] Protected mode OK`
+**效果**：QEMU 不崩溃，debugcon 输出 `P`（单字节确认进入保护模式）
+
+> **验证手段**：QEMU debug port `0xE9`（`-debugcon stdio`），单条 `outb $0x50, $0xE9` 输出字符 `P`，无需任何初始化，不碰串口
 
 - ☐ `boot/stage2.S` 定义 `gdt_table`（8 字节对齐）：null=`0`，code32=`0x00CF9A000000FFFF`，data32=`0x00CF92000000FFFF`
 - ☐ 定义 `gdt_desc`：`.word limit` + `.long base`
 - ☐ `cli` → `lgdt gdt_desc` → `orl $0x1, %cr0` → `ljmp $0x08, $pm_entry`
 - ☐ `.code32` 入口：设置 `%ds %es %ss %fs %gs = 0x10`，`movl $0x90000, %esp`
-- ☐ 实现 `serial_init`：COM1 `0x3F8`，波特率 115200（divisor=1），8N1，DLAB 流程
-- ☐ 实现 `serial_putc`：轮询 `0x3FD` THRE 位（bit5），`outb %al, $0x3F8`
-- ☐ 实现 `serial_puts`：循环调 `serial_putc`
-- ☐ 进保护模式后调 `serial_init`，输出 `[PM] Protected mode OK\r\n`
+- ☐ 进入 `.code32` 后：`movb $0x50, %al; outb %al, $0xE9`（输出字符 `P` 到 QEMU debugcon 确认进入保护模式）
+- ☐ QEMU 启动参数加 `-debugcon stdio`，验证终端出现 `P`
 
 ---
 
 ### `003_boot_long_mode`
-**效果**：串口输出 `[LM] Long mode OK`
+**效果**：QEMU 不崩溃，debugcon 输出 `L`（确认进入 64-bit long mode）
+
+> **验证手段**：同上，进入 `.code64` 后一条 `outb $0x4C, $0xE9` 输出字符 `L`，不碰串口
 
 - ☐ 在物理地址 `0x1000–0x3FFF` 建临时页表：`rep stosl` 清零三页
 - ☐ 写 PML4[0]=`PDPT|0x03`，PDPT[0]=`PD|0x03`，PD[0..3]=`i*0x200000|0x83`（PS=1，2MB 大页）
@@ -49,12 +53,14 @@
 - ☐ GDT 追加 64-bit 代码段描述符：`0x00AF9A000000FFFF`（L=1, D=0），偏移 `0x18`
 - ☐ `ljmp $0x18, $lm_entry` 进入 `.code64`
 - ☐ `.code64` 内：重新 `lgdt gdt64_desc`（base 改为 `.quad`），设段寄存器，`movabsq $stack_top, %rsp`
-- ☐ 串口输出 `[LM] Long mode OK`
+- ☐ 进入 `.code64` 后：`movb $0x4C, %al; outb %al, $0xE9`（输出字符 `L` 确认 long mode）
 
 ---
 
 ### `004_boot_load_kernel`
-**效果**：串口依次出现 `[BOOT] Loading kernel...` → `[BOOT] Entry: 0xFFFF...` → `[BOOT] Jumping...`
+**效果**：QEMU 不崩溃，debugcon 输出 `J`（确认即将跳转内核），随后内核接管
+
+> **验证手段**：`jmp *%rax` 前一条 `outb $0x4A, $0xE9` 输出字符 `J`；内核启动后由 `005` 的串口驱动接管所有后续输出，不碰串口
 
 - ☐ 定义 `boot/boot_info.h`：`MemoryMapEntry {base, length, type}`，`BootInfo {entry_point, kernel_phys_base, kernel_size, fb_addr/width/height/pitch/bpp, mmap_count, mmap[32]}`
 - ☐ 在 long mode 前（保护模式内）用 `INT $0x13 AH=0x42` 读内核 ELF 到物理 `0x100000`（1MB）
@@ -62,6 +68,7 @@
 - ☐ 实现 `elf64_load()`：验证魔数 `\x7FELF` + `e_machine=0x3E`，遍历 `PT_LOAD` 段，按 `p_paddr` 复制，多余 BSS 清零，返回 `e_entry`
 - ☐ 在临时页表 PML4[511] 建高半核映射：`0xFFFFFFFF80000000` → `0x000000`（Identity 基础上加高半段）
 - ☐ 填充 `BootInfo`，地址约定放 `0x7000`
+- ☐ 跳转前：`movb $0x4A, %al; outb %al, $0xE9`（输出字符 `J`）
 - ☐ `movq $boot_info_addr, %rdi`（第一参数），`jmp *%rax`（内核入口，用 `jmp` 不用 `call`）
 
 ---
@@ -79,7 +86,7 @@
 - ☐ `kernel/drivers/serial.hpp/cpp`：`Serial::init(port,baud)`，`Serial::putc(c)`，`Serial::puts(s)`，`Serial::is_ready()`
 - ☐ `kernel/lib/kprintf.hpp/cpp`：`kvprintf(fmt,va_list)`，`kprintf(fmt,...)`，`kpanic(fmt,...) [[noreturn]]`，支持 `%d %u %x %X %s %p %c %%`，`%p` 输出 16 位十六进制
 - ☐ `kernel_main(BootInfo*)` 调 `Serial::init()` → `kprintf("[KERNEL] Hello from Cinux Kernel!\n")`
-- ☐ host 端单元测试 `test/unit/test_kprintf.cpp`：mock `Serial::putc`，验证各格式化输出
+- ☐ host 端单元测试 `tests/unit/test_kprintf.cpp`：mock `Serial::putc`，验证各格式化输出
 
 ---
 
