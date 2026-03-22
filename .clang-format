@@ -1,0 +1,152 @@
+---
+# Cinux clang-format 配置
+# 基于 helpers/CodingStyle.md 代码风格规范生成
+
+BasedOnStyle: Google
+
+# 语言: C++ / C
+Language: Cpp
+
+# ============================================================
+# 缩进与对齐
+# ============================================================
+
+# 使用 Tab 缩进，宽度为 4
+UseTab: Always
+TabWidth: 4
+IndentWidth: 4
+ContinuationIndentWidth: 4
+ColumnLimit: 100
+
+# 续行缩进
+IndentCaseLabels: false
+IndentGotoLabels: false
+IndentPPDirectives: AfterHash
+IndentWrappedFunctionNames: false
+
+# 对齐
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: AcrossComments
+AlignConsecutiveDeclarations: AcrossComments
+AlignConsecutiveMacros: AcrossComments
+AlignEscapedNewlines: Right
+AlignOperands: true
+AlignTrailingComments: true
+
+# ============================================================
+# 大括号风格 (K&R)
+# ============================================================
+
+BreakBeforeBraces: Attach
+BraceWrapping:
+  AfterClass:      false
+  AfterControlStatement: Never
+  AfterEnum:       false
+  AfterFunction:   false
+  AfterNamespace:  false
+  AfterStruct:     false
+  AfterUnion:      false
+  BeforeCatch:     false
+  BeforeElse:      false
+  BeforeLambdaBody: false
+  BeforeWhile:     false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+
+# ============================================================
+# 指针与引用 (左对齐)
+# ============================================================
+
+PointerAlignment: Left
+DerivePointerAlignment: false
+
+# ============================================================
+# 空行规则
+# ============================================================
+
+# 函数/方法之间空 2 行
+MaxEmptyLinesToKeep: 2
+
+# 命名空间后紧凑
+CompactNamespaces: false
+
+# after 控制语句不折行
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+
+# ============================================================
+# 函数声明与定义
+# ============================================================
+
+# 返回类型换行 (Auto 风格)
+AlwaysBreakAfterReturnType: None
+AlwaysBreakTemplateDeclarations: Yes
+
+# 函数声明参数换行
+AllowAllParametersOfDeclarationOnNextLine: true
+BinPackArguments: true
+BinPackParameters: true
+
+# ============================================================
+# 类与命名空间
+# ============================================================
+
+# 访问修饰符缩进
+AccessModifierOffset: -4
+
+# namespace 缩进
+NamespaceIndentation: None
+FixNamespaceComments: true
+
+# ============================================================
+# 其他格式化选项
+# ============================================================
+
+# include 排序
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  # C 标准库
+  - Regex:           '^<[a-z_]+\.h>'
+    Priority:        1
+  # C++ 标准库 (内核禁止，但保留规则)
+  - Regex:           '^<.*>'
+    Priority:        2
+  # 项目内部头文件
+  - Regex:           '^".*"'
+    Priority:        3
+
+# 空格
+SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
+SpaceAfterTemplateKeyword: true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+SpaceBeforeParens: ControlStatements
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 2
+SpacesInAngles: Never
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+# 换行
+AllowShortEnumsOnASingleLine: false
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeColon
+BreakInheritanceList: BeforeColon
+BreakStringLiterals: true
+
+# ============================================================
+# 排序 (代码风格未要求，保持关闭)
+# ============================================================
+
+SortUsingDeclarations: false

@@ -1,0 +1,14 @@
+# clangd 配置文件
+# clangd 会自动使用项目根目录的 .clang-format 文件
+
+Diagnostics:
+  UnusedIncludes: Strict
+  MissingIncludes: Strict
+
+InlayHints:
+  Enabled: Yes
+  ParameterNames: Yes
+  DeducedTypes: Yes
+
+Index:
+  Background: Build
