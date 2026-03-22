@@ -1,6 +1,7 @@
 build/
 .cache
 helpers
+.claude/
 
 CMakeCache.txt
 CMakeFiles/
