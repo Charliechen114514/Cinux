@@ -6,52 +6,6 @@
 
 ---
 
-## Phase 1 · Bootloader
-
-> **架构说明**：本阶段 bootloader 加载并跳转到**小内核 (Bootstrap Kernel)**，由小内核继续加载大内核。
-
-### `004_boot_load_mini_kernel`
-**效果**：QEMU 不崩溃，debugcon 输出 `J`（确认即将跳转小内核），随后小内核接管
-
-> **验证手段**：`jmp *%rax` 前一条 `outb $0x4A, $0xE9` 输出字符 `J`；小内核启动后由 `005` 的串口驱动接管所有后续输出
-> **加载方案**：real mode 直接读取完整小内核到目标地址（无需 protected mode 处理）
-> **小内核物理加载地址**：`0x20000`（128KB，在 real mode 可访问范围内）
-> **格式说明**：小内核使用扁平二进制（bin）格式，objcopy 从 ELF 转换而来
-
-#### 004_boot_load_mini_kernel_C：long mode 内填 BootInfo 并跳转
-
-- ☐ 进入 `.code64` 后填充 `BootInfo`（约定放物理 `0x7000`）：
-  - `entry_point`：高半核虚拟地址 `0xFFFFFFFF80020000`（固定值，`0xFFFFFFFF80000000 + 0x20000`）
-  - `kernel_phys_base = 0x20000`，`kernel_size` = 写死或从磁盘布局计算
-  - `fb_addr/width/height/pitch/bpp`：从 `0x6400` 读取（001 阶段 VESA 保存的值）
-  - `mmap_count` + `mmap[]`：从 `0x5000` 读取（E820 保存的值）
-- ☐ `kernel/mini/linker.ld`：输出格式 `elf64-x86-64`，物理地址 `0x20000`，编译后用 `objcopy -O binary` 转成 `mini.bin`
-- ☐ `scripts/build_image.sh`：sector 0 = MBR，sector 1–15 = stage2，sector 16+ = mini.bin（小内核扁平二进制）
-- ☐ 跳转前：`movb $0x4A, %al; outb %al, $0xE9`（debugcon 输出 `J`）
-- ☐ `movq $0x7000, %rdi`（BootInfo* 第一参数），`movq $0xFFFFFFFF80020000, %rax`，`jmp *%rax`
-
-##### 🎉 额外完成（超出预期）
-
-- ☐ **C++ 运行时支持**：`kernel/mini/arch/x86_64/crt_stub.cpp`
-  - `__cxa_pure_virtual` - 纯虚函数调用处理
-  - `__stack_chk_fail` - 栈保护失败处理
-  - `__cxa_atexit` - atexit 处理（空实现）
-  - `_init_global_ctors` - 全局构造函数初始化
-  - `operator new/delete` - freestanding 内存管理（halt 实现）
-- ☐ **C++ 面向对象特性验证**：
-  - 类构造函数/析构函数正常工作
-  - 虚函数和 vtable 多态机制完整
-  - 全局对象在 `_init_global_ctors` 中正确构造
-  - 验证输出：`===CPPGC1V123B===END`
-- ☐ **关键 Bug 修复**：
-  - **BSS 清除破坏参数**：在清除前保存 `%rdi` 到 `.data` 段
-  - **符号地址冲突**：`__boot_info_ptr` 从 `.bss` 移到 `.data` 避免与 C++ 全局变量冲突
-- ☐ **调试记录**：`document/notes/006/`
-  - `boot_info_param_corruption.md` - BootInfo 参数被破坏的调试过程
-  - `bss_data_symbol_conflict.md` - .bss/.data 符号冲突问题分析
-
----
-
 ## Phase 2 · 小内核 (Bootstrap Kernel)
 
 > **架构说明**：小内核是最小化的 C++ 内核，只实现运行大内核所需的基础功能。
