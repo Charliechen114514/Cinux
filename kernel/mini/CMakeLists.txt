@@ -4,6 +4,7 @@
 
 add_executable(mini_kernel
     arch/x86_64/boot.S
+    arch/x86_64/crt_stub.cpp
     main.cpp
 )
 

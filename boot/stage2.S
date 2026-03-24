@@ -210,13 +210,98 @@ long_mode_entry:
     outb %al, $DEBUGCON_PORT        // [al->port] Output 'L' to debugcon
 
     // ============================================================
-    // Long Mode Success - Halt
+    // 004_boot_load_mini_kernel_C: Fill BootInfo and Jump to Mini Kernel
     // ============================================================
-    // Infinite halt loop
-    cli                             // Disable interrupts
+
+    // BootInfo is placed at physical 0x7000
+    // Layout matches boot/boot_info.h:
+    //   entry_point       (8 bytes) offset 0
+    //   kernel_phys_base  (8 bytes) offset 8
+    //   kernel_size       (8 bytes) offset 16
+    //   fb_addr           (8 bytes) offset 24
+    //   fb_width          (4 bytes) offset 32
+    //   fb_height         (4 bytes) offset 36
+    //   fb_pitch          (4 bytes) offset 40
+    //   fb_bpp            (4 bytes) offset 44
+    //   mmap_count        (4 bytes) offset 48
+    //   _pad              (4 bytes) offset 52
+    //   mmap[32]          (768 bytes) offset 56
+
+    movq $0x7000, %rdi              // BootInfo destination address
+
+    // 1. entry_point: higher-half kernel virtual address
+    //    VMA = 0xFFFFFFFF80000000 + 0x20000 = 0xFFFFFFFF80020000
+    movq $0xFFFFFFFF80020000, %rax
+    movq %rax, (%rdi)               // [0x7000] = entry_point
+
+    // 2. kernel_phys_base: physical load address
+    movq $0x20000, %rax
+    movq %rax, 8(%rdi)              // [0x7008] = kernel_phys_base
+
+    // 3. kernel_size: actual size (will be read from ELF later)
+    movq $0x68000, %rax             // 416KB = 0x68000 bytes (max)
+    movq %rax, 16(%rdi)             // [0x7010] = kernel_size
+
+    // 4. Framebuffer info: copy from 0x6400
+    //    0x6400: fb_addr (8B)
+    //    0x6408: fb_pitch (4B)
+    //    0x640C: fb_width (2B)
+    //    0x640E: fb_height (2B)
+    movq $0x6400, %rsi              // Source: VESA framebuffer info
+    movq (%rsi), %rax               // Read fb_addr
+    movq %rax, 24(%rdi)             // [0x7018] = fb_addr
+
+    movl 8(%rsi), %eax              // Read fb_pitch
+    movl %eax, 40(%rdi)             // [0x7028] = fb_pitch
+
+    movzwq 12(%rsi), %rax           // Read fb_width (zero-extend 16-bit)
+    movl %eax, 32(%rdi)             // [0x7020] = fb_width
+
+    movzwq 14(%rsi), %rax           // Read fb_height (zero-extend 16-bit)
+    movl %eax, 36(%rdi)             // [0x7024] = fb_height
+
+    // fb_bpp: assume 32 (standard for VESA mode 0x118)
+    movl $32, %eax
+    movl %eax, 44(%rdi)             // [0x702C] = fb_bpp
+
+    // 5. Memory map: copy from 0x5000
+    //    0x5000: mmap_count (4B) + mmap entries (24B each)
+    movq $0x5000, %rsi              // Source: E820 memory map
+    movl (%rsi), %eax               // Read mmap_count
+    movl %eax, 48(%rdi)             // [0x7030] = mmap_count
+
+    // Copy mmap entries (max 32 entries * 24 bytes = 768 bytes)
+    movq $56, %rdx                  // Destination offset in BootInfo
+    movq $4, %rcx                   // Source offset (skip count)
+    movq $768, %r8                  // Bytes to copy
+1:
+    movb (%rsi, %rcx), %al
+    movb %al, (%rdi, %rdx)
+    incq %rcx
+    incq %rdx
+    decq %r8
+    jnz 1b
+
+    // ============================================================
+    // Jump to Mini Kernel
+    // ============================================================
+
+    // Output 'J' to debugcon to indicate jump is about to happen
+    movb $0x4A, %al                 // 'J'
+    outb %al, $DEBUGCON_PORT        // Output 'J' to debugcon
+
+    // Prepare jump arguments
+    movq $0x7000, %rdi              // First argument: BootInfo*
+    movq $0xFFFFFFFF80020000, %rax  // Entry point: _start in higher-half
+
+    // Jump to mini kernel (never returns)
+    jmp *%rax
+
+    // Should never reach here
+    cli
 .lm_halt:
-    hlt                             // Halt
-    jmp .lm_halt                    // Jump back
+    hlt
+    jmp .lm_halt
 
 // ============================================================
 // Error Handlers

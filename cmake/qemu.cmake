@@ -10,6 +10,8 @@ set(QEMU_COMMON_FLAGS
     -serial stdio
     -no-reboot
     -no-shutdown
+    -debugcon file:debug.log
+    -global isa-debugcon.iobase=0xe9
 )
 
 # Set the debug console as 0xe9
@@ -18,8 +20,6 @@ set(QEMU_COMMON_FLAGS
 set(QEMU_DEBUG_FLAGS
     -s
     -S
-    -debugcon file:debug.log
-    -global isa-debugcon.iobase=0xe9
 )
 
 if(NOT CINUX_IMAGE_PATH)

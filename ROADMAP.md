@@ -30,6 +30,26 @@
 - ☐ 跳转前：`movb $0x4A, %al; outb %al, $0xE9`（debugcon 输出 `J`）
 - ☐ `movq $0x7000, %rdi`（BootInfo* 第一参数），`movq $0xFFFFFFFF80020000, %rax`，`jmp *%rax`
 
+##### 🎉 额外完成（超出预期）
+
+- ☐ **C++ 运行时支持**：`kernel/mini/arch/x86_64/crt_stub.cpp`
+  - `__cxa_pure_virtual` - 纯虚函数调用处理
+  - `__stack_chk_fail` - 栈保护失败处理
+  - `__cxa_atexit` - atexit 处理（空实现）
+  - `_init_global_ctors` - 全局构造函数初始化
+  - `operator new/delete` - freestanding 内存管理（halt 实现）
+- ☐ **C++ 面向对象特性验证**：
+  - 类构造函数/析构函数正常工作
+  - 虚函数和 vtable 多态机制完整
+  - 全局对象在 `_init_global_ctors` 中正确构造
+  - 验证输出：`===CPPGC1V123B===END`
+- ☐ **关键 Bug 修复**：
+  - **BSS 清除破坏参数**：在清除前保存 `%rdi` 到 `.data` 段
+  - **符号地址冲突**：`__boot_info_ptr` 从 `.bss` 移到 `.data` 避免与 C++ 全局变量冲突
+- ☐ **调试记录**：`document/notes/006/`
+  - `boot_info_param_corruption.md` - BootInfo 参数被破坏的调试过程
+  - `bss_data_symbol_conflict.md` - .bss/.data 符号冲突问题分析
+
 ---
 
 ## Phase 2 · 小内核 (Bootstrap Kernel)

@@ -17,9 +17,20 @@ _start:
     /* Disable interrupts */
     cli
 
+    /* Output '1' to debugcon - _start reached */
+    movb $0x31, %al              /* '1' */
+    outb %al, $0xE9
+
     /* Setup stack - 8KB stack at end of kernel */
     movq $__mini_stack_top, %rsp
     xorq %rbp, %rbp
+
+    /* Output '2' to debugcon - stack ready */
+    movb $0x32, %al              /* '2' */
+    outb %al, $0xE9
+
+    /* Save BootInfo pointer BEFORE clearing BSS (BSS clear uses %rdi) */
+    movq %rdi, __boot_info_ptr
 
     /* Clear BSS section */
     movq $__bss_start, %rdi      /* destination */
@@ -28,8 +39,16 @@ _start:
     xorq %rax, %rax              /* value = 0 */
     rep stosb                    /* clear */
 
-    /* Save BootInfo pointer (passed in %rdi from bootloader) */
-    movq %rdi, __boot_info_ptr
+    /* Output '3' to debugcon - BSS cleared */
+    movb $0x33, %al              /* '3' */
+    outb %al, $0xE9
+
+    /* Call global constructors (C++ runtime) */
+    call _init_global_ctors
+
+    /* Output '4' to debugcon - ctors done */
+    movb $0x34, %al              /* '4' */
+    outb %al, $0xE9
 
     /* Call C++ main */
     movq __boot_info_ptr, %rdi   /* first argument: BootInfo* */
@@ -44,6 +63,15 @@ _start:
 .size _start, .-_start
 
 /* ==============================================================
+ * BootInfo Pointer Storage (.data section - NOT .bss!)
+ * ============================================================== */
+.section .data
+.global __boot_info_ptr
+.align 8
+__boot_info_ptr:
+    .quad 0
+
+/* ==============================================================
  * Stack Section
  * ============================================================== */
 .section .bss
@@ -53,13 +81,6 @@ _start:
 
 .set MINI_STACK_SIZE, 0x2000    /* 8KB */
 
-.skip MINI_STACK_SIZE
 __mini_stack:
+    .skip MINI_STACK_SIZE
 __mini_stack_top:
-
-/* ==============================================================
- * BootInfo Pointer Storage
- * ============================================================== */
-.global __boot_info_ptr
-.skip 8
-__boot_info_ptr:

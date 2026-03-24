@@ -52,7 +52,12 @@ typedef struct {
 } __attribute__((packed)) MemoryMapEntry;
 
 // Static assertion: ensure struct size matches E820 format (24 bytes)
+// Use _Static_assert for C11, static_assert for C++11
+#if defined(__cplusplus)
 static_assert(sizeof(MemoryMapEntry) == 24, "MemoryMapEntry must be 24 bytes");
+#else
+_Static_assert(sizeof(MemoryMapEntry) == 24, "MemoryMapEntry must be 24 bytes");
+#endif
 
 // ============================================================
 // Boot Information Structure
@@ -92,7 +97,11 @@ typedef struct {
 } __attribute__((packed)) BootInfo;
 
 // Static assertion: ensure BootInfo layout is predictable
-static_assert(sizeof(BootInfo) == 24 + 32 + 8 + 4 + 4 + 4 + 4 + 4 + (32 * 24),
-              "BootInfo size mismatch");
+// Size: 4*uint64_t(32) + 6*uint32_t(24) + 32*MemoryMapEntry(768) = 824
+#if defined(__cplusplus)
+static_assert(sizeof(BootInfo) == 824, "BootInfo size mismatch");
+#else
+_Static_assert(sizeof(BootInfo) == 824, "BootInfo size mismatch");
+#endif
 
 #endif // BOOT_BOOT_INFO_H
