@@ -1,15 +1,17 @@
 /**
  * @file boot/stage2.S
- * @brief Cinux Stage2 Bootloader - VESA Initialization
+ * @brief Cinux Stage2 Bootloader - VESA and Long Mode Initialization
  *
  * This file is loaded by MBR to 0x8000 and continues the boot process.
- * Responsibilities (for this milestone):
+ * Responsibilities:
  *   - Print "Stage2 OK" message
  *   - Enable A20 line
  *   - Get VESA controller information
  *   - Get VESA mode information (0x118: 1024x768x32)
  *   - Set VESA video mode with linear framebuffer
  *   - Save framebuffer information to fixed location
+ *   - Switch to protected mode
+ *   - Setup page tables and enter long mode
  *
  * AT&T Syntax: source, destination order
  * Registers: % prefix, Immediates: $ prefix
@@ -31,6 +33,12 @@
 .extern vesa_save_framebuffer_info
 
 // ============================================================
+// External functions from common/long_mode.S
+// ============================================================
+.extern setup_page_tables
+.extern enter_long_mode
+
+// ============================================================
 // Constants from common/serial.S
 // ============================================================
 .set VBE_FB_INFO_BLOCK,         0x6400
@@ -39,26 +47,34 @@
 // Framebuffer info layout offsets
 .set FB_INFO_PHYS_ADDR,         0       // Physical base address (8 bytes)
 .set FB_INFO_PITCH,             8       // Bytes per scan line (4 bytes)
-.set FB_INFO_WIDTH,             12      // Width in pixels (2 bytes) 
+.set FB_INFO_WIDTH,             12      // Width in pixels (2 bytes)
+
+// GDT selectors for long mode
+.set GDT_CODE64,                0x18     // 64-bit code selector
+.set GDT_DATA64,                0x20     // 64-bit data selector
+
+// Debugcon
+.set DEBUGCON_PORT,             0xE9
+.set CHAR_LONG_MODE,            0x4C     // 'L' for Long Mode verification
 
 // ============================================================
 // Function: _start
 // Responsibility: Stage2 entry point, called from MBR
 // Input: None (execution starts here)
-// Output: Never returns (continues to next stage)
+// Output: Never returns (continues to long mode)
 // ============================================================
 _start:
     cli                             // Disable interrupts during critical setup
 
-    // Reset all registers again...
-    movw %cs, %ax                 // Tricks: Xor one number with itself get 0
-    movw %ax, %ds
-    movw %ax, %es
-    movw %ax, %fs
-    movw %ax, %gs
+    // Reset all segment registers
+    movw %cs, %ax                 // Load CS into AX
+    movw %ax, %ds                 // Set DS = CS
+    movw %ax, %es                 // Set ES = CS
+    movw %ax, %fs                 // Set FS = CS
+    movw %ax, %gs                 // Set GS = CS
 
-    movw $0x900, %ax    // 0x900 << 4 = 0x9000
-    movw %ax, %ss
+    movw $0x900, %ax             // 0x900 << 4 = 0x9000
+    movw %ax, %ss                // Set SS to 0x9000
 
     // [→sp] Stack at bottom of stage2
     movw $STAGE2_STACK_BASEADDR, %sp
@@ -130,11 +146,53 @@ pm_entry:
     movb $0x50, %al               // 'P'
     outb %al, $0xE9               // Debugcon output
 
-    // 7. Infinite halt (we're in protected mode now)
-    cli                             // Disable interrupts
+    // ============================================================
+    // Transition to Long Mode
+    // ============================================================
+
+    // Setup page tables for long mode
+    call setup_page_tables          // [->mem] Setup page tables at 0x1000-0x3FFF
+
+    // Enter long mode
+    call enter_long_mode            // [->rip] Jump to 64-bit mode
+
+    // Should never reach here
+    cli
 .pm_halt:
     hlt
     jmp .pm_halt
+
+// ============================================================
+// Long Mode Entry Point
+// ============================================================
+.code64                          // Now in 64-bit long mode
+.global long_mode_entry
+long_mode_entry:
+    // GDT is already loaded by enter_long_mode before far jump
+
+    // Set up data segment registers for 64-bit mode
+    movw $GDT_DATA64, %ax           // [imm->ax] Load 64-bit data selector
+    movw %ax, %ds                   // [ax->ds] Set DS to 64-bit data selector
+    movw %ax, %es                   // [ax->es] Set ES
+    movw %ax, %fs                   // [ax->fs] Set FS
+    movw %ax, %gs                   // [ax->gs] Set GS
+    movw %ax, %ss                   // [ax->ss] Set SS
+
+    // Set up 64-bit stack
+    movabsq $0x90000, %rsp          // [imm->rsp] Set 64-bit stack pointer
+
+    // Verify long mode entry with debugcon output
+    movb $CHAR_LONG_MODE, %al       // [imm->al] Load 'L' (0x4C)
+    outb %al, $DEBUGCON_PORT        // [al->port] Output 'L' to debugcon
+
+    // ============================================================
+    // Long Mode Success - Halt
+    // ============================================================
+    // Infinite halt loop
+    cli                             // Disable interrupts
+.lm_halt:
+    hlt                             // Halt
+    jmp .lm_halt                    // Jump back
 
 // ============================================================
 // Error Handlers
@@ -143,7 +201,7 @@ a20_failed:
     jmp panic
 
 // ============================================================
-// GDT (Global Descriptor Table) - in .rodata section
+// GDT (Global Descriptor Table) - in .gdt section
 // ============================================================
 .section .gdt,"a"
 .align 8                          // Align to 8 bytes (2^3)
@@ -168,11 +226,37 @@ gdt_data:
     .byte 0xCF                     // Granularity=4KB, 32-bit, Limit 19:16=0xF
     .byte 0x00                     // Base 31:24
 
+// 64-bit code descriptor (L=1, D=0)
+// Value: 0x00AF9A000000FFFF
+// Format: limit(0-15)=FFFF, base(0-23)=00, base(24-31)=00
+//         access=9A (present, DPL=0, code, executable, readable, 64-bit)
+//         flags=AF (64-bit, 4KB gran, limit=0xF)
+gdt_code64:
+    .quad 0x00AF9A000000FFFF       // 64-bit code descriptor (L=1, D=0)
+
+// 64-bit data descriptor
+// Value: 0x008F92000000FFFF
+// Format: limit=FFFF, base=0
+//         access=92 (present, DPL=0, data, writable)
+//         flags=8F (32-bit, 4KB gran, limit=0xF)
+gdt_data64:
+    .quad 0x008F92000000FFFF       // 64-bit data descriptor
+
 gdt_end:
 
+// 32-bit GDT pointer for protected mode entry
 gdt_ptr:
-    .word (gdt_end - gdt - 1) // Limit = sizeof(GDT) - 1 = 23 (3 descriptors * 8 - 1)
-    .long gdt                 // Linear address of GDT base
+    .word (gdt_end - gdt - 1)      // Limit = sizeof(GDT) - 1
+    .long gdt                      // Linear address of GDT base (32-bit)
+
+// 64-bit GDT pointer for long mode reload
+// Note: Use .long + .long instead of .quad to avoid 64-bit relocation
+// in 32-bit ELF. GDT is at low address so upper 32 bits are zero.
+.global gdt64_ptr
+gdt64_ptr:
+    .word (gdt_end - gdt - 1)      // Limit = sizeof(GDT) - 1
+    .long gdt                      // Lower 32 bits of GDT address
+    .long 0                        // Upper 32 bits (zero, GDT is in low memory)
 
 // ============================================================
 // Data Section

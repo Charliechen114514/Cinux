@@ -16,6 +16,19 @@ target_compile_options(boot_common PRIVATE
 )
 
 # ==============================================================
+# Common Long Mode Support
+# ==============================================================
+
+# Compile common/long_mode.S as an object file for inclusion
+add_library(boot_longmode OBJECT
+    common/long_mode.S
+)
+
+target_compile_options(boot_longmode PRIVATE
+    -Wa,--32                    # Generate 32-bit object (contains .code16, .code32, .code64)
+)
+
+# ==============================================================
 # MBR (Master Boot Record)
 # ==============================================================
 
@@ -29,10 +42,10 @@ target_compile_options(mbr PRIVATE
 )
 
 target_link_options(mbr PRIVATE
-    -Wl,-m,elf_i386             
+    -Wl,-m,elf_i386
     -T ${CMAKE_CURRENT_BINARY_DIR}/mbr.ld
     -nostdlib
-    -no-pie                    
+    -no-pie
 )
 
 # ==============================================================
@@ -41,11 +54,12 @@ target_link_options(mbr PRIVATE
 
 add_executable(stage2
     stage2.S
-    $<TARGET_OBJECTS:boot_common>  # Include common functions
+    $<TARGET_OBJECTS:boot_common>   # Include common functions
+    $<TARGET_OBJECTS:boot_longmode> # Include long mode functions
 )
 
 target_compile_options(stage2 PRIVATE
-    -Wa,--32                    # Assemble as 32-bit (allows 16-bit code)
+    -Wa,--32                    # Assemble as 32-bit (allows 16-bit and 64-bit code)
 )
 
 target_link_options(stage2 PRIVATE
@@ -78,11 +92,10 @@ SECTIONS
 ")
 
 # Create Stage2 linker script
-# Note: Stage2 is loaded by MBR to 0x8000 (see mbr.S:22 STAGE2_LOAD_ADDR)
-# The link address MUST match the load address for absolute addressing to work.
+# Stage2 is loaded by MBR to 0x8000, must match load address
+# The .code64 section is embedded within .text (assembler handles mode switches)
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/stage2.ld
-"
-OUTPUT_FORMAT(\"elf32-i386\")
+"OUTPUT_FORMAT(\"elf32-i386\")
 ENTRY(_start)
 SECTIONS
 {

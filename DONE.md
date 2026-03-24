@@ -42,3 +42,19 @@
 - ☑ QEMU 启动参数加 `-debugcon stdio`，验证终端出现 `P`
 
 ---
+
+### `003_boot_long_mode`
+**效果**：QEMU 不崩溃，debugcon 输出 `L`（确认进入 64-bit long mode）
+
+> **验证手段**：同上，进入 `.code64` 后一条 `outb $0x4C, $0xE9` 输出字符 `L`，不碰串口
+
+- ☑ 在物理地址 `0x1000–0x3FFF` 建临时页表：`rep stosl` 清零三页
+- ☑ 写 PML4[0]=`PDPT|0x03`，PDPT[0]=`PD|0x03`，PD[0..3]=`i*0x200000|0x83`（PS=1，2MB 大页）
+- ☑ `movl $0x1000, %cr3`
+- ☑ `orl $0x20, %cr4`（PAE）
+- ☑ `rdmsr`/`wrmsr` 对 `EFER(0xC0000080)` 置 `LME(bit8)`
+- ☑ `orl $0x80000001, %cr0`（PG+PE）
+- ☑ GDT 追加 64-bit 代码段描述符：`0x00AF9A000000FFFF`（L=1, D=0），偏移 `0x18`
+- ☑ `ljmp $0x18, $lm_entry` 进入 `.code64`
+- ☑ `.code64` 内：重新 `lgdt gdt64_desc`（base 改为 `.quad`），设段寄存器，`movabsq $stack_top, %rsp`
+- ☑ 进入 `.code64` 后：`movb $0x4C, %al; outb %al, $0xE9`（输出字符 `L` 确认 long mode）
