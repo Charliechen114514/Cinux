@@ -10,7 +10,7 @@
  */
 
 .section .text
-.code16gcc                     // Generate 16-bit code (works with --32)
+.code16                        // Generate 16-bit code (works with --32)
 
 // ============================================================
 // VBE/VESA Structure Offsets
@@ -48,9 +48,9 @@
 .global print_string
 .type print_string, @function
 print_string:
-    push %ax
-    push %bx
-    push %si
+    pushw %ax
+    pushw %bx
+    pushw %si
     cld
 
 .loop:
@@ -64,9 +64,9 @@ print_string:
     jmp .loop
 
 .done:
-    pop %si
-    pop %bx
-    pop %ax
+    popw %si
+    popw %bx
+    popw %ax
     ret
 
 // ============================================================
@@ -96,25 +96,25 @@ panic:
 .type   enable_a20, @function
 .set    A20_COMMAND, 0x2401
 enable_a20:
-    push %ax
-    push %ds
-    push %es
+    pushw %ax
+    pushw %ds
+    pushw %es
 
     movw $0x2401, %ax               // AH=0x24, AL=0x01 (enable A20)
     int $0x15
 
     jc .a20_failed
 
-    pop %es
-    pop %ds
-    pop %ax
+    popw %es
+    popw %ds
+    popw %ax
 
     ret
 
 .a20_failed:
-    pop %es
-    pop %ds
-    pop %ax
+    popw %es
+    popw %ds
+    popw %ax
     movw $(a20_error_msg), %si
     jmp panic
 
@@ -128,9 +128,9 @@ enable_a20:
 .global vesa_get_controller_info
 .type vesa_get_controller_info, @function
 vesa_get_controller_info:
-    push %ax
-    push %es
-    push %di
+    pushw %ax
+    pushw %es
+    pushw %di
 
     // [→ax] Calculate segment (0x6000 / 16)
     movw $VBE_VBE_INFO_BLOCK >> 4, %ax
@@ -151,15 +151,15 @@ vesa_get_controller_info:
     cmpb $0, %ah
     jne .vesa_ctrl_failed
 
-    pop %di
-    pop %es
+    popw %di
+    popw %es
     pop %ax
     ret
 
 .vesa_ctrl_failed:
-    pop %di
-    pop %es
-    pop %ax
+    popw %di
+    popw %es
+    popw %ax
     movw $(vesa_ctrl_error_msg), %si    // [→si] Load error message
     jmp panic                           // [→never] Call panic
 
@@ -174,10 +174,10 @@ vesa_get_controller_info:
 .global vesa_get_mode_info
 .type vesa_get_mode_info, @function
 vesa_get_mode_info:
-    push %ax
-    push %cx
-    push %es
-    push %di
+    pushw %ax
+    pushw %cx
+    pushw %es
+    pushw %di
 
     movw $VBE_MODE_INFO_BLOCK >> 4, %ax
     movw %ax, %es
@@ -194,17 +194,17 @@ vesa_get_mode_info:
     cmpb $0x0, %ah
     jne .vesa_mode_failed
 
-    pop %di
-    pop %es
-    pop %cx
-    pop %ax
+    popw %di
+    popw %es
+    popw %cx
+    popw %ax
     ret
 
 .vesa_mode_failed:
-    pop %di
-    pop %es
-    pop %cx
-    pop %ax
+    popw %di
+    popw %es
+    popw %cx
+    popw %ax
     movw $(vesa_mode_error_msg), %si
     jmp panic
 
@@ -247,11 +247,11 @@ vesa_set_mode:
 .global vesa_save_framebuffer_info
 .type vesa_save_framebuffer_info, @function
 vesa_save_framebuffer_info:
-    push %ax
-    push %bx
-    push %di
-    push %es
-    push %gs
+    pushw %ax
+    pushw %bx
+    pushw %di
+    pushw %es
+    pushw %gs
 
     // ES -> VBE_MODE_INFO_BLOCK (0x6200)
     movw $VBE_MODE_INFO_BLOCK >> 4, %ax
@@ -280,11 +280,11 @@ vesa_save_framebuffer_info:
     movw %es:MODE_Y_RESOLUTION(%di), %ax
     movw %ax, %gs:FB_INFO_HEIGHT(%di)
 
-    pop %gs
-    pop %es
-    pop %di
-    pop %bx
-    pop %ax
+    popw %gs
+    popw %es
+    popw %di
+    popw %bx
+    popw %ax
     ret
 
 .section .data

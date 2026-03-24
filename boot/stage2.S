@@ -88,15 +88,53 @@ _start:
     // Layout: addr(8B) + pitch(4B) + w(2B) + h(2B) = 16B
     call vesa_save_framebuffer_info // [→0x6400] Save FB info
 
-    // === VERIFY: Print BEFORE and AFTER mode switch ===
-    // (After switch, text won't be visible, but execution proves it worked)
-    movw $0x4F, %ax               // Verify we can still write registers
-    cmpw $0x4F, %ax               // If this executes, mode switch succeeded!
+    cli                           // close the inter again
+    // ============================================================
+    // Switch to Protected Mode
+    // ============================================================
+    // IMPORTANT: lgdt in .code32 uses absolute address, but in real mode
+    // CPU calculates physical address as DS*16 + offset. We must set DS=0
+    // so that the address calculation is correct: 0*16 + 0x8160 = 0x8160
+    movw $0, %ax                  // Clear AX
+    movw %ax, %ds                 // Set DS = 0 (required for lgdt in real mode)
 
-    cli                             // [→flags] Disable interrupts
-.halt_loop:
-    hlt                             // [→cpu] Halt CPU
-    jmp .halt_loop                  // [→IP] Infinite loop
+    // 1. Load GDT pointer (with DS=0, physical address = 0x8160)
+    lgdt gdt_ptr                  // Load GDTR from absolute address
+
+    // 2. Set PE bit in CR0
+    movl %cr0, %eax               // Read CR0
+    orb $0x1, %al                 // Set PE bit (bit 0)
+    movl %eax, %cr0               // Write CR0
+
+    // 3. Far jump - manually construct for correct 16-bit encoding
+    // ljmp $0x08, $pm_entry in 16-bit format: ea <offset16> <seg16>
+    ljmp $0x08, $pm_entry
+
+// ============================================================
+// Protected Mode Entry Point
+// ============================================================
+.code32                          // Now in 32-bit protected mode
+pm_entry:
+    // 4. Set up data segment registers
+    movw $0x10, %ax               // Data selector value
+    movw %ax, %ds
+    movw %ax, %es
+    movw %ax, %fs
+    movw %ax, %gs
+    movw %ax, %ss
+
+    // 5. Set up new stack
+    movl $0x90000, %esp           // New stack in protected mode
+
+    // 6. Debug output: 'P' for Protected Mode
+    movb $0x50, %al               // 'P'
+    outb %al, $0xE9               // Debugcon output
+
+    // 7. Infinite halt (we're in protected mode now)
+    cli                             // Disable interrupts
+.pm_halt:
+    hlt
+    jmp .pm_halt
 
 // ============================================================
 // Error Handlers
@@ -104,6 +142,41 @@ _start:
 a20_failed:
     jmp panic
 
+// ============================================================
+// GDT (Global Descriptor Table) - in .rodata section
+// ============================================================
+.section .gdt,"a"
+.align 8                          // Align to 8 bytes (2^3)
+
+gdt:
+gdt_null:
+    .quad 0                        // Null descriptor (required)
+
+gdt_code:
+    .word 0xFFFF                   // Limit 15:0
+    .word 0x0000                   // Base 15:0 (= 0x8000)
+    .byte 0x00                     // Base 23:16
+    .byte 0x9A                     // Present, DPL=0, Code, Executable, Readable
+    .byte 0xCF                     // Granularity=4KB, 32-bit, Limit 19:16=0xF
+    .byte 0x00                     // Base 31:24
+
+gdt_data:
+    .word 0xFFFF                   // Limit 15:0
+    .word 0x0000                   // Base 15:0 (= 0x8000)
+    .byte 0x00                     // Base 23:16
+    .byte 0x92                     // Present, DPL=0, Data, Writable
+    .byte 0xCF                     // Granularity=4KB, 32-bit, Limit 19:16=0xF
+    .byte 0x00                     // Base 31:24
+
+gdt_end:
+
+gdt_ptr:
+    .word (gdt_end - gdt - 1) // Limit = sizeof(GDT) - 1 = 23 (3 descriptors * 8 - 1)
+    .long gdt                 // Linear address of GDT base
+
+// ============================================================
+// Data Section
+// ============================================================
 .section .data
 
 // Stage2 OK message

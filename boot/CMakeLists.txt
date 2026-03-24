@@ -78,19 +78,30 @@ SECTIONS
 ")
 
 # Create Stage2 linker script
+# Note: Stage2 is loaded by MBR to 0x8000 (see mbr.S:22 STAGE2_LOAD_ADDR)
+# The link address MUST match the load address for absolute addressing to work.
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/stage2.ld
 "
 OUTPUT_FORMAT(\"elf32-i386\")
 ENTRY(_start)
 SECTIONS
 {
-    . = 0x0;
+    . = 0x8000;
     .text : {
         *(.text)
+    }
+
+    .gdt ALIGN(8) : {
+        *(.gdt)
+    }
+
+    .rodata : {
         *(.rodata)
     }
-    .data : { *(.data) }
-    .bss  : { *(.bss) }
+
+    .data : {
+        *(.data)
+    }
     /DISCARD/ : { *(.comment*) *(.note*) }
 }
 ")
