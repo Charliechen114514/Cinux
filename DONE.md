@@ -58,3 +58,16 @@
 - ☑ `ljmp $0x18, $lm_entry` 进入 `.code64`
 - ☑ `.code64` 内：重新 `lgdt gdt64_desc`（base 改为 `.quad`），设段寄存器，`movabsq $stack_top, %rsp`
 - ☑ 进入 `.code64` 后：`movb $0x4C, %al; outb %al, $0xE9`（输出字符 `L` 确认 long mode）
+
+### `004_boot_load_mini_kernel`
+**效果**：QEMU 不崩溃，debugcon 输出 `J`（确认即将跳转小内核），随后小内核接管
+
+> **验证手段**：`jmp *%rax` 前一条 `outb $0x4A, $0xE9` 输出字符 `J`；小内核启动后由 `005` 的串口驱动接管所有后续输出
+> **加载方案**：两阶段加载——real mode 读 ELF header（4KB），protected mode 循环读完整小内核（无大小限制）并解析重定位
+> **小内核物理加载地址**：`0x200000`（2MB，与大页边界对齐，页表映射干净）
+
+
+#### 004_boot_load_mini_kernel_A：real mode 内完成（在 001 末尾 VESA 之后、进保护模式之前）
+
+- ☑ E820 内存枚举：`INT $0x15 AX=0xE820`，每次填一条 `MemoryMapEntry` 到 `0x5000` 起的缓冲（最多 32 条），记录条目数到 `0x5000` 前 4 字节
+- ☑ 磁盘读 ELF header：`INT $0x13 AH=0x42`，DAP 指定 LBA=`MINI_KERNEL_LBA`（build_image.sh 写死，例如 16），sectors=8（4KB），dest=`0x1000:0x0000`（物理 `0x10000`）；仅用于后续解析 PHDR 获取小内核总大小，**支持任意大小的内核镜像**

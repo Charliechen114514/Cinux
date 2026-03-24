@@ -17,11 +17,6 @@
 > **加载方案**：两阶段加载——real mode 读 ELF header（4KB），protected mode 循环读完整小内核（无大小限制）并解析重定位
 > **小内核物理加载地址**：`0x200000`（2MB，与大页边界对齐，页表映射干净）
 
-#### 004_boot_load_mini_kernel_A：real mode 内完成（在 001 末尾 VESA 之后、进保护模式之前）
-
-- ☐ E820 内存枚举：`INT $0x15 AX=0xE820`，每次填一条 `MemoryMapEntry` 到 `0x5000` 起的缓冲（最多 32 条），记录条目数到 `0x5000` 前 4 字节
-- ☐ 磁盘读 ELF header：`INT $0x13 AH=0x42`，DAP 指定 LBA=`MINI_KERNEL_LBA`（build_image.sh 写死，例如 16），sectors=8（4KB），dest=`0x1000:0x0000`（物理 `0x10000`）；仅用于后续解析 PHDR 获取小内核总大小，**支持任意大小的内核镜像**
-
 #### 004_boot_load_mini_kernel_B：保护模式内循环读取完整小内核 + ELF 解析
 
 - ☐ 定义 `boot/boot_info.h`（bootloader 和内核共用）：
