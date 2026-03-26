@@ -7,9 +7,9 @@
  * Flat binary: objcopy -O binary removes all ELF headers
  *
  * Memory layout:
- *   - Identity mapping:   0x0000000000020000 -> 0x20000 (physical)
- *   - Higher-half mapping: 0xFFFFFFFF80020000 -> 0x20000 (physical)
- *   Both mappings point to the same physical pages via PD[1].
+ *   - Identity mapping:   0x0000000000000000 -> 0x00000000 (physical)
+ *   - Higher-half mapping: 0xFFFFFFFF80000000 -> 0x00000000 (physical)
+ *   Both mappings point to the same physical pages via PD[0].
  */
 
 OUTPUT_FORMAT("elf64-x86-64")
@@ -25,16 +25,20 @@ SECTIONS
     . = KERNEL_Virt_BASE + KERNEL_PHYS_BASE;
 
     /* All read-only sections combined - use wildcard to catch all .text subsections */
-    .text : AT(KERNEL_PHYS_BASE) {
+    .text : AT(ADDR(.text) - KERNEL_Virt_BASE) {
         *(.text .text.*)
         *(.rodata .rodata.*)
     }
 
     /* All read-write sections combined */
-    .data : AT(KERNEL_PHYS_BASE + SIZEOF(.text)) {
+    .data : AT(ADDR(.data) - KERNEL_Virt_BASE) {
         *(.data .data.*)
+    }
+
+    /* .init_array section for global constructors */
+    .init_array : AT(ADDR(.init_array) - KERNEL_Virt_BASE) {
         __init_array_start = .;
-        *(.init_array .init_array.*)
+        KEEP(*(.init_array .init_array.*))
         __init_array_end = .;
     }
 

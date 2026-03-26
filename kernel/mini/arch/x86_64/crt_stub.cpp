@@ -8,6 +8,8 @@
  * building with -nostdlib and -ffreestanding.
  */
 
+#include <stdint.h>
+
 extern "C" {
 
 // ============================================================
@@ -51,9 +53,24 @@ int __cxa_atexit(void (*)(void*), void*, void*) {
 extern void (*__init_array_start[])();
 extern void (*__init_array_end[])();
 
+// Helper to convert higher-half address to identity-mapped address
+static inline void* hh_to_identity(void* hh_addr) {
+	uint64_t addr = (uint64_t)hh_addr;
+	// Strip higher-half base and add identity base
+	return (void*)(addr - 0xFFFFFFFF80000000 + 0x20000);
+}
+
 void _init_global_ctors() {
-	for (void (**func)() = __init_array_start; func != __init_array_end; func++) {
-		(*func)();
+	// __init_array_start/end are higher-half addresses
+	// No conversion needed - we're running in higher-half now!
+	void (**start)() = __init_array_start;
+	void (**end)() = __init_array_end;
+
+	for (void (**func)() = start; func != end; func++) {
+		void (*ctor)() = *func;
+		if (ctor != nullptr) {
+			ctor();
+		}
 	}
 }
 

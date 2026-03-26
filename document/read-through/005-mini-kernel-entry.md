@@ -559,7 +559,270 @@ extern "C" [[noreturn]] void mini_kernel_main(uint64_t boot_info_addr) {
 
 ---
 
-## 5. 常见变体与扩展方向
+## 5. 调试排查指南
+
+内核开发中遇到问题时，系统的调试方法能帮你快速定位原因。本节介绍两个常见的启动失败问题和对应的排查流程。
+
+### 5.1 页表 PDPT 索引计算错误
+
+**症状**：
+
+- 输出停留在 bootloader 的 `OPL` 后，没有后续的内核输出 `1234`
+- 使用 identity mapping (0x20000) 可以正常执行
+- 使用 higher-half mapping (0xFFFFFFFF80000000) 时发生页面错误
+
+**根本原因**：
+
+在 x86-64 分页机制中，虚拟地址 `0xFFFFFFFF80000000` 的索引计算容易出错：
+
+```
+虚拟地址: 0xFFFFFFFF80000000
+二进制:   1111111111111111111111111111111110000000000000000000000000000000
+          ^^^^^^^^^ bits 47:39 (PML4 索引)
+                     ^^^^^^^^ bits 38:30 (PDPT 索引)
+```
+
+正确计算：
+- **PML4 索引** (bits 47:39) = `0x1FF` = **511** ✓
+- **PDPT 索引** (bits 38:30) = `0x1FE` = **510** ← 这里容易写错！
+- **PD 索引** (bits 29:21) = `0x000` = **0** ✓
+
+如果错误地使用 PDPT[511]，CPU 会查找一个不存在的页表项（not present），触发页面错误。
+
+**为什么是 510？**
+
+`0x80000000` 的 bit 30 = 0，所以：
+```
+bits 38:30 = 0b111111110 = 0x1FE = 510
+```
+
+**验证方法**：
+
+添加调试代码输出页表项：
+
+```assembly
+// 在进入 long mode后，读取并输出页表项
+movq %cr3, %rax                 // 获取 PML4 地址
+movq 0xFF8(%rax), %rbx          // 读取 PML4[511]
+// 输出 %rbx，应该是 0x0000000000002003
+
+movq $0x2000, %rax              // PDPT 地址
+movq 0xFF8(%rax), %rbx          // 读取 PDPT[511] - 应该是 0！
+movq 0xFF0(%rax), %rbx          // 读取 PDPT[510] - 应该是 0x3003
+```
+
+**预防措施**：
+
+1. **使用宏定义**：定义清晰的页表索引常量
+
+```assembly
+// x86-64 higher-half 页表索引
+.set HH_PML4_INDEX,    511  // 0xFFFFFFFF80000000 的 PML4 索引
+.set HH_PDPT_INDEX,    510  // ← 注意：是 510，不是 511！
+.set HH_PD_INDEX,      0    // PD 索引
+```
+
+### 5.2 链接器脚本 LMA 计算错误
+
+**症状**：
+
+- `__init_array` 中的构造函数指针是 `0xffffffff` (垃圾值)
+- 调用全局构造函数时崩溃
+- 数据段内容不正确
+
+**根本原因**：
+
+使用 `SIZEOF()` 累加计算 LMA 时，**没有考虑段间对齐填充**。
+
+#### 错误的链接器脚本
+
+```ld
+KERNEL_PHYS_BASE = 0x20000;
+
+SECTIONS {
+    .text : AT(KERNEL_PHYS_BASE) {
+        *(.text .text.*)
+        *(.rodata .rodata.*)
+    }
+
+    .data : AT(KERNEL_PHYS_BASE + SIZEOF(.text)) {  // ← 错误！
+        *(.data .data.*)
+    }
+
+    .init_array : AT(KERNEL_PHYS_BASE + SIZEOF(.text) + SIZEOF(.data)) {
+        __init_array_start = .;
+        KEEP(*(.init_array .init_array.*))
+        __init_array_end = .;
+    }
+}
+```
+
+#### 问题分析
+
+```
+内存布局（VMA）:
+0xFFFFFFFF80020000  .text 开始
+0xFFFFFFFF80020xxx  .text 结束（可能有对齐填充）
+0xFFFFFFFF80021xxx  .data 开始  ← 对齐填充导致偏移！
+0xFFFFFFFF80021yyy  .data 结束
+0xFFFFFFFF80021zzz  .init_array 开始
+
+SIZEOF(.text) 只返回 .text 段内容的大小，不包含对齐填充
+所以 KERNEL_PHYS_BASE + SIZEOF(.text) 计算出的 LMA 位置错误！
+```
+
+#### 正确的链接器脚本
+
+```ld
+KERNEL_Virt_BASE = 0xFFFFFFFF80000000;
+KERNEL_PHYS_BASE = 0x20000;
+
+SECTIONS {
+    . = KERNEL_Virt_BASE + KERNEL_PHYS_BASE;
+
+    .text : AT(ADDR(.text) - KERNEL_Virt_BASE) {
+        *(.text .text.*)
+        *(.rodata .rodata.*)
+    }
+
+    .data : AT(ADDR(.data) - KERNEL_Virt_BASE) {
+        *(.data .data.*)
+    }
+
+    .init_array : AT(ADDR(.init_array) - KERNEL_Virt_BASE) {
+        __init_array_start = .;
+        KEEP(*(.init_array .init_array.*))
+        __init_array_end = .;
+    }
+
+    .bss : {
+        __bss_start = .;
+        *(.bss .bss.*)
+        *(COMMON)
+        __bss_end = .;
+    }
+}
+```
+
+**为什么 `ADDR() - KERNEL_Virt_BASE` 有效？**
+
+```
+LMA = VMA - KERNEL_Virt_BASE
+
+对于任何地址：
+- VMA = 0xFFFFFFFF80020000
+- LMA = 0xFFFFFFFF80020000 - 0xFFFFFFFF80000000 = 0x20000
+
+无论段间有多少对齐填充，这个关系始终成立！
+```
+
+**验证方法**：
+
+使用 `readelf` 检查段布局：
+
+```bash
+# 查看 ELF 段的 LMA (Load Address)
+readelf -l build/kernel/mini/mini_kernel.elf | grep -A 20 "Program Headers"
+
+# 输出示例：
+# LOAD           0x0000000000002000 0xffffffff80020000 0xffffffff80020000
+#                0x0000000000001000 0x0000000000001000  R E
+```
+
+关键检查项：
+- **VMA** (虚拟地址) 应该是 higher-half 地址
+- **LMA** (加载地址) 应该是物理地址（0x20000 起始）
+- **File Size** 和 **Mem Size** 应该匹配（对于非 .bss 段）
+
+### 5.3 故障排查流程图
+
+```
+内核启动失败
+    │
+    ├─> 输出停留在 "O" 之前
+    │   └─> 检查磁盘加载、MBR 执行
+    │
+    ├─> 输出停留在 "OP" 之间
+    │   └─> 检查保护模式切换、GDT 加载
+    │
+    ├─> 输出停留在 "PL" 之间
+    │   └─> 检查 long mode 切换、PAE 启用
+    │
+    ├─> 输出有 "L" 但没有后续
+    │   └─> 检查页表设置
+    │       │
+    │       ├─> 验证 PML4[511] = 0x2003
+    │       ├─> 验证 PDPT[510] = 0x3003  ← 注意是 510！
+    │       └─> 验证 PD[0] = 0x83
+    │
+    ├─> 输出有 "1" 但没有 "2"
+    │   └─> 检查栈指针设置
+    │
+    ├─> 输出有 "2" 但没有 "3"
+    │   └─> 检查 BSS 清零
+    │
+    ├─> 输出有 "3" 但没有 "4"
+    │   └─> 检查 __init_array
+    │       │
+    │       ├─> 验证 __init_array_start < __init_array_end
+    │       ├─> 验证构造函数指针有效（不是 0 或 0xffffffff）
+    │       └─> 检查链接器脚本 LMA 计算
+    │
+    └─> 输出有 "4" 但没有内核输出
+        └─> 检查 mini_kernel_main 入口
+```
+
+### 5.4 调试工具和方法
+
+#### 使用 QEMU debugcon
+
+最简单的调试方法：
+
+```bash
+qemu-system-x86_64 -drive file=cinux.img,format=raw -debugcon file:debug.log
+```
+
+在代码中添加调试输出：
+
+```assembly
+// 输出单个字符
+movb $0x41, %al    // 'A'
+outb %al, $0xE9    // 写入 debugcon 端口
+```
+
+```cpp
+// C/C++ 中使用
+__asm__ volatile("movb $0x42, %%al; outb %%al, $0xE9" ::: "eax");  // 'B'
+```
+
+#### GDB 调试
+
+```bash
+# 启动 QEMU with GDB server
+qemu-system-x86_64 -drive file=cinux.img,format=raw -s -S
+
+# 在另一个终端连接 GDB
+gdb build/kernel/mini/mini_kernel.elf
+(gdb) target remote :1234
+(gdb) break _start
+(gdb) continue
+```
+
+#### 检查符号表
+
+```bash
+# 查看内核符号地址
+nm build/kernel/mini/mini_kernel.elf | grep -E "__init_array|_start"
+
+# 预期输出：
+# ffffffff80020000 T _start
+# ffffffff80020xxx A __init_array_start
+# ffffffff80020xxx A __init_array_end
+```
+
+---
+
+## 6. 常见变体与扩展方向
 
 1. **添加颜色输出支持** ⭐
    - 在 ANSI 转义序列前添加前缀（如 `\033[31m` 红色）

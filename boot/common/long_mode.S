@@ -133,29 +133,35 @@ setup_page_tables:
     loop 1b
 
     // ============================================================
-    // Setup Higher-Half Kernel Mapping (004_boot_load_mini_kernel_C)
+    // Setup Higher-Half Kernel Mapping
     // ============================================================
-    // Map 0xFFFFFFFF80000000 -> 0x00000000 using the same PD entries
+    // We need to map 0xFFFFFFFF80000000 -> 0x00000000
+    // The kernel is loaded at 0x20000, which is in the first 2MB (PD[0])
     //
-    // Virtual address: 0xFFFFFFFF80020000
+    // For 0xFFFFFFFF80000000:
     //   - PML4[511] (bits 47:39 = 0x1FF = 511)
-    //   - PDPT[510]  (bits 38:30 = 0x1FE = 510)
-    //   - PD[1]      (bits 29:21 = 0x001 = 1)  -> maps to 0x20000 physical
+    //   - PDPT[510]  (bits 38:30 = 0x1FE = 510)  <- bit 30 = 0!
+    //   - PD[0]      (bits 29:21 = 0x000 = 0)   <- maps to 0x00000000 physical
     //
     // This allows the kernel to run at either:
-    //   - 0x0000000000020000 (identity mapping)
-    //   - 0xFFFFFFFF80020000 (higher-half mapping)
-    // Both use the same PD[1] entry, so they map to the same physical pages.
+    //   - 0x0000000000000000 (identity mapping via PML4[0])
+    //   - 0xFFFFFFFF80000000 (higher-half mapping via PML4[511])
+    //
+    // IMPORTANT: x86-64 page table entries are 64 bits!
+    // We must write both low 32 bits AND clear high 32 bits.
+    // High 32 bits must be zero (except reserved bits) for valid entries.
 
     // PML4[511] -> PDPT (same as PML4[0])
     movl $PDPT_PHYS_ADDR, %eax       // [imm->eax] PDPT physical address
     orl $0x03, %eax                   // [imm->eax] Add present+writable flags
-    movl %eax, PML4_PHYS_ADDR + (511 * 8)  // PML4[511] = PDPT|flags
+    movl %eax, PML4_PHYS_ADDR + (511 * 8)  // PML4[511] low 32 bits
+    movl $0, PML4_PHYS_ADDR + (511 * 8) + 4  // PML4[511] high 32 bits = 0
 
-    // PDPT[510] -> PD (same as PDPT[0])
+    // PDPT[510] -> PD (NOT 511! 0x80000000 has bit 30 = 0)
     movl $PD_PHYS_ADDR, %eax         // [imm->eax] PD physical address
     orl $0x03, %eax                   // [imm->eax] Add present+writable flags
-    movl %eax, PDPT_PHYS_ADDR + (510 * 8)  // PDPT[510] = PD|flags
+    movl %eax, PDPT_PHYS_ADDR + (510 * 8)  // PDPT[510] low 32 bits
+    movl $0, PDPT_PHYS_ADDR + (510 * 8) + 4  // PDPT[510] high 32 bits = 0
 
     ret
 

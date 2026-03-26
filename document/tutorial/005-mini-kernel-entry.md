@@ -886,6 +886,82 @@ make test_host
 # 问题可能在串口发送
 ```
 
+### 问题 4：页表映射导致内核无法启动
+
+**症状**：
+
+- 输出停留在 bootloader 的 `OPL` 后，没有后续的内核输出 `1234`
+- 使用 identity mapping (0x20000) 可以正常执行
+- 使用 higher-half mapping 时发生页面错误
+
+**根本原因**：
+
+页表 PDPT 索引计算错误。对于虚拟地址 `0xFFFFFFFF80000000`：
+
+```
+bits 47:39 (PML4 索引) = 0x1FF = 511 ✓
+bits 38:30 (PDPT 索引) = 0x1FE = 510 ← 容易写错成 511！
+bits 29:21 (PD 索引)   = 0x000 = 0   ✓
+```
+
+如果错误使用 PDPT[511]，会触发页面错误。
+
+**预防**：
+
+```assembly
+// 使用清晰的宏定义
+.set HH_PML4_INDEX,    511  // 0xFFFFFFFF80000000 的 PML4 索引
+.set HH_PDPT_INDEX,    510  // ← 注意：是 510，不是 511！
+.set HH_PD_INDEX,      0    // PD 索引
+```
+
+### 问题 5：全局构造函数指针是垃圾值
+
+**症状**：
+
+- 调用全局构造函数时崩溃
+- `__init_array` 中的指针是 `0xffffffff`
+
+**根本原因**：
+
+链接器脚本使用 `SIZEOF()` 累加计算 LMA，没有考虑段间对齐填充。
+
+**正确的写法**：
+
+```ld
+KERNEL_Virt_BASE = 0xFFFFFFFF80000000;
+KERNEL_PHYS_BASE = 0x20000;
+
+SECTIONS {
+    . = KERNEL_Virt_BASE + KERNEL_PHYS_BASE;
+
+    .init_array : AT(ADDR(.init_array) - KERNEL_Virt_BASE) {
+        __init_array_start = .;
+        KEEP(*(.init_array .init_array.*))
+        __init_array_end = .;
+    }
+}
+```
+
+使用 `ADDR() - KERNEL_Virt_BASE` 可以自动处理对齐填充。
+
+### 启动故障排查流程
+
+```
+内核启动失败
+    │
+    ├─> 输出停留在 "O" 之前 → 检查磁盘加载
+    ├─> 输出停留在 "OP" 之间 → 检查保护模式切换
+    ├─> 输出停留在 "PL" 之间 → 检查 long mode 切换
+    ├─> 输出有 "L" 但没有后续 → 检查页表设置
+    │                              验证 PDPT[510] = 0x3003
+    ├─> 输出有 "1" 但没有 "2" → 检查栈指针设置
+    ├─> 输出有 "2" 但没有 "3" → 检查 BSS 清零
+    ├─> 输出有 "3" 但没有 "4" → 检查 __init_array
+    │                              验证链接器脚本 LMA 计算
+    └─> 输出有 "4" 但没有内核输出 → 检查 mini_kernel_main
+```
+
 ---
 
 ## 本章踩坑总结
@@ -897,6 +973,8 @@ make test_host
 5. **DebugCon 输出顺序**：'1' '2' '3' '4' 必须按顺序出现
 6. **串口轮询必须检查 LSR**：不能直接写 THR，必须等待 bit 5 置位
 7. **测试框架的双模式设计**：Host 测试快速验证，Kernel 测试真实环境
+8. **higher-half 页表索引**：0xFFFFFFFF80000000 的 PDPT 索引是 510，不是 511
+9. **链接器脚本 LMA 计算**：使用 `ADDR() - KERNEL_Virt_BASE` 而不是 `SIZEOF()` 累加
 
 ---
 
@@ -949,6 +1027,7 @@ make test_host
 - `document/notes/005/005-07-format-algorithms.md`：格式化算法详解
 - `document/notes/005/005-10-serial-debug.md`：串口调试详解
 - `document/notes/005/005-11-debug-workflows.md`：调试工作流总结
+- `document/notes/005/005-12-mistake-check.md`：页表映射与链接脚本调试排查指南
 
 ---
 
