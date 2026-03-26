@@ -6,22 +6,6 @@
 
 ---
 
-## Phase 2 · 小内核 (Bootstrap Kernel)
-
-> **架构说明**：小内核是最小化的 C++ 内核，只实现运行大内核所需的基础功能。
-> **小内核职责**：初始化硬件 → 提供基础服务（输出、内存、磁盘）→ 加载并跳转到**大内核**。
-> **目录**：`kernel/mini/`，隶属于大内核 `kernel/` 的目录支下。
-> **内存布局**：小内核 @ 0x20000 (128KB)，大内核 @ 0x1000000 (16MB)。
-
-### `005_mini_kernel_entry`
-**效果**：串口输出 `[MINI] Bootstrap kernel running @ 0x20000`
-
-- ☐ `kernel/mini/drivers/serial.hpp/cpp`：`Serial::init(port,baud)`，`Serial::putc(c)`，`Serial::puts(s)`
-- ☐ `kernel/mini/lib/kprintf.hpp/cpp`：简化版 `kvprintf`/`kprintf`，支持 `%d %u %x %X %s %p %c %%`
-- ☐ `kernel/mini/main.cpp`：`mini_kernel_main(BootInfo*)` 调 `Serial::init()` → `kprintf("[MINI] Bootstrap kernel running @ 0x20000\n")`
-- ☐ 完成项目的调试基建和测试基建
----
-
 ### `006_mini_kernel_pmm`
 **效果**：物理内存分配器工作，输出 `[MINI] PMM: Total XMB, Free XMB`
 
