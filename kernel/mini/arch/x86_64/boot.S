@@ -7,7 +7,7 @@
  * Virtual address is 0xFFFFFFFF80000000 (higher-half).
  */
 
-.section .text
+.section .text.start, "ax"
 .code64
 
 .global _start

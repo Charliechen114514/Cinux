@@ -6,20 +6,6 @@
 
 ---
 
-### `006_mini_kernel_pmm`
-**效果**：物理内存分配器工作，输出 `[MINI] PMM: Total XMB, Free XMB`
-
-- ☐ `kernel/mini/mm/pmm.hpp/cpp`：Bitmap 物理内存分配器
-  - `init(BootInfo&)`：解析 E820，初始化 bitmap
-  - `alloc_page() → uint64_t`（返回物理地址，0=OOM）
-  - `free_page(uint64_t phys)`
-  - `free_page_count()` / `total_page_count()`
-- ☐ Bitmap 放在小内核末端（`__mini_kernel_end` 对齐后）
-- ☐ 过滤低 1MB，标记小内核自身和 bitmap 为已用
-- ☐ `mini_kernel_main` 输出：`kprintf("[MINI] PMM: Total %dMB, Free %dMB\n", ...)`
-
----
-
 ### `007_mini_kernel_interrupts`
 **效果**：触发异常不死机，能看到错误信息
 
@@ -58,7 +44,7 @@
 
 **常量定义**：
 ```cpp
-constexpr uint64_t MINI_KERNEL_LOAD_ADDR = 0x200000;    // 2MB
+constexpr uint64_t MINI_KERNEL_LOAD_ADDR = 0x20000;
 constexpr uint64_t BIG_KERNEL_LOAD_ADDR  = 0x1000000;   // 16MB
 ```
 

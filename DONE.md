@@ -131,6 +131,18 @@
 **效果**：串口输出 `[MINI] Bootstrap kernel running @ 0x20000`
 
 - ☑ `kernel/mini/drivers/serial.hpp/cpp`：`Serial::init(port,baud)`，`Serial::putc(c)`，`Serial::puts(s)`
-- ☐ `kernel/mini/lib/kprintf.hpp/cpp`：简化版 `kvprintf`/`kprintf`，支持 `%d %u %x %X %s %p %c %%`
+- ☑ `kernel/mini/lib/kprintf.hpp/cpp`：简化版 `kvprintf`/`kprintf`，支持 `%d %u %x %X %s %p %c %%`
 - ☑ `kernel/mini/main.cpp`：`mini_kernel_main(BootInfo*)` 调 `Serial::init()` → `kprintf("[MINI] Bootstrap kernel running @ 0x20000\n")`
 - ☑ 完成项目的调试基建和测试基建
+
+### `006_mini_kernel_pmm`
+**效果**：物理内存分配器工作，输出 `[MINI] PMM: Total XMB, Free XMB`
+
+- ☑ `kernel/mini/mm/pmm.hpp/cpp`：Bitmap 物理内存分配器
+  - `init(BootInfo&)`：解析 E820，初始化 bitmap
+  - `alloc_page() → uint64_t`（返回物理地址，0=OOM）
+  - `free_page(uint64_t phys)`
+  - `free_page_count()` / `total_page_count()`
+- ☑ Bitmap 放在小内核末端（`__mini_kernel_end` 对齐后）
+- ☑ 过滤低 1MB，标记小内核自身和 bitmap 为已用
+- ☑ `mini_kernel_main` 输出：`kprintf("[MINI] PMM: Total %dMB, Free %dMB\n", ...)`

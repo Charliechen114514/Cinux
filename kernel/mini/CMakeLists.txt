@@ -23,29 +23,46 @@ set(MINI_KERNEL_COMMON_LINK_OPTIONS
 )
 
 # ==============================================================
-# Production Kernel
+# Shared Object Library - 源文件只在一处维护
 # ==============================================================
 
-add_executable(mini_kernel
+add_library(mini_kernel_common OBJECT
     arch/x86_64/boot.S
     arch/x86_64/crt_stub.cpp
-    main.cpp
     driver/serial.cpp
     lib/kprintf.cpp
     lib/private/format.cpp
+    mm/pmm.cpp
 )
+
+# 对象库的编译选项设为 PUBLIC，继承者自动获得
+target_compile_options(mini_kernel_common PUBLIC ${MINI_KERNEL_COMMON_COMPILE_OPTIONS})
+
+# 对象库的 include 目录设为 PUBLIC
+# CMAKE_SOURCE_DIR 是项目根目录，这样可以找到 boot/ 下的头文件
+target_include_directories(mini_kernel_common PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/boot
+)
+
+# ==============================================================
+# Production Kernel - 只包含独有的 main.cpp
+# ==============================================================
+
+add_executable(mini_kernel
+    main.cpp
+)
+
+# 链接共享对象库（添加对象文件）
+target_sources(mini_kernel PRIVATE $<TARGET_OBJECTS:mini_kernel_common>)
+
+# 链接对象库以继承 PUBLIC 属性（编译选项、include 目录等）
+target_link_libraries(mini_kernel PRIVATE mini_kernel_common)
 
 # Set output directory to build/kernel/mini/
 set_target_properties(mini_kernel PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/kernel/mini
     OUTPUT_NAME "mini_kernel"
-)
-
-target_compile_options(mini_kernel PRIVATE ${MINI_KERNEL_COMMON_COMPILE_OPTIONS})
-
-# Add include directories for kernel headers
-target_include_directories(mini_kernel PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_link_options(mini_kernel PRIVATE ${MINI_KERNEL_COMMON_LINK_OPTIONS})

@@ -2,47 +2,7 @@
  * Cinux Mini Kernel - C++ Runtime Tests
  * ============================================================== */
 
-#include "../lib/kprintf.h"
-
-using cinux::mini::lib::kprintf;
-
-// ============================================================
-// Test Framework Adapter (Kernel Mode)
-// ============================================================
-namespace test {
-    static int tests_passed = 0;
-    static int tests_failed = 0;
-}
-
-// Test macros (must be outside namespace to work from other namespaces)
-#define TEST_ASSERT(cond) \
-    do { \
-        if (!(cond)) { \
-            kprintf("[FAIL] %s at %s:%d\n", #cond, __FILE__, __LINE__); \
-            test::tests_failed++; \
-            return; \
-        } \
-    } while(0)
-
-#define TEST_ASSERT_EQ(a, b) TEST_ASSERT((a) == (b))
-#define TEST_ASSERT_NE(a, b) TEST_ASSERT((a) != (b))
-#define TEST_ASSERT_NULL(ptr) TEST_ASSERT((ptr) == nullptr)
-#define TEST_ASSERT_NOT_NULL(ptr) TEST_ASSERT((ptr) != nullptr)
-
-#define RUN_TEST(fn) \
-    do { \
-        kprintf("[RUN] %s\n", #fn); \
-        fn(); \
-        if (test::tests_failed == 0) { \
-            test::tests_passed++; \
-            kprintf("[PASS] %s\n", #fn); \
-        } \
-    } while(0)
-
-#define TEST_SUMMARY() \
-    do { \
-        kprintf("\n=== Tests: %d passed, %d failed ===\n", test::tests_passed, test::tests_failed); \
-    } while(0)
+#include "kernel_test.h"
 
 // ============================================================
 // Test 1: Simple Class with Constructor/Destructor

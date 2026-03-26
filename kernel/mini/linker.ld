@@ -26,6 +26,7 @@ SECTIONS
 
     /* All read-only sections combined - use wildcard to catch all .text subsections */
     .text : AT(ADDR(.text) - KERNEL_Virt_BASE) {
+        *(.text.start)        /* _start must be first! */
         *(.text .text.*)
         *(.rodata .rodata.*)
     }
@@ -50,8 +51,9 @@ SECTIONS
         __bss_end = .;
     }
 
-    /* Kernel end markers */
+    /* Kernel end markers (global for PMM to use) */
     __mini_kernel_end = .;
+    PROVIDE(__kernel_size = (__mini_kernel_end - (KERNEL_Virt_BASE + KERNEL_PHYS_BASE)));
 
     /DISCARD/ : {
         *(.comment*)

@@ -286,18 +286,7 @@ long_mode_entry:
     // Jump to Mini Kernel
     // ============================================================
 
-    // Test 1: Verify identity mapping to kernel
-    movq $0x20000, %rax             // Identity address
-    movb (%rax), %al                // Read first byte (should be 0xFA = 'cli')
-    outb %al, $DEBUGCON_PORT        // Output: should be 0xFA
-
-    // Test 2: Verify higher-half mapping
-    movq $0xFFFFFFFF80020000, %rax  // Higher-half address
-    movb (%rax), %al                // Read first byte
-    outb %al, $DEBUGCON_PORT        // Output: should be 0xFA if mapping works
-
-    // Test 3: Jump to kernel using higher-half mapping
-    movb $0x48, %al                 // 'H' for Higher-half jump
+    movb $0x4A, %al                 // 'J' for Jump
     outb %al, $DEBUGCON_PORT
 
     movq $0x7000, %rdi              // First argument: BootInfo*
