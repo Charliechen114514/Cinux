@@ -6,25 +6,6 @@
 
 ---
 
-## Phase 3 · 大内核基础设施
-
-> **架构说明**：大内核从 `kernel/` 目录构建，由小内核加载并跳转，实现完整的 OS 功能。
-
-### `009_big_kernel_entry`
-**效果**：串口输出 `[BIG] Big kernel running @ 0x1000000`
-
-- ☐ `kernel/linker.ld`：`KERNEL_VMA = 0xFFFFFFFF80000000`，`.text` AT(VMA-KERNEL_VMA)`，加载地址 `0x1000000`
-- ☐ `kernel/arch/x86_64/boot.S`：`_start` 切换 `%rsp` 到 `__kernel_stack_top`，`xorq %rbp,%rbp`，`rep stosb` 清 BSS，`call _init_global_ctors`，`call kernel_main`，`.halt: cli; hlt`
-- ☐ `kernel/arch/x86_64/crt_stub.cpp`：`__cxa_pure_virtual`、`__stack_chk_fail`（均 `cli;hlt`），`__cxa_atexit` 返回 0，`_init_global_ctors` 遍历 `.init_array`
-- ☐ 链接脚本加 `.init_array` 段，收集全局构造器
-- ☐ `kernel/arch/x86_64/io.hpp`：`io_inb/io_outb/io_inw/io_outw/io_inl/io_outl/io_wait` 全部内联汇编，`"memory"` clobber
-- ☐ `kernel/drivers/serial.hpp/cpp`：`Serial::init(port,baud)`，`Serial::putc(c)`，`Serial::puts(s)`，`Serial::is_ready()`
-- ☐ `kernel/lib/kprintf.hpp/cpp`：`kvprintf(fmt,va_list)`，`kprintf(fmt,...)`，`kpanic(fmt,...) [[noreturn]]`，支持 `%d %u %x %X %s %p %c %%`，`%p` 输出 16 位十六进制
-- ☐ `kernel_main(BootInfo*)` 调 `Serial::init()` → `kprintf("[BIG] Big kernel running @ 0x1000000\n")`
-- ☐ host 端单元测试 `tests/unit/test_kprintf.cpp`：mock `Serial::putc`，验证各格式化输出
-
----
-
 ### `010_big_kernel_gdt_idt`
 **效果**：触发除零异常后串口打印寄存器 dump，不死机
 
