@@ -103,6 +103,18 @@ namespace test_ata_multi {
 }
 
 // ============================================================
+// Test 5: DMA availability
+// ============================================================
+namespace test_ata_dma {
+
+    void test_dma_available() {
+        // QEMU's PIIX4 IDE controller supports Bus Master DMA.
+        // Using static PRDT buffer so DMA works regardless of PMM state.
+        TEST_ASSERT_TRUE(is_dma_available());
+    }
+}
+
+// ============================================================
 // Test Entry Point
 // ============================================================
 extern "C" void run_ata_tests() {
@@ -112,6 +124,7 @@ extern "C" void run_ata_tests() {
     RUN_TEST(test_ata_mbr::test_read_mbr_signature);
     RUN_TEST(test_ata_data::test_read_non_zero);
     RUN_TEST(test_ata_multi::test_read_multi_sector);
+    RUN_TEST(test_ata_dma::test_dma_available);
 
     TEST_SUMMARY();
 }

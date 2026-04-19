@@ -23,11 +23,12 @@ PROJECT_ROOT=$(dirname "$SCRIPT_DIR")
 # Parse Command Line Arguments
 # ============================================================
 
-# Usage: build_image.sh [mbr.bin] [stage2.bin] [output.img]
+# Usage: build_image.sh [mbr.bin] [stage2.bin] [mini_kernel.bin] [output.img] [big_kernel.bin]
 MBR_BIN=${1:-${BUILD_DIR}/boot/mbr.bin}
 STAGE2_BIN=${2:-${BUILD_DIR}/boot/stage2.bin}
 MINI_BIN=${3:-${BUILD_DIR}/kernel/mini/mini_kernel.bin}
 OUTPUT_IMAGE=${4:-${BUILD_DIR}/cinux.img}
+BIG_KERNEL_BIN=${5:-""}
 
 # ============================================================
 # Ensure Build Directory Exists
@@ -105,9 +106,20 @@ echo "=========================================="
 printf "  %-20s %8s bytes  %4s sectors\n" "MBR:" "512" "1"
 printf "  %-20s %8d bytes  %4d sectors\n" "Stage2:" "$STAGE2_SIZE" "$STAGE2_SECTORS"
 printf "  %-20s %8d bytes  %4d sectors\n" "Mini Kernel:" "$MINI_SIZE" "$MINI_SECTORS"
+
+# Big kernel info (optional)
+BIG_KERNEL_LBA=848
+BIG_KERNEL_SIZE=0
+BIG_KERNEL_SECTORS=0
+if [ -n "$BIG_KERNEL_BIN" ] && [ -f "$BIG_KERNEL_BIN" ]; then
+    BIG_KERNEL_SIZE=$(stat -c%s "$BIG_KERNEL_BIN" 2>/dev/null || stat -f%z "$BIG_KERNEL_BIN")
+    BIG_KERNEL_SECTORS=$(( (BIG_KERNEL_SIZE + 511) / 512 ))
+    printf "  %-20s %8d bytes  %4d sectors\n" "Big Kernel:" "$BIG_KERNEL_SIZE" "$BIG_KERNEL_SECTORS"
+fi
+
 echo "=========================================="
-TOTAL_SIZE=$((512 + STAGE2_SIZE + MINI_SIZE))
-TOTAL_SECTORS=$((1 + STAGE2_SECTORS + MINI_SECTORS))
+TOTAL_SIZE=$((512 + STAGE2_SIZE + MINI_SIZE + BIG_KERNEL_SIZE))
+TOTAL_SECTORS=$((1 + STAGE2_SECTORS + MINI_SECTORS + BIG_KERNEL_SECTORS))
 printf "  %-20s %8d bytes  %4d sectors\n" "Total:" "$TOTAL_SIZE" "$TOTAL_SECTORS"
 echo "=========================================="
 echo ""
@@ -149,9 +161,17 @@ log_success "Size validation passed: All components within limits"
 # Create Disk Image
 # ============================================================
 
-# Step 1: Create blank image (1MB = 2048 sectors)
-# TODO: Adjust size based on actual needs
-dd if=/dev/zero of="$OUTPUT_IMAGE" bs=1M count=1 status=none
+# Step 1: Create blank image (1MB minimum, expand if big kernel present)
+IMAGE_SIZE_MB=1
+if [ -n "$BIG_KERNEL_BIN" ] && [ -f "$BIG_KERNEL_BIN" ]; then
+    NEEDED_SECTORS=$((BIG_KERNEL_LBA + BIG_KERNEL_SECTORS))
+    NEEDED_BYTES=$((NEEDED_SECTORS * 512))
+    NEEDED_MB=$(( (NEEDED_BYTES + 1048575) / 1048576 ))
+    if [ "$NEEDED_MB" -gt "$IMAGE_SIZE_MB" ]; then
+        IMAGE_SIZE_MB=$NEEDED_MB
+    fi
+fi
+dd if=/dev/zero of="$OUTPUT_IMAGE" bs=1M count=$IMAGE_SIZE_MB status=none
 
 # Step 2: Write MBR to sector 0
 dd if="$MBR_BIN" of="$OUTPUT_IMAGE" bs=512 count=1 conv=notrunc status=none
@@ -164,6 +184,14 @@ log_info "Stage2 written to sectors $STAGE2_LBA-$((STAGE2_LBA + STAGE2_SECTORS -
 # Step 4: Write mini kernel starting at sector 16
 dd if="$MINI_BIN" of="$OUTPUT_IMAGE" bs=512 seek=$MINI_KERNEL_LBA conv=notrunc status=none
 log_info "Mini kernel written to sectors $MINI_KERNEL_LBA-$((MINI_KERNEL_LBA + MINI_SECTORS - 1)) ($MINI_SECTORS sectors, $MINI_SIZE bytes)"
+
+# Step 5: Write big kernel starting at sector 848 (if provided)
+if [ -n "$BIG_KERNEL_BIN" ] && [ -f "$BIG_KERNEL_BIN" ]; then
+    dd if="$BIG_KERNEL_BIN" of="$OUTPUT_IMAGE" bs=512 seek=$BIG_KERNEL_LBA conv=notrunc status=none
+    log_info "Big kernel written to sectors $BIG_KERNEL_LBA-$((BIG_KERNEL_LBA + BIG_KERNEL_SECTORS - 1)) ($BIG_KERNEL_SECTORS sectors, $BIG_KERNEL_SIZE bytes)"
+else
+    log_info "No big kernel binary provided, skipping big kernel write"
+fi
 
 # ============================================================
 # Verify Image

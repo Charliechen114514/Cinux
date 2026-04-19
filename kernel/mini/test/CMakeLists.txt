@@ -10,6 +10,8 @@ add_executable(mini_kernel_test
     test_interrupts.cpp     # GDT/IDT/中断 tests (007)
     test_ata.cpp            # ATA PIO tests (008)
     test_elf_loader.cpp     # ELF64 parser/loader tests (008)
+    test_big_kernel_load.cpp # Big kernel loading tests (009)
+    test_stress_big_kernel.cpp # Stress test: large kernel load (009)
 )
 
 # 链接共享对象库（添加对象文件）

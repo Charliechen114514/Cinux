@@ -29,8 +29,10 @@
 
 // Include kernel ATA header for constants
 #include "mini/driver/ata.hpp"
+#include "mini/driver/pci.hpp"
 
 using namespace cinux::mini::driver::ata;
+using namespace cinux::mini::driver::pci;
 
 // ============================================================
 // Re-implement ATA register encoding logic for host testing
@@ -528,6 +530,62 @@ TEST("ata: LBA28 encoding for multi-byte LBA") {
     ASSERT_EQ(encode_lba28_mid(lba), 0x0C);
     ASSERT_EQ(encode_lba28_high(lba), 0x0B);
     ASSERT_EQ(encode_lba28_drive(lba), static_cast<uint8_t>(ATA_DRIVE_MASTER | 0x0A));
+}
+
+// ============================================================
+// 11. DMA Command Constants
+// ============================================================
+
+TEST("ata: DMA command constants") {
+    ASSERT_EQ(ATA_CMD_READ_DMA, 0xC8);
+    ASSERT_EQ(ATA_CMD_READ_DMA_EXT, 0x25);
+}
+
+// ============================================================
+// 12. Bus Master Register Offsets and Bits
+// ============================================================
+
+TEST("ata: Bus Master register offsets") {
+    ASSERT_EQ(BM_CMD, 0x00);
+    ASSERT_EQ(BM_STATUS, 0x02);
+    ASSERT_EQ(BM_PRDT, 0x04);
+}
+
+TEST("ata: Bus Master status bits") {
+    ASSERT_EQ(BM_STATUS_ACTIVE, 0x01);
+    ASSERT_EQ(BM_STATUS_ERROR, 0x02);
+    ASSERT_EQ(BM_STATUS_INTERRUPT, 0x04);
+    ASSERT_EQ(BM_STATUS_DMA_ERR, 0x20);
+}
+
+TEST("ata: Bus Master command bits") {
+    ASSERT_EQ(BM_CMD_START, 0x01);
+    ASSERT_EQ(BM_CMD_WRITE_DIR, 0x08);
+}
+
+// ============================================================
+// 13. PRD Structure and DMA Arithmetic
+// ============================================================
+
+TEST("ata: PRD structure size") {
+    ASSERT_EQ(sizeof(Prd), 8u);
+}
+
+TEST("ata: PRD field layout") {
+    Prd prd{};
+    prd.buffer_addr = 0x12345678;
+    prd.byte_count = 0x0100;
+    prd.flags = PRD_FLAG_EOT;
+    ASSERT_EQ(prd.buffer_addr, 0x12345678u);
+    ASSERT_EQ(prd.byte_count, 0x0100u);
+    ASSERT_EQ(prd.flags, 0x8000u);
+}
+
+TEST("ata: DMA byte count encoding (0 = 65536)") {
+    // In PRD, byte_count of 0 means 65536 bytes
+    uint32_t chunk = 65536;
+    uint16_t encoded = static_cast<uint16_t>(chunk & 0xFFFF);
+    ASSERT_EQ(encoded, 0u);
 }
 
 // ============================================================

@@ -64,6 +64,8 @@ constexpr uint8_t ATA_STATUS_BSY  = 0x80;  ///< Drive busy
 // ============================================================
 constexpr uint8_t ATA_CMD_READ_PIO        = 0x20;  ///< Read sectors (LBA28)
 constexpr uint8_t ATA_CMD_READ_PIO_EXT    = 0x24;  ///< Read sectors (LBA48)
+constexpr uint8_t ATA_CMD_READ_DMA        = 0xC8;  ///< Read DMA (LBA28)
+constexpr uint8_t ATA_CMD_READ_DMA_EXT    = 0x25;  ///< Read DMA (LBA48)
 constexpr uint8_t ATA_CMD_IDENTIFY        = 0xEC;  ///< Identify device
 
 // ============================================================
@@ -76,6 +78,24 @@ constexpr uint8_t ATA_DRIVE_LBA48  = 0x40;  ///< LBA48 mode bit in sector count
 // Sector Size
 // ============================================================
 constexpr uint16_t ATA_SECTOR_SIZE = 512;  ///< Standard ATA sector size
+
+// ============================================================
+// Bus Master DMA Register Offsets (relative to BAR4 base)
+// ============================================================
+// Primary channel; secondary channel would be at +8
+constexpr uint8_t BM_CMD    = 0x00;  ///< Bus Master Command register
+constexpr uint8_t BM_STATUS = 0x02;  ///< Bus Master Status register
+constexpr uint8_t BM_PRDT   = 0x04;  ///< PRD Table Address register (32-bit)
+
+// BM_CMD bits
+constexpr uint8_t BM_CMD_START     = 0x01;  ///< Bit 0: Start DMA transfer
+constexpr uint8_t BM_CMD_WRITE_DIR = 0x08;  ///< Bit 3: 1=write to disk, 0=read
+
+// BM_STATUS bits
+constexpr uint8_t BM_STATUS_ACTIVE    = 0x01;  ///< Bit 0: DMA engine active
+constexpr uint8_t BM_STATUS_ERROR     = 0x02;  ///< Bit 1: DMA error
+constexpr uint8_t BM_STATUS_INTERRUPT = 0x04;  ///< Bit 2: DMA completion interrupt
+constexpr uint8_t BM_STATUS_DMA_ERR   = 0x20;  ///< Bit 5: PCI target/master abort
 
 // ============================================================
 // Initialization
@@ -116,5 +136,45 @@ bool init();
  *       This function blocks until all data is transferred (polling).
  */
 bool read(uint64_t lba, uint16_t count, void* buffer);
+
+/**
+ * @brief Read a large number of sectors from disk, handling chunking
+ *
+ * For reads exceeding 65535 sectors (32MB), automatically splits into
+ * multiple ATA PIO commands.  Each chunk is at most 65535 sectors
+ * (LBA48 maximum per command).
+ *
+ * @param lba     Starting Logical Block Address (0-based sector index)
+ * @param count   Total number of 512-byte sectors to read (32-bit)
+ * @param buffer  Destination buffer (must be at least count * 512 bytes)
+ * @return true if all chunks were read successfully, false on error
+ */
+bool read_large(uint64_t lba, uint32_t count, void* buffer);
+
+// ============================================================
+// DMA Operations
+// ============================================================
+
+/**
+ * @brief Check whether DMA is available and initialized
+ *
+ * After init(), returns true if a PCI IDE controller with Bus Master
+ * capability was detected and the DMA engine was set up.
+ */
+bool is_dma_available();
+
+/**
+ * @brief Read sectors using PCI Bus Master DMA
+ *
+ * Transfers data directly from disk to memory via DMA, without
+ * CPU involvement per sector.  The buffer must reside in identity-mapped
+ * physical memory below 4GB.
+ *
+ * @param lba     Starting LBA (48-bit max)
+ * @param count   Number of 512-byte sectors (max 65535)
+ * @param buffer  Physical/identity-mapped destination buffer
+ * @return true on success, false on DMA or ATA error
+ */
+bool dma_read(uint64_t lba, uint16_t count, void* buffer);
 
 }  // namespace cinux::mini::driver::ata

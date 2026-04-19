@@ -1,10 +1,10 @@
 /* ==============================================================
  * Cinux Mini Kernel - Main Entry Point
  *
- * Milestone 008: ATA PIO driver + ELF64 parser demonstration.
- * The big kernel does not exist yet (milestone 009+), so this main
- * verifies that the ATA driver can read sectors and the ELF parser
- * can validate headers, without attempting to jump to anything.
+ * Milestone 009: Load the big kernel from disk and jump to it.
+ * The mini kernel initialises hardware (GDT/IDT/PMM/ATA), reads
+ * the big kernel ELF from disk into a staging buffer, loads its
+ * PT_LOAD segments, and jumps to the entry point.
  * ============================================================== */
 
 extern "C" {
@@ -14,6 +14,7 @@ extern "C" {
 #include <boot_info.h>
 #include "arch/x86_64/gdt.hpp"
 #include "arch/x86_64/idt.hpp"
+#include "big_kernel_loader.hpp"
 #include "driver/ata.hpp"
 #include "elf_loader.hpp"
 #include "lib/kprintf.h"
@@ -103,8 +104,29 @@ extern "C" [[noreturn]] void mini_kernel_main(uint64_t boot_info_addr) {
 	}
 
 	// ============================================================
-	// Halt
+	// Load Big Kernel (009)
 	// ============================================================
-	kprintf("\n[MINI] Milestone 008 complete. Waiting for big kernel (009+)...\n");
+	// load_big_kernel() handles paging, overlap checks, and
+	// the full two-phase ELF loading internally.
+	uint64_t entry = cinux::mini::loader::load_big_kernel(
+		cinux::mini::loader::BIG_KERNEL_LBA);
+	if (entry == 0) {
+		kprintf("[MINI] ERROR: Failed to load big kernel!\n");
+		while (1) __asm__ volatile("cli; hlt");
+	}
+
+	kprintf("[MINI] Jumping to big kernel at 0x%p...\n", entry);
+
+	// Indirect jump to the big kernel entry point (_start in boot.S).
+	// _start sets up its own stack, clears BSS, runs global ctors,
+	// and calls kernel_main().  It never returns.
+	__asm__ volatile(
+		"cli            \n\t"  // disable interrupts before handoff
+		"jmp *%0        \n\t"
+		:
+		: "r"(entry)
+		: "memory");
+
+	// Should never reach here
 	while (1) __asm__ volatile("cli; hlt");
 }

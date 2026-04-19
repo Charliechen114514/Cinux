@@ -6,11 +6,12 @@ if(NOT QEMU_EXECUTABLE)
 endif()
 
 set(QEMU_COMMON_FLAGS
-    -m 512M
+    -m 8G
     -serial stdio
     -no-reboot
     -debugcon file:debug.log
     -global isa-debugcon.iobase=0xe9
+    -accel kvm -cpu max
 )
 
 set(QEMU_DEVELOP_FLAG     
@@ -20,6 +21,15 @@ set(QEMU_DEVELOP_FLAG
 set(QEMU_TEST_EXTRA_FLAGS
     -device isa-debug-exit,iobase=0xf4,iosize=0x04
 )
+
+# ============================================================
+# isa-debug-exit Exit Code Mapping
+# ============================================================
+# QEMU's isa-debug-exit device encodes: exit_code = (value << 1) | 1
+#   Kernel writes 0 → QEMU exits 1 → test SUCCESS
+#   Kernel writes 1 → QEMU exits 3 → test FAILURE
+# The run-kernel-test and run-stress-test targets use a bash wrapper
+# to map QEMU exit code 1 → make success, 3 → make failure.
 
 # 将 CMake list 转换为空格分隔的字符串（用于脚本生成）
 string(REPLACE ";" " " QEMU_COMMON_FLAGS_STR "${QEMU_COMMON_FLAGS}")
@@ -44,6 +54,7 @@ endif()
 set(MBR_BIN    "${CMAKE_BINARY_DIR}/boot/mbr.bin")
 set(STAGE2_BIN "${CMAKE_BINARY_DIR}/boot/stage2.bin")
 set(MINI_BIN   "${CMAKE_BINARY_DIR}/kernel/mini/mini_kernel.bin")
+set(BIG_KERNEL_BIN "${CMAKE_BINARY_DIR}/kernel/big/big_kernel")
 add_custom_command(
     OUTPUT ${CINUX_IMAGE_PATH}
     COMMAND ${CMAKE_SOURCE_DIR}/scripts/build_image.sh
@@ -51,7 +62,8 @@ add_custom_command(
         ${STAGE2_BIN}
         ${MINI_BIN}
         ${CINUX_IMAGE_PATH}
-    DEPENDS mbr stage2 mini_kernel
+        ${BIG_KERNEL_BIN}
+    DEPENDS mbr stage2 mini_kernel big_kernel
     COMMENT "Building disk image: ${CINUX_IMAGE_PATH}"
     VERBATIM
 )
@@ -88,6 +100,7 @@ add_custom_target(run-gdb
 # ==============================================================
 
 set(MINI_TEST_BIN "${CMAKE_BINARY_DIR}/kernel/mini/mini_kernel_test.bin")
+set(BIG_KERNEL_TEST_BIN "${CMAKE_BINARY_DIR}/kernel/big/big_kernel_test.bin")
 
 # 测试内核磁盘镜像
 set(CINUX_TEST_IMAGE_PATH "${CMAKE_BINARY_DIR}/cinux_test.img")
@@ -99,7 +112,8 @@ add_custom_command(
         ${STAGE2_BIN}
         ${MINI_TEST_BIN}
         ${CINUX_TEST_IMAGE_PATH}
-    DEPENDS mbr stage2 mini_kernel_test
+        ${BIG_KERNEL_TEST_BIN}
+    DEPENDS mbr stage2 mini_kernel_test big_kernel
     COMMENT "Building test disk image: ${CINUX_TEST_IMAGE_PATH}"
     VERBATIM
 )
@@ -108,9 +122,59 @@ add_custom_target(test-image
     DEPENDS ${CINUX_TEST_IMAGE_PATH}
 )
 
+# ==============================================================
+# Stress Test Targets (1GB kernel load)
+# ==============================================================
+
+set(STRESS_KERNEL_ELF "${CMAKE_BINARY_DIR}/stress_kernel.elf")
+
+add_custom_command(
+    OUTPUT ${STRESS_KERNEL_ELF}
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/scripts/generate_large_elf.py
+        --size 1073741824
+        --output ${STRESS_KERNEL_ELF}
+    COMMENT "Generating 1GB stress test ELF"
+    VERBATIM
+)
+
+add_custom_target(stress-kernel-elf
+    DEPENDS ${STRESS_KERNEL_ELF}
+)
+
+# Stress test disk image: mini test kernel + 1GB synthetic ELF
+set(STRESS_TEST_IMAGE "${CMAKE_BINARY_DIR}/cinux_stress_test.img")
+
+add_custom_command(
+    OUTPUT ${STRESS_TEST_IMAGE}
+    COMMAND ${CMAKE_SOURCE_DIR}/scripts/build_image.sh
+        ${MBR_BIN}
+        ${STAGE2_BIN}
+        ${MINI_TEST_BIN}
+        ${STRESS_TEST_IMAGE}
+        ${STRESS_KERNEL_ELF}
+    DEPENDS mbr stage2 mini_kernel_test stress-kernel-elf
+    COMMENT "Building stress test disk image (1GB kernel)"
+    VERBATIM
+)
+
+add_custom_target(stress-test-image
+    DEPENDS ${STRESS_TEST_IMAGE}
+)
+
+add_custom_target(run-stress-test
+    COMMAND ${CMAKE_SOURCE_DIR}/scripts/qemu_test_wrapper.sh
+        ${QEMU_EXECUTABLE} ${QEMU_COMMON_FLAGS} ${QEMU_TEST_EXTRA_FLAGS}
+        -drive file=${STRESS_TEST_IMAGE},format=raw,index=0,media=disk,cache=unsafe
+    DEPENDS stress-test-image
+    USES_TERMINAL
+    COMMENT "Running 1GB kernel stress test"
+    VERBATIM
+)
+
 # 运行测试内核（自动退出模式）
 add_custom_target(run-kernel-test
-    COMMAND ${QEMU_EXECUTABLE} ${QEMU_COMMON_FLAGS} ${QEMU_TEST_EXTRA_FLAGS}
+    COMMAND ${CMAKE_SOURCE_DIR}/scripts/qemu_test_wrapper.sh
+        ${QEMU_EXECUTABLE} ${QEMU_COMMON_FLAGS} ${QEMU_TEST_EXTRA_FLAGS}
         -drive file=${CINUX_TEST_IMAGE_PATH},format=raw,index=0,media=disk
     DEPENDS test-image
     USES_TERMINAL
@@ -148,6 +212,11 @@ message(STATUS "  make run-kernel-test            : Run test kernel (auto-exit)"
 message(STATUS "  make run-kernel-test-interactive : Run test kernel (needs Ctrl+C)")
 message(STATUS "  make run-kernel-test-debug      : Run test kernel with GDB")
 message(STATUS "  make test-image                  : Build test disk image only")
+message(STATUS "")
+message(STATUS "Stress Test targets:")
+message(STATUS "  make stress-kernel-elf  : Generate 1GB synthetic ELF")
+message(STATUS "  make stress-test-image  : Build stress test disk image")
+message(STATUS "  make run-stress-test    : Run 1GB kernel stress test")
 message(STATUS "")
 message(STATUS "Unified Testing:")
 message(STATUS "  make test                  : Run ALL tests (host + kernel, auto-exit)")

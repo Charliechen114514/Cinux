@@ -22,6 +22,8 @@ void			run_pmm_tests();   // PMM tests from test_pmm.cpp (006)
 void			run_interrupt_tests(); // GDT/IDT/interrupt tests from test_interrupts.cpp (007)
 void			run_ata_tests();   // ATA PIO tests from test_ata.cpp (008)
 void			run_elf_loader_tests(); // ELF loader tests from test_elf_loader.cpp (008)
+void			run_big_kernel_load_tests(); // Big kernel loading tests from test_big_kernel_load.cpp (009)
+void			run_stress_big_kernel_tests(); // Stress test: large kernel load
 }
 
 extern "C" [[noreturn]] void mini_kernel_main(uint64_t boot_info_addr) {
@@ -85,6 +87,15 @@ extern "C" [[noreturn]] void mini_kernel_main(uint64_t boot_info_addr) {
 	// ELF Loader Tests (008)
 	// ============================================================
 	run_elf_loader_tests();
+
+	// ============================================================
+	// Big Kernel Loading Tests (009)
+	// ============================================================
+	run_big_kernel_load_tests();
+
+	// Note: stress tests (run_stress_big_kernel_tests) require a special
+	// disk image with a large synthetic ELF. They are NOT run as part of
+	// the standard test suite. Use `make run-stress-test` to run them.
 
 	// ============================================================
 	// Test Complete - Shutdown

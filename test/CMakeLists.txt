@@ -125,13 +125,32 @@ add_test(NAME big_kernel_loader COMMAND test_big_kernel_loader)
 set_tests_properties(big_kernel_loader PROPERTIES LABELS "big_kernel_loader")
 
 # ============================================================
+# 测试可执行文件：test_kprintf (big kernel kprintf formatting)
+# ============================================================
+# Tests the big kernel's kprintf formatting helpers and %p spec.
+# Pure arithmetic -- no kernel code linked.
+add_executable(test_kprintf
+    ${CMAKE_SOURCE_DIR}/tests/unit/test_kprintf.cpp
+)
+
+target_compile_definitions(test_kprintf PRIVATE CINUX_HOST_TEST)
+target_include_directories(test_kprintf PRIVATE
+    ${CMAKE_SOURCE_DIR}/test/framework
+    ${CMAKE_SOURCE_DIR}/kernel
+    ${CMAKE_SOURCE_DIR}
+)
+target_compile_features(test_kprintf PRIVATE cxx_std_23)
+add_test(NAME kprintf COMMAND test_kprintf)
+set_tests_properties(kprintf PROPERTIES LABELS "kprintf")
+
+# ============================================================
 # 测试辅助目标
 # ============================================================
 
 # Host 端单元测试
 add_custom_target(test_host
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf
     USES_TERMINAL
     COMMENT "Running host unit tests..."
 )
@@ -146,7 +165,7 @@ configure_file(
 
 add_custom_target(test
     COMMAND sh ${CMAKE_BINARY_DIR}/run_all_tests.sh
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test-image
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test-image
     USES_TERMINAL
     COMMENT "Running ALL tests (host then kernel)..."
 )
@@ -154,7 +173,7 @@ add_custom_target(test
 # 详细模式运行 host 测试
 add_custom_target(test_verbose
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose --output-on-failure
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf
     COMMENT "Running host tests in verbose mode..."
 )
 

@@ -141,73 +141,87 @@ uint64_t load_elf(void* elf_src, uint64_t staging_size) {
 	}
 
 	// Step 2: Cast to Elf64_Ehdr pointer
-	auto* ehdr = static_cast<Elf64_Ehdr*>(elf_src);
+	const auto* ehdr = static_cast<const Elf64_Ehdr*>(elf_src);
 
-	// Step 3: Log ELF header information
-	kprintf("[ELF] Entry point: 0x%p\n", ehdr->e_entry);
-	kprintf("[ELF] Program headers: %u at offset 0x%p\n", ehdr->e_phnum, ehdr->e_phoff);
+	// Step 3: Save header fields before any segment copy.
+	// Loading a PT_LOAD segment may write to p_paddr which can overlap
+	// the staging buffer (e.g., when the kernel's physical base equals
+	// the staging address).  Once that happens the ELF header in the
+	// staging buffer is corrupted, so we must capture everything we
+	// need up front.
+	const uint64_t  saved_entry     = ehdr->e_entry;
+	const uint16_t  saved_phnum     = ehdr->e_phnum;
+	const uint64_t  saved_phoff     = ehdr->e_phoff;
+	const uint16_t  saved_phentsize = ehdr->e_phentsize;
 
-	// Step 4: Iterate through program headers and load PT_LOAD segments
-	for (uint16_t i = 0; i < ehdr->e_phnum; i++) {
-		const Elf64_Phdr* phdr = get_phdr(ehdr, i);
-		if (phdr == nullptr) {
-			kprintf("[ELF] WARNING: failed to get phdr[%u]\n", i);
-			continue;
-		}
+	// Copy all program headers to local storage so they survive staging
+	// buffer overwrites during the loading loop.
+	if (saved_phnum > 16) {
+		kprintf("[ELF] ERROR: too many program headers (%u)\n", saved_phnum);
+		return 0;
+	}
+	Elf64_Phdr saved_phdrs[16];
+	for (uint16_t i = 0; i < saved_phnum; i++) {
+		const auto* phdr = reinterpret_cast<const Elf64_Phdr*>(
+			reinterpret_cast<const uint8_t*>(ehdr) + saved_phoff
+			+ static_cast<uint64_t>(i) * saved_phentsize);
+		saved_phdrs[i] = *phdr;
+	}
+
+	// Step 4: Log ELF header information
+	kprintf("[ELF] Entry point: 0x%p\n", saved_entry);
+	kprintf("[ELF] Program headers: %u at offset 0x%p\n", saved_phnum, saved_phoff);
+
+	// Step 5: Iterate through saved program headers and load PT_LOAD segments
+	for (uint16_t i = 0; i < saved_phnum; i++) {
+		const Elf64_Phdr& phdr = saved_phdrs[i];
 
 		// Skip non-loadable segments
-		if (phdr->p_type != PT_LOAD) {
+		if (phdr.p_type != PT_LOAD) {
 			continue;
 		}
 
 		kprintf("[ELF] PT_LOAD[%u]: vaddr=0x%p paddr=0x%p filesz=0x%p memsz=0x%p\n", i,
-				phdr->p_vaddr, phdr->p_paddr, phdr->p_filesz, phdr->p_memsz);
+				phdr.p_vaddr, phdr.p_paddr, phdr.p_filesz, phdr.p_memsz);
 
 		// Validate that segment data lies within the staging buffer.
-		// The staging buffer has a finite size determined by how many sectors
-		// were read from disk. If p_offset + p_filesz exceeds this, the ELF
-		// binary is larger than what we loaded -- abort rather than read garbage.
-		if (phdr->p_offset + phdr->p_filesz > staging_size) {
+		if (phdr.p_offset + phdr.p_filesz > staging_size) {
 			kprintf("[ELF] ERROR: segment %u data exceeds staging buffer "
 					"(offset=0x%p + filesz=0x%p > staging=0x%p)\n",
-					i, phdr->p_offset, phdr->p_filesz, staging_size);
+					i, phdr.p_offset, phdr.p_filesz, staging_size);
 			return 0;
 		}
 
-		// Calculate destination address
-		// The big kernel's p_paddr field contains the physical target address
-		uint64_t dest_addr = phdr->p_paddr;
+		// Calculate destination address (physical target from p_paddr)
+		uint64_t dest_addr = phdr.p_paddr;
 
 		// Calculate source address within the staging buffer
-		const void* src = reinterpret_cast<const uint8_t*>(elf_src) + phdr->p_offset;
+		const void* src = reinterpret_cast<const uint8_t*>(elf_src) + phdr.p_offset;
 
 		// Copy file data to destination
-		if (phdr->p_filesz > 0) {
-			memcpy(reinterpret_cast<void*>(dest_addr), src, phdr->p_filesz);
+		if (phdr.p_filesz > 0) {
+			memmove(reinterpret_cast<void*>(dest_addr), src, phdr.p_filesz);
 		}
 
 		// Zero-fill BSS (if memsz > filesz)
-		if (phdr->p_memsz > phdr->p_filesz) {
-			uint64_t bss_start = dest_addr + phdr->p_filesz;
-			size_t bss_size = static_cast<size_t>(phdr->p_memsz - phdr->p_filesz);
+		if (phdr.p_memsz > phdr.p_filesz) {
+			uint64_t bss_start = dest_addr + phdr.p_filesz;
+			size_t bss_size = static_cast<size_t>(phdr.p_memsz - phdr.p_filesz);
 			memset(reinterpret_cast<void*>(bss_start), 0, bss_size);
 		}
 
 		kprintf("[ELF] Loaded segment %u: 0x%p -> 0x%p (%u bytes, BSS %u bytes)\n", i,
-				phdr->p_offset, dest_addr, phdr->p_filesz,
-				phdr->p_memsz > phdr->p_filesz ? static_cast<uint32_t>(phdr->p_memsz - phdr->p_filesz)
-												: 0);
+				phdr.p_offset, dest_addr, phdr.p_filesz,
+				phdr.p_memsz > phdr.p_filesz ? static_cast<uint32_t>(phdr.p_memsz - phdr.p_filesz)
+											 : 0);
 	}
 
-	// Step 5: Log successful load
+	// Step 6: Log successful load
 	kprintf("[ELF] All PT_LOAD segments loaded.\n");
 
-	// Step 6: Return the entry point address
-	// The entry point in the ELF header is a virtual address.
-	// For a higher-half kernel, we convert to physical by subtracting the virtual base.
-	// If the entry point is below the higher-half base, use it as-is (identity mapped).
+	// Step 7: Return the entry point address (physical)
 	constexpr uint64_t HIGHER_HALF_BASE = 0xFFFFFFFF80000000ULL;
-	uint64_t entry = ehdr->e_entry;
+	uint64_t entry = saved_entry;
 	if (entry >= HIGHER_HALF_BASE) {
 		entry = entry - HIGHER_HALF_BASE;
 	}

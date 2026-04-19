@@ -1,60 +1,83 @@
 #
 # kernel/CMakeLists.txt
 #
-# @brief Cinux 内核模块 CMake 配置
+# @brief Cinux kernel module CMake configuration
 #
-# 本文件配置内核的编译。在本 Milestone 中仅为占位，
-# 实际的内核源文件将在后续 Milestone 添加。
+# Manages both the mini kernel (bootstrap) and the big kernel.
 #
 
 # ============================================================
-# 小内核 (Bootstrap Kernel) - 用于测试
+# Mini Kernel (Bootstrap Kernel)
 # ============================================================
 add_subdirectory(mini)
 
 # ============================================================
-# 内核源文件（占位）
+# Big Kernel - Full-featured kernel loaded by mini kernel
 # ============================================================
 
-# TODO: 为后续 Milestone 预留源文件添加位置
-#   目录结构示例:
-#     kernel/arch/x86_64/boot.S
-#     kernel/arch/x86_64/crt_stub.cpp
-#     kernel/lib/kprintf.cpp
-#     kernel/drivers/serial.cpp
-#   思路: 使用 target_sources() 逐步添加源文件
+# Compile options for the big kernel
+set(BIG_KERNEL_COMPILE_OPTIONS
+    -ffreestanding
+    -fno-exceptions
+    -fno-rtti
+    -fno-pie
+    -fno-stack-protector
+    -mcmodel=kernel
+    -mno-red-zone
+    -Wall
+    -Wextra
+)
+
+set(BIG_KERNEL_LINK_OPTIONS
+    -T ${CMAKE_CURRENT_SOURCE_DIR}/linker.ld
+    -nostdlib
+    -static
+    -no-pie
+)
+
+# Object library: shared sources between production and test kernels
+add_library(big_kernel_common OBJECT
+    arch/x86_64/boot.S
+    arch/x86_64/crt_stub.cpp
+    drivers/serial.cpp
+    lib/kprintf.cpp
+)
+
+target_compile_options(big_kernel_common PUBLIC ${BIG_KERNEL_COMPILE_OPTIONS})
+
+target_include_directories(big_kernel_common PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}
+)
+
+# Production big kernel executable
+add_executable(big_kernel
+    main.cpp
+)
+
+target_sources(big_kernel PRIVATE $<TARGET_OBJECTS:big_kernel_common>)
+target_link_libraries(big_kernel PRIVATE big_kernel_common)
+
+set_target_properties(big_kernel PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/kernel/big
+    OUTPUT_NAME "big_kernel"
+)
+
+target_link_options(big_kernel PRIVATE ${BIG_KERNEL_LINK_OPTIONS})
 
 # ============================================================
-# 内核头文件搜索路径
+# Big Kernel Test Binary (with trailing CRC32)
 # ============================================================
+# Append a CRC32 checksum to the big kernel ELF for integrity
+# verification during kernel tests.
+#
+# Layout: [ELF data] [4-byte CRC32 LE] [padding to 512B alignment]
 
-# TODO: 设置内核头文件目录
-#   思路: target_include_directories(cinux_kernel PUBLIC
-#            ${CMAKE_CURRENT_SOURCE_DIR}
-#            ${CMAKE_CURRENT_SOURCE_DIR}/arch/x86_64
-#            ${CMAKE_CURRENT_SOURCE_DIR}/lib)
+set(BIG_KERNEL_TEST_BIN "${CMAKE_BINARY_DIR}/kernel/big/big_kernel_test.bin")
 
-# ============================================================
-# 链接器脚本（后续 Milestone）
-# ============================================================
-
-# TODO: 为链接器脚本预留位置
-#   思路: 使用 target_link_options(cinux_kernel PRIVATE
-#            -T${CMAKE_CURRENT_SOURCE_DIR}/linker.ld)
-
-# ============================================================
-# 内核依赖
-# ============================================================
-
-# TODO: 定义内核需要链接的库
-#   思路: 目前为空，后续可能需要:
-#        - gcc/g++ 的内置库（libgcc, libstdc++ 的 freestanding 部分）
-#        - 自定义的内核库
-
-# ============================================================
-# 安装规则（可选）
-# ============================================================
-
-# TODO: 定义内核安装规则
-#   思路: 将编译好的内核 ELF 复制到 build 目录
-#        使用 install(TARGETS cinux_kernel DESTINATION build)
+add_custom_command(TARGET big_kernel POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        $<TARGET_FILE:big_kernel> ${BIG_KERNEL_TEST_BIN}
+    COMMAND python3 ${CMAKE_SOURCE_DIR}/scripts/append_crc32.py ${BIG_KERNEL_TEST_BIN}
+    COMMENT "Creating big kernel test binary with trailing CRC32"
+)
