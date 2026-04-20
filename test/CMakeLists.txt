@@ -217,13 +217,27 @@ add_test(NAME framebuffer COMMAND test_framebuffer)
 set_tests_properties(framebuffer PROPERTIES LABELS "framebuffer")
 
 # ============================================================
+# 测试可执行文件：test_keyboard
+# ============================================================
+# PS/2 keyboard driver scan code conversion, modifier state tracking,
+# and ring buffer logic tests.  Pure arithmetic -- no kernel code linked.
+add_executable(test_keyboard
+    unit/test_keyboard.cpp
+)
+
+target_compile_definitions(test_keyboard PRIVATE CINUX_HOST_TEST)
+target_include_directories(test_keyboard PRIVATE ${TEST_INCLUDE_DIRS})
+add_test(NAME keyboard COMMAND test_keyboard)
+set_tests_properties(keyboard PROPERTIES LABELS "keyboard")
+
+# ============================================================
 # 测试辅助目标
 # ============================================================
 
 # Host 端单元测试
 add_custom_target(test_host
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard
     USES_TERMINAL
     COMMENT "Running host unit tests..."
 )
@@ -238,7 +252,7 @@ configure_file(
 
 add_custom_target(test
     COMMAND sh ${CMAKE_BINARY_DIR}/run_all_tests.sh
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test-image
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test-image
     USES_TERMINAL
     COMMENT "Running ALL tests (host then kernel)..."
 )
@@ -246,7 +260,7 @@ add_custom_target(test
 # 详细模式运行 host 测试
 add_custom_target(test_verbose
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose --output-on-failure
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard
     COMMENT "Running host tests in verbose mode..."
 )
 

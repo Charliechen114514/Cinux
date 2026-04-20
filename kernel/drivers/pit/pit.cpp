@@ -74,12 +74,6 @@ void PIT::irq0_handler(InterruptFrame* /*frame*/) {
 	// Increment the global tick counter
 	tick_count_++;
 
-	// Print uptime once per second (every freq_hz_ ticks)
-	if ((tick_count_ % freq_hz_) == 0) {
-		uint64_t seconds = tick_count_ / freq_hz_;
-		kprintf("[TICK] uptime: %us\n", static_cast<unsigned>(seconds));
-	}
-
 	// Signal End-Of-Interrupt to the PIC so the next IRQ can arrive
 	PIC::send_eoi(0);
 }

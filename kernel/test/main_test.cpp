@@ -20,6 +20,7 @@ extern "C" {
 void run_gdt_idt_tests();
 void run_pic_pit_tests();
 void run_video_tests();
+void run_keyboard_tests();
 }
 
 extern "C" void kernel_main() {
@@ -44,6 +45,9 @@ extern "C" void kernel_main() {
 
     // Video tests use real VBE framebuffer (set up by bootloader)
     run_video_tests();
+
+    // Keyboard tests use PS/2 controller (QEMU emulated)
+    run_keyboard_tests();
 
     // Step 5: Report and exit
     int exit_code = (test::get_total_failed() > 0) ? 1 : 0;

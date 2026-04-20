@@ -167,14 +167,14 @@ ISR_ERRCODE   isr_pf_stub,  handle_pf       /* #PF(14): Page Fault */
 # Master PIC: IRQ0-7 → INT 0x20-0x27
 # Slave PIC:  IRQ8-15 → INT 0x28-0x2F
 #
-# For milestone 011, only IRQ0 (PIT timer) has a real handler.
+# For milestone 014, IRQ0 (PIT) and IRQ1 (Keyboard) have real handlers.
 # All other IRQs get a default no-op handler for safety.
 # Note: The C handlers are responsible for PIC::send_eoi().
 # ============================================================
 
 /* Master PIC IRQs */
 ISR_NOERRCODE irq0_stub,  pit_irq0_handler     /* IRQ0(0x20): PIT Timer */
-ISR_NOERRCODE irq1_stub,  irq_default_handler   /* IRQ1(0x21): Keyboard */
+ISR_NOERRCODE irq1_stub,  keyboard_irq1_handler /* IRQ1(0x21): Keyboard */
 ISR_NOERRCODE irq2_stub,  irq_default_handler   /* IRQ2(0x22): Cascade */
 ISR_NOERRCODE irq3_stub,  irq_default_handler   /* IRQ3(0x23): COM2 */
 ISR_NOERRCODE irq4_stub,  irq_default_handler   /* IRQ4(0x24): COM1 */

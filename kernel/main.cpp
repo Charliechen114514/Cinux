@@ -5,9 +5,8 @@
  * This is the C++ main function for the "big kernel" -- the full-featured
  * kernel that the mini kernel loads from disk and jumps to.
  *
- * Milestone 013 goal:
- *   Dual-output kprintf (serial + framebuffer console) with VGA
- *   framebuffer rendering, PSF2 font, and scrolling text console.
+ * Milestone 014 goal:
+ *   Keyboard input with screen + serial echo on keypress.
  *
  * Initialisation order:
  *   1. Serial port (kprintf serial sink)
@@ -19,8 +18,9 @@
  *   7. Framebuffer (map MMIO, init from BootInfo)
  *   8. Font (parse embedded PSF2)
  *   9. Console (init + register as kprintf sink)
- *  10. Unmask IRQ0 + enable interrupts (sti)
- *  11. Idle halt loop
+ *  10. Keyboard (PS/2 controller init)
+ *  11. Unmask IRQ0 + IRQ1, enable interrupts (sti)
+ *  12. Keyboard poll loop: echo keypresses to console + serial
  */
 
 #include <stdint.h>
@@ -33,11 +33,14 @@
 #include "kernel/drivers/video/font.hpp"
 #include "kernel/drivers/video/framebuffer.hpp"
 #include "kernel/drivers/pit/pit.hpp"
+#include "kernel/drivers/keyboard/keyboard.hpp"
 #include "kernel/lib/kprintf.hpp"
 
 using cinux::arch::PIC;
 using cinux::drivers::Console;
 using cinux::drivers::Framebuffer;
+using cinux::drivers::Keyboard;
+using cinux::drivers::KeyEvent;
 using cinux::drivers::PIT;
 using cinux::drivers::PSFFont;
 
@@ -106,14 +109,26 @@ extern "C" void kernel_main() {
     cinux::lib::kprintf_register_sink(Console::console_sink_adapter, &console);
     cinux::lib::kprintf("[BIG] Console initialised -- dual output active.\n");
 
-    // Step 12: Unmask IRQ0 (PIT timer) and enable interrupts
-    PIC::unmask(0);
-    cinux::lib::kprintf("[BIG] IRQ0 unmasked, enabling interrupts...\n");
-    __asm__ volatile("sti");
-    cinux::lib::kprintf("[BIG] Interrupts enabled. Entering idle loop.\n");
+    // Step 10: Initialise the PS/2 keyboard controller
+    Keyboard::init();
 
-    // Idle loop: halt and wait for the next interrupt
+    // Step 11: Unmask IRQ0 (PIT timer) and IRQ1 (Keyboard), enable interrupts
+    PIC::unmask(0);
+    PIC::unmask(1);
+    cinux::lib::kprintf("[BIG] IRQ0+IRQ1 unmasked, enabling interrupts...\n");
+    __asm__ volatile("sti");
+    cinux::lib::kprintf("[BIG] Interrupts enabled. Keyboard echo active.\n");
+
+    // Step 12: Keyboard poll loop -- echo keypresses to console + serial
+    KeyEvent ev;
     while (1) {
         __asm__ volatile("hlt");
+
+        // Drain all pending keyboard events
+        while (Keyboard::poll(ev)) {
+            if (ev.pressed && ev.ascii != 0) {
+                console.putc(ev.ascii);
+            }
+        }
     }
 }

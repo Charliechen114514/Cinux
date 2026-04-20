@@ -250,3 +250,14 @@ constexpr uint64_t BIG_KERNEL_LOAD_ADDR  = 0x1000000;   // 16MB
 - ☑ Bootloader VBE 模式修正：0x118(24bpp) → 0x144(1024x768x32bpp)
 - ☑ QEMU in-kernel 测试 `test_video.cpp`：fb init/readback、font rendering、console putc/clear
 - ☑ Host 测试：`test_font.cpp`、`test_console.cpp`、`test_framebuffer.cpp`
+
+### `014_driver_keyboard`
+**效果**：按键后屏幕和串口同步回显字符
+
+- ☑ `keyboard_init()`：禁用 PS/2 设备（CMD `0xAD/0xA7`），刷新输出缓冲，写配置字节（IRQ1 on，mouse IRQ12 off），控制器自检（CMD `0xAA`，期望 `0x55`），重新启用（CMD `0xAE`）
+- ☑ `sc_to_ascii_lower[128]` + `sc_to_ascii_upper[128]`：扫描码集 1 → ASCII 查找表（`0x1E='a'`，`0x02='1'`，等）
+- ☑ `KeyEvent {ascii, scancode, pressed, shift, ctrl, alt}`；维护 modifier 状态（break code = makecode|0x80）
+- ☑ 环形队列 `key_queue[64]`，head/tail；`keyboard_irq1_handler` 读 `0x60` enqueue，发 `PIC::send_eoi(1)`
+- ☑ `keyboard_poll(KeyEvent& out)` dequeue
+- ☑ `idt_init()` 注册 IRQ1 handler（vector `0x21`）；`kernel_main` 循环 `keyboard_poll` → `Console::putc`
+- ☑ host 测试 `test_keyboard.cpp`：验证扫描码转换表（`0x1E→'a'`，shift+`0x1E→'A'`，break code→released）

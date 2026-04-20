@@ -48,6 +48,7 @@ add_library(big_kernel_common OBJECT
     arch/x86_64/paging.cpp
     drivers/pit/pit.cpp
     drivers/serial/serial.cpp
+    drivers/keyboard/keyboard.cpp
     drivers/video/framebuffer.cpp
     drivers/video/font.cpp
     drivers/video/font_data.S
@@ -88,6 +89,7 @@ add_executable(big_kernel_test
     test/test_gdt_idt.cpp
     test/test_pic_pit.cpp
     test/test_video.cpp
+    test/test_keyboard.cpp
 )
 
 target_sources(big_kernel_test PRIVATE $<TARGET_OBJECTS:big_kernel_common>)
