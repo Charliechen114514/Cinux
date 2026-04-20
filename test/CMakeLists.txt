@@ -155,10 +155,11 @@ add_test(NAME pit COMMAND test_pit)
 set_tests_properties(pit PROPERTIES LABELS "pit")
 
 # ============================================================
-# 测试可执行文件：test_kprintf (big kernel kprintf formatting)
+# 测试可执行文件：test_kprintf (big kernel kprintf formatting engine)
 # ============================================================
-# Tests the big kernel's kprintf formatting helpers and %p spec.
-# Pure arithmetic -- no kernel code linked.
+# Tests the real vkprintf_impl template from the big kernel.
+# The engine is header-only (kernel/lib/private/vkprintf_impl.hpp)
+# so no .cpp sources are linked -- just the test file.
 add_executable(test_kprintf
     ${CMAKE_SOURCE_DIR}/tests/unit/test_kprintf.cpp
 )

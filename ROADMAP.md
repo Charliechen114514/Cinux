@@ -6,16 +6,6 @@
 
 ---
 
-### `011_big_kernel_pic_irq`
-**效果**：串口每秒输出 `[TICK] uptime: Ns`
-
-- ☐ `kernel/arch/x86_64/pic.hpp/cpp`：`PIC::init(master_offset=0x20, slave_offset=0x28)` 发 ICW1–ICW4（含 `io_wait()`），重映射 IRQ0-7→0x20-0x27，IRQ8-15→0x28-0x2F；`PIC::send_eoi(irq)`，`PIC::mask(irq)`，`PIC::unmask(irq)`，`PIC::disable_all()`
-- ☐ `kernel/drivers/pit.hpp/cpp`：`PIT::init(freq_hz=100)` 写 CMD `0x43=0x36`，写 divisor=`1193182/freq_hz` 低/高字节到 `0x40`；全局 `tick_count`；`PIT::get_ticks()`，`PIT::get_uptime_ms()`
-- ☐ `PIT::irq0_handler(InterruptFrame*)` 递增 `tick_count`，每 `freq_hz` tick 调 `kprintf("[TICK] uptime: %us\n", ...)`;末尾 `PIC::send_eoi(0)`
-- ☐ `idt_init()` 注册 `irq0_handler` 到 vector `0x20`；`kernel_main` 末尾 `PIC::init()`，`PIC::unmask(0)`，`sti`，死循环
-
----
-
 ## Phase 4 · 驱动三件套
 
 ### `012_driver_serial`

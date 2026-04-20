@@ -56,6 +56,25 @@ extern "C" void kernel_main() {
     cinux::arch::g_idt.init();
     cinux::lib::kprintf("[BIG] IDT loaded.\n");
 
+    // -- kprintf format regression test (after serial + GDT + IDT are up) --
+    cinux::lib::kprintf("[KPRINTF] %%d: %d\n", 42);
+    cinux::lib::kprintf("[KPRINTF] %%d negative: %d\n", -123);
+    cinux::lib::kprintf("[KPRINTF] %%u: %u\n", 4294967295u);
+    cinux::lib::kprintf("[KPRINTF] %%x: %x\n", 0xDEADBEEFu);
+    cinux::lib::kprintf("[KPRINTF] %%X: %X\n", 0xDEADBEEFu);
+    cinux::lib::kprintf("[KPRINTF] %%08x: %08x\n", 0xDEADu);
+    cinux::lib::kprintf("[KPRINTF] %%10d: %10d\n", 42);
+    cinux::lib::kprintf("[KPRINTF] %%-10d: %-10d|\n", 42);
+    cinux::lib::kprintf("[KPRINTF] %%s: %s\n", "hello");
+    cinux::lib::kprintf("[KPRINTF] %%-10s: %-10s|\n", "hi");
+    cinux::lib::kprintf("[KPRINTF] %%p: %p\n", (void*)0x1234ABCD5678ull);
+    cinux::lib::kprintf("[KPRINTF] %%c: %c\n", 'Z');
+    cinux::lib::kprintf("[KPRINTF] %%%%: %%\n");
+    cinux::lib::kprintf("[KPRINTF] %%010u: %010u\n", 42u);
+    cinux::lib::kprintf("[KPRINTF] mix: %s n=%d hex=%08x ptr=%p\n",
+                        "test", 99, 0xCAFEBABEu, (void*)0x1ull);
+    cinux::lib::kprintf("[KPRINTF] all format tests done.\n");
+
     // Step 5: Initialise the PIC (remap IRQ0-7 -> 0x20-0x27,
     //         IRQ8-15 -> 0x28-0x2F, all masked)
     PIC::init();

@@ -17,6 +17,13 @@ _start:
     /* Disable interrupts */
     cli
 
+    /* Enable SSE: set CR4.OSFXSR (bit 9) and CR4.OSXMMEXCPT (bit 10) */
+    movq %cr4, %rax
+    orq $(1 << 9), %rax          /* OSFXSR: enable FXSAVE/FXRSTOR */
+    orq $(1 << 10), %rax         /* OSXMMEXCPT: enable SIMD #XF */
+    movq %rax, %cr4
+    clts                          /* Clear CR0.TS (Task Switched) */
+
     /* Output '1' to debugcon - _start reached */
     movb $0x31, %al              /* '1' */
     outb %al, $0xE9

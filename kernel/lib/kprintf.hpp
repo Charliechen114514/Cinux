@@ -16,9 +16,11 @@
  *   %X  -- uppercase hexadecimal (uint64_t, no "0x" prefix)
  *   %p  -- pointer (uint64_t, with "0x" prefix, 16 hex digits)
  *
- * Width modifiers (simplified):
- *   %Nd   -- minimum width N, right-padded with spaces
- *   %0Nd  -- minimum width N, left-padded with zeros
+ * Width modifiers:
+ *   %Nd   -- minimum width N, right-align, space-padded
+ *   %0Nd  -- minimum width N, right-align, zero-padded
+ *   %-Nd  -- minimum width N, left-align, space-padded
+ *   %-Ns  -- minimum width N, left-align, space-padded for strings
  *
  * @note %p always outputs a full 16-digit hex value with "0x" prefix,
  *       matching the checklist requirement.
