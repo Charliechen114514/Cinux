@@ -8,16 +8,6 @@
 
 ## Phase 4 · 驱动三件套
 
-### `013_driver_vga_fb`
-**效果**：屏幕显示彩色字符，自动滚屏；kprintf 多后端架构可扩展
-
-- ☐ **kprintf 多后端重构** `kernel/lib/kprintf.hpp/cpp`：定义 `using OutputSink = void(*)(char, void* ctx)`；`kprintf_register_sink(OutputSink, void* ctx)` 注册后端（最多 8 个）；内部维护 `Sink{fn, ctx, enabled}` 数组；`kprintf/kvprintf` 遍历所有 enabled sink 调用，保留 `vkprintf_impl` 模板不变；`kprintf_init()` 默认注册 serial sink
-- ☐ `kernel/drivers/framebuffer.hpp/cpp`：`Framebuffer {addr,width,height,pitch,bpp}`；`init(BootInfo&)`（映射 MMIO）；`put_pixel(x,y,argb)`=`addr[y*pitch/4+x]=color`；`fill_rect`；`scroll_up(lines,line_height)` 用 `memmove`；`clear(color=0)`
-- ☐ `assets/font.psf`：嵌入 PSF2 字体；CMake 用 `objcopy --input binary --output elf64-x86-64` 转 `.o`，导出 `_binary_font_psf_start/end/size`
-- ☐ `kernel/drivers/font.hpp/cpp`：解析 `PSFFont` header（magic=`0x864AB572`，width/height/bytes_per_glyph）；`font_render_char(fb,c,x,y,fg,bg)` 按位图逐 bit 渲染
-- ☐ `kernel/drivers/console.hpp/cpp`：`Console {fb_,col_,row_,cols_,rows_,fg_,bg_}`；`putc(c)` 处理 `\n \r \b` 和 auto-newline；`scroll()` 调 `fb_.scroll_up`；`set_color`；`clear`；提供 `static void console_sink_adapter(char c, void* ctx)` 供 kprintf 注册
-- ☐ `kernel_main` 中 console 初始化后调 `kprintf_register_sink(Console::console_sink_adapter, &console)` 完成双输出注册
-
 ---
 
 ### `014_driver_keyboard`

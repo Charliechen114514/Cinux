@@ -236,3 +236,17 @@ constexpr uint64_t BIG_KERNEL_LOAD_ADDR  = 0x1000000;   // 16MB
 
 - ☑ `kprintf` 补全：`fmt_uint(val,base,width,pad,upper,buf,len)` 支持前补零；`%08x`/`%-10s` 等宽度修饰；`%p` 输出 `0x` + 16 位十六进制
 - ☑ host 测试 `test_kprintf.cpp`：mock `Serial::putc` 捕获输出，`TEST` 覆盖 `%d`/`%u`/`%x`/`%X`/`%s`/`%p`/`%%`/负数/前补零
+
+### `013_driver_vga_fb`
+**效果**：屏幕显示彩色字符，自动滚屏；kprintf 多后端架构可扩展
+
+- ☑ **kprintf 多后端重构** `kernel/lib/kprintf.hpp/cpp`：定义 `using OutputSink = void(*)(char, void* ctx)`；`kprintf_register_sink(OutputSink, void* ctx)` 注册后端（最多 8 个）；内部维护 `Sink{fn, ctx, enabled}` 数组；`kprintf/kvprintf` 遍历所有 enabled sink 调用，保留 `vkprintf_impl` 模板不变；`kprintf_init()` 默认注册 serial sink
+- ☑ `kernel/drivers/video/framebuffer.hpp/cpp`：`Framebuffer {addr,width,height,pitch,bpp}`；`init(BootInfo&)`（映射 MMIO）；`put_pixel(x,y,argb)`=`addr[y*pitch/4+x]=color`；`fill_rect`；`scroll_up(lines,line_height)`；`clear(color=0)`；`get_pixel(x,y)` 用于测试 readback
+- ☑ `assets/font.psf`：嵌入 PSF2 字体（8x16，256 glyphs）；用 `.incbin` 汇编嵌入（`font_data.S`），导出 `font_psf_start/end/size`
+- ☑ `kernel/drivers/video/font.hpp/cpp`：解析 `PSFFont` header（magic=`0x864AB572`，width/height/bytes_per_glyph）；`font_render_char(fb,c,x,y,fg,bg)` 按位图逐 bit 渲染
+- ☑ `kernel/drivers/video/console.hpp/cpp`：`Console {fb_,col_,row_,cols_,rows_,fg_,bg_}`；`putc(c)` 处理 `\n \r \b` 和 auto-newline；`scroll()` 调 `fb_.scroll_up`；`set_color`；`clear`；提供 `static void console_sink_adapter(char c, void* ctx)` 供 kprintf 注册
+- ☑ `kernel_main` 中 console 初始化后调 `kprintf_register_sink(Console::console_sink_adapter, &console)` 完成双输出注册
+- ☑ 驱动目录重组：`drivers/serial/`、`drivers/pit/`、`drivers/video/`
+- ☑ Bootloader VBE 模式修正：0x118(24bpp) → 0x144(1024x768x32bpp)
+- ☑ QEMU in-kernel 测试 `test_video.cpp`：fb init/readback、font rendering、console putc/clear
+- ☑ Host 测试：`test_font.cpp`、`test_console.cpp`、`test_framebuffer.cpp`
