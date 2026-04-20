@@ -37,6 +37,7 @@
 #include "kernel/drivers/keyboard/keyboard.hpp"
 #include "kernel/lib/kprintf.hpp"
 #include "kernel/mm/pmm.hpp"
+#include "kernel/mm/vmm.hpp"
 
 using cinux::arch::PIC;
 using cinux::drivers::Console;
@@ -96,7 +97,10 @@ extern "C" void kernel_main() {
     auto* boot_info = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
     cinux::mm::g_pmm.init(*boot_info);
 
-    // Step 8: Initialise framebuffer from BootInfo
+    // Step 8: Initialise Virtual Memory Manager
+    cinux::mm::g_vmm.init();
+
+    // Step 9: Initialise framebuffer from BootInfo
     Framebuffer fb;
     fb.init(*boot_info);
     cinux::lib::kprintf("[BIG] Framebuffer initialised: %ux%u %ubpp\n",

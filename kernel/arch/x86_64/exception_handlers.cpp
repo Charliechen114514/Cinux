@@ -11,7 +11,10 @@
  */
 
 #include "kernel/arch/x86_64/idt.hpp"
+#include "kernel/arch/x86_64/paging_config.hpp"
 #include "kernel/lib/kprintf.hpp"
+#include "kernel/mm/pmm.hpp"
+#include "kernel/mm/vmm.hpp"
 
 #include <stdint.h>
 
@@ -19,6 +22,7 @@ namespace {
 
 using cinux::arch::InterruptFrame;
 using cinux::lib::kprintf;
+using cinux::mm::g_vmm;
 
 void dump_registers(const InterruptFrame* frame,
                     const char* name, uint8_t vector) {
@@ -162,6 +166,21 @@ void handle_pf(InterruptFrame* frame) {
     __asm__ volatile("movq %%cr2, %0" : "=r"(fault_addr));
 
     uint64_t err = frame->error_code;
+
+    // Demand-paging: try to allocate a page for not-present faults
+    if ((err & 0x01) == 0) {
+        uint64_t virt_page = fault_addr & ~0xFFFULL;
+        uint64_t phys = cinux::mm::g_pmm.alloc_page();
+        if (phys != 0 && g_vmm.map(virt_page, phys,
+                                    cinux::arch::FLAG_PRESENT |
+                                    cinux::arch::FLAG_WRITABLE)) {
+            kprintf("[VMM] Demand-paged %p -> phys %p\n",
+                    reinterpret_cast<void*>(virt_page),
+                    reinterpret_cast<void*>(phys));
+            return;
+        }
+    }
+
     const char* present  = (err & 0x01) ? "protection violation" : "page not present";
     const char* access   = (err & 0x02) ? "write" : "read";
     const char* mode     = (err & 0x04) ? "user" : "kernel";

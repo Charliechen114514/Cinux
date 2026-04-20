@@ -261,3 +261,23 @@ constexpr uint64_t BIG_KERNEL_LOAD_ADDR  = 0x1000000;   // 16MB
 - ☑ `keyboard_poll(KeyEvent& out)` dequeue
 - ☑ `idt_init()` 注册 IRQ1 handler（vector `0x21`）；`kernel_main` 循环 `keyboard_poll` → `Console::putc`
 - ☑ host 测试 `test_keyboard.cpp`：验证扫描码转换表（`0x1E→'a'`，shift+`0x1E→'A'`，break code→released）
+
+## Phase 5 · 内存管理
+
+### `015_mm_pmm`
+**效果**：串口输出内存统计，分配/释放测试通过
+
+- ☑ `parse_memory_map(BootInfo&, regions[], max)` 提取 type=1 可用区域，过滤低 1MB，对齐到 4KB
+- ☑ `kernel/mm/pmm.hpp`：`PMM::init(BootInfo&)`，`alloc_page()→uint64_t`（0=OOM），`free_page(phys)`，`alloc_pages(count)`，`free_pages(phys,count)`，`free_page_count()`，`total_page_count()`
+- ☑ Bitmap 放于 `__kernel_end` 对齐后；先全标记已用，再将可用区域清零，再标记内核+bitmap 自身为已用
+- ☑ `alloc_page` 用 `__builtin_ctzll` 加速 bit 扫描（64 位一组）
+- ☑ `kprintf` 输出统计：`[PMM] Total: XMB, Free: XMB`
+- ☑ host 测试 `test_pmm.cpp`：mock 内存图，1000 次 alloc/free，验证计数正确、地址 4KB 对齐
+
+### `016_mm_vmm`
+**效果**：map/unmap/translate 可用，缺页异常正确处理
+
+- ☑ `kernel/arch/x86_64/paging.hpp`：`union PageEntry {uint64_t raw; struct{present,writable,user,pwt,pcd,accessed,dirty,huge,global,_avail,addr:40,nx}}`；`FLAG_PRESENT/WRITABLE/USER/NX` 常量
+- ☑ `kernel/mm/vmm.hpp`：`VMM::map(virt,phys,flags,pml4=nullptr)`（缺中间级时 `PMM::alloc_page()` 新建并清零），`VMM::unmap(virt,pml4=nullptr)`，`VMM::translate(virt)→uint64_t`，`flush_tlb(virt)`（`invlpg`），`flush_tlb_all()`（reload CR3）
+- ☑ `#PF handler` 更新：读 `%cr2`，尝试按需分配，无法处理时 panic
+- ☑ host 测试 `test_vmm.cpp`：mock PMM，验证 map→translate→unmap 正确

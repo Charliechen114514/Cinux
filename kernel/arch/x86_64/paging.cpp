@@ -8,6 +8,7 @@
  */
 
 #include "kernel/arch/x86_64/paging.hpp"
+#include "kernel/arch/x86_64/paging_config.hpp"
 
 #include <stdint.h>
 
@@ -15,23 +16,13 @@ namespace cinux::arch {
 
 namespace {
 
-// Page directory entry flags: Present + Read/Write + Huge (2MB page)
-constexpr uint64_t PD_HUGE_PAGE_FLAGS = 0x83;
+constexpr uint64_t PD_HUGE_PAGE_FLAGS = FLAG_PRESENT | FLAG_WRITABLE | FLAG_HUGE;
+constexpr uint64_t PDPT_1GB_PAGE_FLAGS = FLAG_PRESENT | FLAG_WRITABLE | FLAG_HUGE;
 
-// PDPT entry flags: Present + Read/Write + Page Size (1GB page)
-constexpr uint64_t PDPT_1GB_PAGE_FLAGS = 0x83;
-
-// Size of a 2MB huge page
 constexpr uint64_t PAGE_2MB_SIZE = 0x200000;
-
-// Size of a 1GB huge page
 constexpr uint64_t PAGE_1GB_SIZE = 0x40000000ULL;
 
-// Entries per page table level
-constexpr uint32_t PT_ENTRIES = 512;
-
-// Known virtual addresses of page tables (higher-half mapped)
-constexpr uint64_t PD_VIRT_ADDR = 0xFFFFFFFF80003000ULL;
+constexpr uint64_t PD_VIRT_ADDR   = 0xFFFFFFFF80003000ULL;
 constexpr uint64_t PDPT_VIRT_ADDR = 0xFFFFFFFF80002000ULL;
 
 // PDPT[0] points to PD -- do not overwrite
@@ -42,12 +33,6 @@ bool has_1gb_pages() {
     uint32_t edx;
     __asm__ volatile("cpuid" : "+a"(eax), "=d"(edx) : : "ebx", "ecx");
     return (edx & (1u << 26)) != 0;
-}
-
-void reload_cr3() {
-    uint64_t cr3;
-    __asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
-    __asm__ volatile("mov %0, %%cr3" : : "r"(cr3) : "memory");
 }
 
 }  // anonymous namespace
@@ -64,7 +49,7 @@ void map_mmio(uint64_t phys, uint64_t size) {
         uint32_t idx = static_cast<uint32_t>(cur / PAGE_2MB_SIZE);
         if (idx < PT_ENTRIES && pd[idx] == 0) {
             pd[idx] = cur | PD_HUGE_PAGE_FLAGS;
-            __asm__ volatile("invlpg (%0)" : : "r"(cur));
+            flush_tlb(cur);
         }
         cur += PAGE_2MB_SIZE;
     }
@@ -81,7 +66,7 @@ void map_mmio(uint64_t phys, uint64_t size) {
             }
             cur1g += PAGE_1GB_SIZE;
         }
-        reload_cr3();
+        flush_tlb_all();
     }
 }
 

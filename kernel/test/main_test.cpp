@@ -18,6 +18,7 @@
 
 #include "boot/boot_info.h"
 #include "kernel/mm/pmm.hpp"
+#include "kernel/mm/vmm.hpp"
 
 #include "big_kernel_test.h"
 
@@ -27,6 +28,7 @@ void run_pic_pit_tests();
 void run_video_tests();
 void run_keyboard_tests();
 void run_pmm_tests();
+void run_vmm_tests();
 }
 
 static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
@@ -61,6 +63,10 @@ extern "C" void kernel_main() {
     auto* boot_info = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
     cinux::mm::g_pmm.init(*boot_info);
     run_pmm_tests();
+
+    // VMM tests: initialise VMM after PMM, then run tests
+    cinux::mm::g_vmm.init();
+    run_vmm_tests();
 
     // Step 5: Report and exit
     int exit_code = (test::get_total_failed() > 0) ? 1 : 0;
