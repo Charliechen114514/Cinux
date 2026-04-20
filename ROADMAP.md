@@ -8,17 +8,6 @@
 
 ## Phase 6 · 进程与调度
 
-### `019_proc_context`
-**效果**：两个内核线程交替串口打印，`yield` 切换
-
-- ☐ `kernel/proc/process.hpp`：`enum TaskState {Running,Ready,Blocked,Dead}`；`struct alignas(16) CpuContext {r15,r14,r13,r12,rbp,rbx,rsp,rip}`；`struct Task {ctx,state,tid,priority,kernel_stack,kernel_stack_top,*addr_space,*name}`
-- ☐ `Task::create_kernel_task(entry,name)`：`kmalloc` TCB，`PMM::alloc_pages(4)` 内核栈（16KB），初始化 `ctx.rsp`=栈顶，`ctx.rip`=入口，栈底写 magic 0xDEADC0DE
-- ☐ `kernel/arch/x86_64/context_switch.S`：`context_switch(CpuContext* from, CpuContext* to)`，保存 callee-saved（r15,r14,r13,r12,rbp,rbx,rsp）+ `leaq .restore(%rip)→rip`，恢复 to 的对应字段，`jmp *56(%rsi)`
-- ☐ `yield()` = 调度器选下一个 task，调 `context_switch(current, next)`
-- ☐ `kernel_main` 创建两个任务各打印 5 行，手动 `yield`，验证交替输出
-
----
-
 ### `020_proc_scheduler`
 **效果**：3 个线程无 `yield` 调用，时钟中断驱动交替运行
 

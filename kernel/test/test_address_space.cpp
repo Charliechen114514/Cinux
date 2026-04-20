@@ -190,7 +190,6 @@ void test_activate_changes_cr3() {
     TEST_ASSERT_EQ(cr3_after, as.pml4_phys());
     TEST_ASSERT_NE(cr3_after, cr3_before);
 
-    // Restore CR3 to the real kernel PML4 before AS is destroyed
     write_cr3(saved_pml4);
 }
 
@@ -214,14 +213,11 @@ void test_activate_map_translate() {
     bool ok = as.map(virt, phys, FLAG_PRESENT | FLAG_WRITABLE);
     TEST_ASSERT_TRUE(ok);
 
-    // Activate the space so page table walks use this AS's PML4
     as.activate();
 
-    // translate should still work via the AddressSpace method
     uint64_t result = as.translate(virt);
     TEST_ASSERT_EQ(result, phys);
 
-    // Restore CR3 to the real kernel PML4 before AS is destroyed
     write_cr3(saved_pml4);
 
     g_pmm.free_page(phys);

@@ -43,6 +43,8 @@
 #include "kernel/mm/vmm.hpp"
 #include "kernel/mm/heap.hpp"
 #include "kernel/mm/address_space.hpp"
+#include "kernel/proc/process.hpp"
+#include "kernel/proc/scheduler.hpp"
 
 using cinux::arch::PIC;
 using cinux::drivers::Console;
@@ -51,6 +53,22 @@ using cinux::drivers::Keyboard;
 using cinux::drivers::KeyEvent;
 using cinux::drivers::PIT;
 using cinux::drivers::PSFFont;
+
+static void thread_a() {
+    for (int i = 0; i < 5; i++) {
+        cinux::lib::kprintf("[A] thread_a iteration %d\n", i);
+        cinux::proc::Scheduler::yield();
+    }
+    cinux::lib::kprintf("[A] thread_a done\n");
+}
+
+static void thread_b() {
+    for (int i = 0; i < 5; i++) {
+        cinux::lib::kprintf("[B] thread_b iteration %d\n", i);
+        cinux::proc::Scheduler::yield();
+    }
+    cinux::lib::kprintf("[B] thread_b done\n");
+}
 
 // BootInfo is placed at physical 0x7000 by the bootloader
 static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
@@ -139,9 +157,40 @@ extern "C" void kernel_main() {
     PIC::unmask(1);
     cinux::lib::kprintf("[BIG] IRQ0+IRQ1 unmasked, enabling interrupts...\n");
     __asm__ volatile("sti");
-    cinux::lib::kprintf("[BIG] Interrupts enabled. Keyboard echo active.\n");
+    cinux::lib::kprintf("[BIG] Interrupts enabled.\n");
 
-    // Step 16: Keyboard poll loop -- echo keypresses to console + serial
+    // Step 16: Initialise scheduler and create cooperative tasks
+    cinux::proc::Scheduler::init();
+
+    auto* task_a = cinux::proc::TaskBuilder()
+        .set_entry(thread_a)
+        .set_name("thread_a")
+        .build();
+    auto* task_b = cinux::proc::TaskBuilder()
+        .set_entry(thread_b)
+        .set_name("thread_b")
+        .build();
+
+    cinux::proc::Scheduler::add_task(task_a);
+    cinux::proc::Scheduler::add_task(task_b);
+
+    cinux::lib::kprintf("[BIG] Starting cooperative multitasking demo...\n");
+
+    cinux::proc::Task boot_task;
+    for (uint8_t* p = reinterpret_cast<uint8_t*>(&boot_task);
+         p < reinterpret_cast<uint8_t*>(&boot_task + 1); p++) {
+        *p = 0;
+    }
+    boot_task.state = cinux::proc::TaskState::Running;
+    boot_task.tid = 0;
+    boot_task.name = "boot";
+
+    cinux::lib::kprintf("[BIG] Switching to first task...\n");
+    cinux::proc::Scheduler::run_first(&boot_task);
+
+    cinux::lib::kprintf("[BIG] All tasks finished, entering idle.\n");
+
+    // Step 17: Keyboard poll loop -- echo keypresses to console + serial
     KeyEvent ev;
     while (1) {
         __asm__ volatile("hlt");

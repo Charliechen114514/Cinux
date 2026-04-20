@@ -81,7 +81,6 @@ AddressSpace::AddressSpace() {
         pml4[i].raw = 0;
     }
 
-    // Step 3: Copy kernel-space entries (PML4[256..511]) from the kernel PML4
     auto* kern_pml4 = phys_to_virt(kernel_pml4_);
     for (uint32_t i = USER_PML4_END; i < PT_ENTRIES; i++) {
         pml4[i].raw = kern_pml4[i].raw;
@@ -98,7 +97,6 @@ AddressSpace::~AddressSpace() {
         return;
     }
 
-    // Step 1: Recursively free all user-space page table pages
     auto* pml4 = phys_to_virt(pml4_phys_);
     for (uint32_t i = USER_PML4_START; i < USER_PML4_END; i++) {
         if (pml4[i].is_present()) {

@@ -297,3 +297,13 @@ constexpr uint64_t BIG_KERNEL_LOAD_ADDR  = 0x1000000;   // 16MB
 - ☑ `kernel/mm/address_space.hpp`：`class AddressSpace {pml4_phys_; static *kernel_pml4_}`；`static init_kernel()`（读 CR3 保存）；构造器（alloc 新 PML4，复制 PML4[256–511] 内核条目）；析构器（遍历用户区 PML4[0–255] 逐级释放）；`map/unmap/activate()`（mov CR3）
 - ☑ 禁止拷贝构造和拷贝赋值（`= delete`）
 - ☑ 串口验证：创建 AS#1 和 AS#2，在 AS#1 映射一页，切换到 AS#2，translate 该地址返回 0
+
+### `019_proc_context`
+**效果**：两个内核线程交替串口打印，`yield` 切换
+
+- ☑ `kernel/proc/process.hpp`：`enum TaskState {Running,Ready,Blocked,Dead}`；`struct alignas(16) CpuContext {r15,r14,r13,r12,rbp,rbx,rsp,rip}`；`struct Task {ctx,state,tid,priority,kernel_stack,kernel_stack_top,*addr_space,*name}`
+- ☑ `Task::create_kernel_task(entry,name)`：`kmalloc` TCB，`PMM::alloc_pages(4)` 内核栈（16KB），初始化 `ctx.rsp`=栈顶，`ctx.rip`=入口，栈底写 magic 0xDEADC0DE
+- ☑ `kernel/arch/x86_64/context_switch.S`：`context_switch(CpuContext* from, CpuContext* to)`，保存 callee-saved（r15,r14,r13,r12,rbp,rbx,rsp）+ `leaq .restore(%rip)→rip`，恢复 to 的对应字段，`jmp *56(%rsi)`
+- ☑ `yield()` = 调度器选下一个 task，调 `context_switch(current, next)`
+- ☑ `kernel_main` 创建两个任务各打印 5 行，手动 `yield`，验证交替输出
+- 审查项目已有组件，要求线程安全

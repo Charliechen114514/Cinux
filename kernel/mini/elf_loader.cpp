@@ -8,8 +8,8 @@
 
 #include "elf_loader.hpp"
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "lib/kprintf.h"
 #include "lib/string.h"
@@ -30,9 +30,9 @@ const Elf64_Phdr* get_phdr(const Elf64_Ehdr* ehdr, uint16_t index) {
 	if (index >= ehdr->e_phnum) {
 		return nullptr;
 	}
-	return reinterpret_cast<const Elf64_Phdr*>(
-		reinterpret_cast<const uint8_t*>(ehdr) + ehdr->e_phoff +
-		static_cast<uint64_t>(index) * ehdr->e_phentsize);
+	return reinterpret_cast<const Elf64_Phdr*>(reinterpret_cast<const uint8_t*>(ehdr) +
+											   ehdr->e_phoff +
+											   static_cast<uint64_t>(index) * ehdr->e_phentsize);
 }
 
 }  // anonymous namespace
@@ -96,7 +96,7 @@ bool parse_elf_header(const void* elf) {
 // ============================================================
 
 size_t calculate_kernel_size(const Elf64_Ehdr* ehdr) {
-	uint64_t lowest_addr = UINT64_MAX;
+	uint64_t lowest_addr  = UINT64_MAX;
 	uint64_t highest_addr = 0;
 
 	// Iterate through all program headers
@@ -149,10 +149,10 @@ uint64_t load_elf(void* elf_src, uint64_t staging_size) {
 	// the staging address).  Once that happens the ELF header in the
 	// staging buffer is corrupted, so we must capture everything we
 	// need up front.
-	const uint64_t  saved_entry     = ehdr->e_entry;
-	const uint16_t  saved_phnum     = ehdr->e_phnum;
-	const uint64_t  saved_phoff     = ehdr->e_phoff;
-	const uint16_t  saved_phentsize = ehdr->e_phentsize;
+	const uint64_t saved_entry	   = ehdr->e_entry;
+	const uint16_t saved_phnum	   = ehdr->e_phnum;
+	const uint64_t saved_phoff	   = ehdr->e_phoff;
+	const uint16_t saved_phentsize = ehdr->e_phentsize;
 
 	// Copy all program headers to local storage so they survive staging
 	// buffer overwrites during the loading loop.
@@ -163,8 +163,8 @@ uint64_t load_elf(void* elf_src, uint64_t staging_size) {
 	Elf64_Phdr saved_phdrs[16];
 	for (uint16_t i = 0; i < saved_phnum; i++) {
 		const auto* phdr = reinterpret_cast<const Elf64_Phdr*>(
-			reinterpret_cast<const uint8_t*>(ehdr) + saved_phoff
-			+ static_cast<uint64_t>(i) * saved_phentsize);
+			reinterpret_cast<const uint8_t*>(ehdr) + saved_phoff +
+			static_cast<uint64_t>(i) * saved_phentsize);
 		saved_phdrs[i] = *phdr;
 	}
 
@@ -186,9 +186,10 @@ uint64_t load_elf(void* elf_src, uint64_t staging_size) {
 
 		// Validate that segment data lies within the staging buffer.
 		if (phdr.p_offset + phdr.p_filesz > staging_size) {
-			kprintf("[ELF] ERROR: segment %u data exceeds staging buffer "
-					"(offset=0x%p + filesz=0x%p > staging=0x%p)\n",
-					i, phdr.p_offset, phdr.p_filesz, staging_size);
+			kprintf(
+				"[ELF] ERROR: segment %u data exceeds staging buffer "
+				"(offset=0x%p + filesz=0x%p > staging=0x%p)\n",
+				i, phdr.p_offset, phdr.p_filesz, staging_size);
 			return 0;
 		}
 
@@ -206,27 +207,21 @@ uint64_t load_elf(void* elf_src, uint64_t staging_size) {
 		// Zero-fill BSS (if memsz > filesz)
 		if (phdr.p_memsz > phdr.p_filesz) {
 			uint64_t bss_start = dest_addr + phdr.p_filesz;
-			size_t bss_size = static_cast<size_t>(phdr.p_memsz - phdr.p_filesz);
+			size_t	 bss_size  = static_cast<size_t>(phdr.p_memsz - phdr.p_filesz);
 			memset(reinterpret_cast<void*>(bss_start), 0, bss_size);
 		}
 
-		kprintf("[ELF] Loaded segment %u: 0x%p -> 0x%p (%u bytes, BSS %u bytes)\n", i,
-				phdr.p_offset, dest_addr, phdr.p_filesz,
-				phdr.p_memsz > phdr.p_filesz ? static_cast<uint32_t>(phdr.p_memsz - phdr.p_filesz)
-											 : 0);
+		kprintf(
+			"[ELF] Loaded segment %u: 0x%p -> 0x%p (%u bytes, BSS %u bytes)\n", i, phdr.p_offset,
+			dest_addr, phdr.p_filesz,
+			phdr.p_memsz > phdr.p_filesz ? static_cast<uint32_t>(phdr.p_memsz - phdr.p_filesz) : 0);
 	}
 
 	// Step 6: Log successful load
 	kprintf("[ELF] All PT_LOAD segments loaded.\n");
 
-	// Step 7: Return the entry point address (physical)
-	constexpr uint64_t HIGHER_HALF_BASE = 0xFFFFFFFF80000000ULL;
-	uint64_t entry = saved_entry;
-	if (entry >= HIGHER_HALF_BASE) {
-		entry = entry - HIGHER_HALF_BASE;
-	}
-
-	return entry;
+	// Step 7: Return the entry point address (higher-half virtual)
+	return saved_entry;
 }
 
 }  // namespace cinux::mini::elf_loader

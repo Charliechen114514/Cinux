@@ -51,6 +51,26 @@ PageEntry* walk_level(PageEntry* table, uint64_t index, bool should_alloc) {
 	PageEntry& entry = table[index];
 
 	if (entry.is_present()) {
+		if (entry.huge) {
+			if (!should_alloc) {
+				return nullptr;
+			}
+
+			uint64_t big_phys = entry.phys_addr();
+			uint64_t big_flags = entry.raw & ~ADDR_MASK;
+
+			uint64_t new_page = cinux::mm::g_pmm.alloc_page();
+			if (new_page == 0) {
+				return nullptr;
+			}
+
+			auto* new_table = phys_to_virt(new_page);
+			for (uint32_t i = 0; i < PT_ENTRIES; i++) {
+				new_table[i].raw = (big_phys + static_cast<uint64_t>(i) * PAGE_SIZE) | (big_flags & ~FLAG_HUGE);
+			}
+
+			entry.raw = new_page | FLAG_PRESENT | FLAG_WRITABLE;
+		}
 		return phys_to_virt(entry.phys_addr());
 	}
 
@@ -63,7 +83,6 @@ PageEntry* walk_level(PageEntry* table, uint64_t index, bool should_alloc) {
 		return nullptr;
 	}
 
-	// Zero the new page table
 	auto* new_table = phys_to_virt(new_page);
 	for (uint32_t i = 0; i < PT_ENTRIES; i++) {
 		new_table[i].raw = 0;
