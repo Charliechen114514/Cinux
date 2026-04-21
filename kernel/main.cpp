@@ -47,6 +47,7 @@
 #include "kernel/proc/scheduler.hpp"
 
 #include "kernel/proc/per_cpu.hpp"
+#include "kernel/proc/sync.hpp"
 
 using cinux::arch::PIC;
 using cinux::drivers::Console;
@@ -56,21 +57,43 @@ using cinux::drivers::KeyEvent;
 using cinux::drivers::PIT;
 using cinux::drivers::PSFFont;
 
-static void worker(const char label, int iters) {
-    for (int i = 0; i < iters; i++) {
-        cinux::lib::kprintf("[%c] tid=%u iter %d/%d\n", label,
-                            cinux::proc::Scheduler::current()->tid, i + 1, iters);
-        for (volatile int j = 0; j < 20000000; j++) {}
+// ============================================================
+// Producer-Consumer demo (milestone 021_proc_sync)
+// ============================================================
+
+/// Size of the shared circular buffer
+static constexpr int PC_BUF_SIZE = 4;
+
+/// Shared buffer and synchronisation primitives
+static int g_pc_buf[PC_BUF_SIZE];
+static cinux::proc::Semaphore g_sem_free(PC_BUF_SIZE);
+static cinux::proc::Semaphore g_sem_used(0);
+static cinux::proc::Mutex g_pc_mutex;
+
+static void producer() {
+    for (int i = 0; i <= 4; i++) {
+        g_sem_free.wait();
+        {
+            auto g = g_pc_mutex.guard();
+            g_pc_buf[i % PC_BUF_SIZE] = i;
+        }
+        g_sem_used.post();
+        cinux::lib::kprintf("sent: %d\n", i);
     }
-    cinux::lib::kprintf("[%c] done\n", label);
 }
 
-static void thread_a() { worker('A', 10); }
-static void thread_b() { worker('B', 10); }
-static void thread_c() { worker('C', 10); }
-static void thread_d() { worker('D', 10); }
-static void thread_e() { worker('E', 10); }
-static void thread_f() { worker('F', 10); }
+static void consumer() {
+    for (int i = 0; i <= 4; i++) {
+        g_sem_used.wait();
+        int val;
+        {
+            auto g = g_pc_mutex.guard();
+            val = g_pc_buf[i % PC_BUF_SIZE];
+        }
+        g_sem_free.post();
+        cinux::lib::kprintf("got: %d\n", val);
+    }
+}
 
 // BootInfo is placed at physical 0x7000 by the bootloader
 static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
@@ -157,24 +180,15 @@ extern "C" void kernel_main() {
     // Step 15: Initialise scheduler and create preemptive tasks
     cinux::proc::Scheduler::init();
 
-    auto* task_a = cinux::proc::TaskBuilder()
-        .set_entry(thread_a).set_name("thread_a").build();
-    auto* task_b = cinux::proc::TaskBuilder()
-        .set_entry(thread_b).set_name("thread_b").build();
-    auto* task_c = cinux::proc::TaskBuilder()
-        .set_entry(thread_c).set_name("thread_c").build();
-    auto* task_d = cinux::proc::TaskBuilder()
-        .set_entry(thread_d).set_name("thread_d").build();
-    auto* task_e = cinux::proc::TaskBuilder()
-        .set_entry(thread_e).set_name("thread_e").build();
-    auto* task_f = cinux::proc::TaskBuilder()
-        .set_entry(thread_f).set_name("thread_f").build();
+    auto* task_prod = cinux::proc::TaskBuilder()
+        .set_entry(producer).set_name("producer").build();
+    auto* task_cons = cinux::proc::TaskBuilder()
+        .set_entry(consumer).set_name("consumer").build();
 
-    cinux::proc::Task* tasks[] = {task_a, task_b, task_c, task_d, task_e, task_f};
-    for (auto* t : tasks)
-        cinux::proc::Scheduler::add_task(t);
+    cinux::proc::Scheduler::add_task(task_prod);
+    cinux::proc::Scheduler::add_task(task_cons);
 
-    cinux::lib::kprintf("[BIG] Starting preemptive demo (6 threads x 10 iters, timer-driven)...\n");
+    cinux::lib::kprintf("[BIG] Starting producer-consumer demo (Mutex + Semaphore)...\n");
 
     // Step 16: Unmask IRQ0 (PIT timer) and IRQ1 (Keyboard), enable interrupts
     PIC::unmask(0);

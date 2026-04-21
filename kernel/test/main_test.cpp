@@ -34,6 +34,7 @@ void run_vmm_tests();
 void run_heap_tests();
 void run_address_space_tests();
 void run_scheduler_tests();
+void run_sync_tests();
 }
 
 static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
@@ -85,6 +86,9 @@ extern "C" void kernel_main() {
 
     // Scheduler/Process tests: uses Heap, PMM, VMM -- all already initialised
     run_scheduler_tests();
+
+    // Sync tests (021): uses Scheduler block/unblock, Mutex, Semaphore
+    run_sync_tests();
 
     // Step 5: Report and exit
     int exit_code = (test::get_total_failed() > 0) ? 1 : 0;

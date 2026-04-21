@@ -117,6 +117,9 @@ struct Task {
 
     /** Scheduling class this task belongs to. */
     SchedulingClass* sched_class;
+
+    /** Intrusive link for wait-queue linked lists (Mutex / Semaphore). */
+    Task* wait_next;
 };
 
 // ============================================================

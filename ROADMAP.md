@@ -6,18 +6,6 @@
 
 ---
 
-## Phase 6 · 进程与调度
-
-### `021_proc_sync`
-**效果**：Mutex/Semaphore 可用，producer-consumer 无竞争
-
-- ☐ `class Mutex {spin_, *owner_, *wait_head_}`：`lock()`（已锁则 block 当前 task），`unlock()`（唤醒等待队列头），`try_lock()`，`[[nodiscard]] guard()`
-- ☐ `class Semaphore {spin_, count_, *wait_head_}`：`post()`（V，count++，唤醒），`wait()`（P，count--，负数则阻塞），`try_wait()`
-- ☐ 演示任务：producer 写共享缓冲，consumer 读，Semaphore 同步，串口输出 `sent: 0,1,2,3,4` / `got: 0,1,2,3,4`
-- 立刻审查现有组件的并发安全性，防止出现竞态
-
----
-
 ## Phase 7 · 用户态与系统调用
 
 ### `022_ring3_usermode`

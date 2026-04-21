@@ -60,6 +60,7 @@ add_library(big_kernel_common OBJECT
     mm/address_space.cpp
     proc/process.cpp
     proc/scheduler.cpp
+    proc/sync.cpp
     arch/x86_64/context_switch.S
 )
 
@@ -102,6 +103,7 @@ add_executable(big_kernel_test
     test/test_heap.cpp
     test/test_address_space.cpp
     test/test_scheduler.cpp
+    test/test_sync.cpp
 )
 
 target_sources(big_kernel_test PRIVATE $<TARGET_OBJECTS:big_kernel_common>)

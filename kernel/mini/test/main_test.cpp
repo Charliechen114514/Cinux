@@ -126,9 +126,12 @@ extern "C" [[noreturn]] void mini_kernel_main(uint64_t boot_info_addr) {
 			__asm__ volatile("cli; hlt");
 	}
 
-	// Real kernel _start: cli (0xFA) then mov rsp, imm64 (REX.W MOVABS = 48 BC)
+	// Real kernel _start: cli (0xFA) then mov rsp, imm (two valid encodings):
+	//   REX.W MOV r/m64, imm32  → 48 C7 C4 (sign-extended)
+	//   REX.W MOV r64, imm64    → 48 BC    (full 64-bit)
 	auto* code			 = reinterpret_cast<const uint8_t*>(big_kernel_entry);
-	bool  is_real_kernel = (code[0] == 0xFA) && (code[1] == 0x48) && (code[2] == 0xBC);
+	bool  is_real_kernel = (code[0] == 0xFA) && (code[1] == 0x48) &&
+			                   (code[2] == 0xC7 || code[2] == 0xBC);
 	if (!is_real_kernel) {
 		kprintf("\n=== Loaded ELF is not a real kernel, exiting ===\n");
 		__asm__ volatile("outl %0, $0xf4" : : "a"(0));

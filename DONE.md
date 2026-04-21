@@ -317,3 +317,13 @@ constexpr uint64_t BIG_KERNEL_LOAD_ADDR  = 0x1000000;   // 16MB
 - ☑ `tick()` 每 N tick 调 `schedule()`，`schedule()` 先发 EOI 再 `context_switch`
 - ☑ 进程切换时更新 `TSS.RSP0` 为新 task 内核栈顶
 - ☑ `per_cpu` 数据结构占位（`struct PerCPU {Task* current; uint64_t kernel_stack}`，单核用静态全局）
+
+## Phase 6 · 进程与调度
+
+### `021_proc_sync`
+**效果**：Mutex/Semaphore 可用，producer-consumer 无竞争
+
+- ☑ `class Mutex {spin_, *owner_, *wait_head_}`：`lock()`（已锁则 block 当前 task），`unlock()`（唤醒等待队列头），`try_lock()`，`[[nodiscard]] guard()`
+- ☑ `class Semaphore {spin_, count_, *wait_head_}`：`post()`（V，count++，唤醒），`wait()`（P，count--，负数则阻塞），`try_wait()`
+- ☑ 演示任务：producer 写共享缓冲，consumer 读，Semaphore 同步，串口输出 `sent: 0,1,2,3,4` / `got: 0,1,2,3,4`
+- 立刻审查现有组件的并发安全性，防止出现竞态
