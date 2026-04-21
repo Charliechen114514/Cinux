@@ -62,6 +62,8 @@ add_library(big_kernel_common OBJECT
     proc/scheduler.cpp
     proc/sync.cpp
     arch/x86_64/context_switch.S
+    arch/x86_64/usermode.S
+    arch/x86_64/usermode.cpp
 )
 
 target_compile_options(big_kernel_common PUBLIC ${BIG_KERNEL_COMPILE_OPTIONS})
@@ -104,6 +106,7 @@ add_executable(big_kernel_test
     test/test_address_space.cpp
     test/test_scheduler.cpp
     test/test_sync.cpp
+    test/test_usermode.cpp
 )
 
 target_sources(big_kernel_test PRIVATE $<TARGET_OBJECTS:big_kernel_common>)

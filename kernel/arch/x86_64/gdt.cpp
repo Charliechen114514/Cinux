@@ -37,6 +37,9 @@ void GDT::init() {
         SegmentAccess::CodeData | SegmentAccess::ReadWrite,
         SegmentFlags::Granularity4K | SegmentFlags::Size32);
 
+    // Set up IST1 to point at the top of the dedicated Double Fault stack
+    tss_.ist[0] = reinterpret_cast<uint64_t>(&df_stack_[sizeof(df_stack_)]);
+
     const auto tss_addr = reinterpret_cast<uint64_t>(&tss_);
     entries_[5] = tss_low_entry(tss_addr, sizeof(TaskStateSegment) - 1);
     entries_[6] = tss_high_entry(tss_addr);

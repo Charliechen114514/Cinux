@@ -82,34 +82,36 @@ void IDT::init() {
         entry = Entry{};
     }
 
-    // Data-driven exception routing: {vector, stub, privilege, gate_type}
+    // Data-driven exception routing: {vector, stub, privilege, gate_type, ist}
+    // IST 1 is used for #DF (Double Fault) to get a dedicated stack.
     struct Route {
         ExceptionVector vector;
         Stub stub;
         IDTPrivilege priv;
         IDTGateType gate;
+        uint8_t ist;
     };
 
     const Route routes[] = {
-        {ExceptionVector::DE,  isr_de_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt},
-        {ExceptionVector::DB,  isr_db_stub,  IDTPrivilege::Kernel, IDTGateType::Trap},
-        {ExceptionVector::NMI, isr_nmi_stub, IDTPrivilege::Kernel, IDTGateType::Interrupt},
-        {ExceptionVector::BP,  isr_bp_stub,  IDTPrivilege::User,   IDTGateType::Trap},
-        {ExceptionVector::OF,  isr_of_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt},
-        {ExceptionVector::BR,  isr_br_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt},
-        {ExceptionVector::UD,  isr_ud_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt},
-        {ExceptionVector::NM,  isr_nm_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt},
-        {ExceptionVector::DF,  isr_df_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt},
-        {ExceptionVector::TS,  isr_ts_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt},
-        {ExceptionVector::NP,  isr_np_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt},
-        {ExceptionVector::SS,  isr_ss_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt},
-        {ExceptionVector::GP,  isr_gp_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt},
-        {ExceptionVector::PF,  isr_pf_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt},
+        {ExceptionVector::DE,  isr_de_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::DB,  isr_db_stub,  IDTPrivilege::Kernel, IDTGateType::Trap,      0},
+        {ExceptionVector::NMI, isr_nmi_stub, IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::BP,  isr_bp_stub,  IDTPrivilege::User,   IDTGateType::Trap,      0},
+        {ExceptionVector::OF,  isr_of_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::BR,  isr_br_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::UD,  isr_ud_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::NM,  isr_nm_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::DF,  isr_df_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 1},
+        {ExceptionVector::TS,  isr_ts_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::NP,  isr_np_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::SS,  isr_ss_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::GP,  isr_gp_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::PF,  isr_pf_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
     };
 
     for (const auto& r : routes) {
         set_handler(r.vector, r.stub, GDT_KERNEL_CODE,
-                    make_idt_attr(r.priv, r.gate), 0);
+                    make_idt_attr(r.priv, r.gate), r.ist);
     }
 
     // Load IDTR

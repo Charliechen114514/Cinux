@@ -327,3 +327,15 @@ constexpr uint64_t BIG_KERNEL_LOAD_ADDR  = 0x1000000;   // 16MB
 - ☑ `class Semaphore {spin_, count_, *wait_head_}`：`post()`（V，count++，唤醒），`wait()`（P，count--，负数则阻塞），`try_wait()`
 - ☑ 演示任务：producer 写共享缓冲，consumer 读，Semaphore 同步，串口输出 `sent: 0,1,2,3,4` / `got: 0,1,2,3,4`
 - 立刻审查现有组件的并发安全性，防止出现竞态
+
+## Phase 7 · 用户态与系统调用
+
+### `022_ring3_usermode`
+**效果**：第一个用户态程序运行，执行特权指令触发 `#GP`
+
+- ☑ `kernel/arch/x86_64/tss.hpp`：`TSS [[gnu::packed]] {_reserved0, rsp[3], _reserved1, ist[7], _reserved2, _reserved3, iopb_offset}`，16 字节对齐
+- ☑ `tss_init()`：静态分配 TSS，IST1 指向独立 4KB Double Fault 栈，GDT TSS 描述符填基址+限长+type=0x89，`ltr $GDT_TSS`
+- ☑ `tss_set_rsp0(kernel_stack_top)` 每次 task 切换调用
+- ☑ `kernel/arch/x86_64/usermode.S`：`jump_to_usermode(entry,user_stack,arg)`，配置 `STAR MSR`，`%rcx=entry`，`%rsp=user_stack`，`%rdi=arg`，`%r11=RFLAGS|0x200`，`swapgs`，`sysretq`
+- ☑ 用户态 ELF 链接到 `0x400000`；`AddressSpace` 分配用户栈（`0x7FFFFF000` 附近）
+- ☑ 验证：用户程序执行 `cli`（特权指令）触发 `#GP`，串口输出 `[EXCEPTION] #GP at RIP=0x...`

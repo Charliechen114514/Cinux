@@ -15,6 +15,7 @@
 #include "kernel/lib/kprintf.hpp"
 #include "kernel/arch/x86_64/gdt.hpp"
 #include "kernel/arch/x86_64/idt.hpp"
+#include "kernel/arch/x86_64/usermode.hpp"
 
 #include "boot/boot_info.h"
 #include "kernel/mm/pmm.hpp"
@@ -35,6 +36,7 @@ void run_heap_tests();
 void run_address_space_tests();
 void run_scheduler_tests();
 void run_sync_tests();
+void run_usermode_tests();
 }
 
 static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
@@ -89,6 +91,10 @@ extern "C" void kernel_main() {
 
     // Sync tests (021): uses Scheduler block/unblock, Mutex, Semaphore
     run_sync_tests();
+
+    // Usermode tests (022): requires usermode_init() for MSR setup
+    cinux::arch::usermode_init();
+    run_usermode_tests();
 
     // Step 5: Report and exit
     int exit_code = (test::get_total_failed() > 0) ? 1 : 0;

@@ -90,6 +90,12 @@ private:
     };
     static_assert(sizeof(TaskStateSegment) == 104, "TSS must be 104 bytes");
 
+    /// 4 KB stack for IST1 (Double Fault recovery)
+    static constexpr uint64_t DF_STACK_PAGES = 1;
+    uint64_t df_stack_phys_{};
+
+    alignas(16) uint8_t df_stack_[DF_STACK_PAGES * 4096]{};
+
     // Constexpr factory functions
     static constexpr Entry null_entry() { return {0, 0, 0, 0, 0, 0}; }
 

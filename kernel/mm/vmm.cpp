@@ -47,7 +47,7 @@ PageEntry* phys_to_virt(uint64_t phys) {
  * @param should_alloc  Whether to allocate a new table if the entry is absent
  * @return Pointer to the next-level table, or nullptr on allocation failure
  */
-PageEntry* walk_level(PageEntry* table, uint64_t index, bool should_alloc) {
+PageEntry* walk_level(PageEntry* table, uint64_t index, bool should_alloc, uint64_t user_flag = 0) {
 	PageEntry& entry = table[index];
 
 	if (entry.is_present()) {
@@ -56,7 +56,7 @@ PageEntry* walk_level(PageEntry* table, uint64_t index, bool should_alloc) {
 				return nullptr;
 			}
 
-			uint64_t big_phys = entry.phys_addr();
+			uint64_t big_phys  = entry.phys_addr();
 			uint64_t big_flags = entry.raw & ~ADDR_MASK;
 
 			uint64_t new_page = cinux::mm::g_pmm.alloc_page();
@@ -66,10 +66,11 @@ PageEntry* walk_level(PageEntry* table, uint64_t index, bool should_alloc) {
 
 			auto* new_table = phys_to_virt(new_page);
 			for (uint32_t i = 0; i < PT_ENTRIES; i++) {
-				new_table[i].raw = (big_phys + static_cast<uint64_t>(i) * PAGE_SIZE) | (big_flags & ~FLAG_HUGE);
+				new_table[i].raw =
+					(big_phys + static_cast<uint64_t>(i) * PAGE_SIZE) | (big_flags & ~FLAG_HUGE);
 			}
 
-			entry.raw = new_page | FLAG_PRESENT | FLAG_WRITABLE;
+			entry.raw = new_page | FLAG_PRESENT | FLAG_WRITABLE | user_flag;
 		}
 		return phys_to_virt(entry.phys_addr());
 	}
@@ -88,7 +89,7 @@ PageEntry* walk_level(PageEntry* table, uint64_t index, bool should_alloc) {
 		new_table[i].raw = 0;
 	}
 
-	entry.raw = new_page | FLAG_PRESENT | FLAG_WRITABLE;
+	entry.raw = new_page | FLAG_PRESENT | FLAG_WRITABLE | user_flag;
 	return new_table;
 }
 
@@ -107,16 +108,17 @@ void VMM::init() {
 bool VMM::map(uint64_t virt, uint64_t phys, uint64_t flags, uint64_t* pml4) {
 	uint64_t pml4_phys	= pml4 ? *pml4 : kernel_pml4_;
 	auto*	 pml4_table = phys_to_virt(pml4_phys);
+	uint64_t user_flag	= flags & FLAG_USER;
 
-	auto* pdpt = walk_level(pml4_table, PML4_INDEX(virt), true);
+	auto* pdpt = walk_level(pml4_table, PML4_INDEX(virt), true, user_flag);
 	if (!pdpt)
 		return false;
 
-	auto* pd = walk_level(pdpt, PDPT_INDEX(virt), true);
+	auto* pd = walk_level(pdpt, PDPT_INDEX(virt), true, user_flag);
 	if (!pd)
 		return false;
 
-	auto* pt = walk_level(pd, PD_INDEX(virt), true);
+	auto* pt = walk_level(pd, PD_INDEX(virt), true, user_flag);
 	if (!pt)
 		return false;
 
@@ -130,8 +132,7 @@ bool VMM::map(uint64_t virt, uint64_t phys, uint64_t flags, uint64_t* pml4) {
 void VMM::unmap(uint64_t virt, uint64_t* pml4) {
 	uint64_t pml4_phys	= pml4 ? *pml4 : kernel_pml4_;
 	auto*	 pml4_table = phys_to_virt(pml4_phys);
-
-	auto* pdpt = walk_level(pml4_table, PML4_INDEX(virt), false);
+	auto*	 pdpt		= walk_level(pml4_table, PML4_INDEX(virt), false);
 	if (!pdpt)
 		return;
 
@@ -152,8 +153,7 @@ void VMM::unmap(uint64_t virt, uint64_t* pml4) {
 uint64_t VMM::translate(uint64_t virt, uint64_t* pml4) {
 	uint64_t pml4_phys	= pml4 ? *pml4 : kernel_pml4_;
 	auto*	 pml4_table = phys_to_virt(pml4_phys);
-
-	auto* pdpt = walk_level(pml4_table, PML4_INDEX(virt), false);
+	auto*	 pdpt		= walk_level(pml4_table, PML4_INDEX(virt), false);
 	if (!pdpt)
 		return 0;
 

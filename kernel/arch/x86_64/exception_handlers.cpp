@@ -143,8 +143,19 @@ void handle_ss(InterruptFrame* frame) {
 
 void handle_gp(InterruptFrame* frame) {
 	dump_registers(frame, "#GP", 13);
-	kprintf("[FATAL] General Protection Fault (error code=%p) -- halting.\n",
-			reinterpret_cast<void*>(frame->error_code));
+
+	// Determine whether the fault originated from user mode (Ring 3)
+	bool from_user = (frame->cs & 0x03) != 0;
+
+	if (from_user) {
+		kprintf("[EXCEPTION] #GP at RIP=%p from user mode (Ring 3)\n",
+				reinterpret_cast<void*>(frame->rip));
+		kprintf("[EXCEPTION] Privileged instruction executed in Ring 3 -- protection works!\n");
+	} else {
+		kprintf("[FATAL] General Protection Fault in kernel mode (error code=%p)\n",
+				reinterpret_cast<void*>(frame->error_code));
+	}
+
 	fatal_halt();
 }
 

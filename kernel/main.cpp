@@ -5,13 +5,14 @@
  * This is the C++ main function for the "big kernel" -- the full-featured
  * kernel that the mini kernel loads from disk and jumps to.
  *
- * Milestone 017 goal:
- *   Kernel heap allocator with kmalloc/kfree, new/delete takeover.
+ * Milestone 022 goal:
+ *   First user-mode program (Ring 3) executing a privileged instruction
+ *   (CLI) that triggers #GP, proving privilege isolation works.
  *
  * Initialisation order:
  *   1. Serial port (kprintf serial sink)
- *   2. GDT (segment descriptors + TSS)
- *   3. IDT (CPU exception vectors 0-14)
+ *   2. GDT (segment descriptors + TSS with IST1 Double Fault stack)
+ *   3. IDT (CPU exception vectors 0-14, #DF uses IST1)
  *   4. PIC (remap IRQ0-15 to vectors 0x20-0x2F)
  *   5. IRQ handlers (register IRQ stubs in IDT)
  *   6. PIT (configure channel 0 at 100 Hz)
@@ -24,7 +25,9 @@
  *  13. Console (init + register as kprintf sink)
  *  14. Keyboard (PS/2 controller init)
  *  15. Unmask IRQ0 + IRQ1, enable interrupts (sti)
- *  16. Keyboard poll loop: echo keypresses to console + serial
+ *  16. Usermode init (STAR/EFER MSRs for SYSRET)
+ *  17. Scheduler init, create tasks
+ *  18. Launch first user-mode program (Ring 3)
  */
 
 #include <stdint.h>
@@ -33,6 +36,7 @@
 #include "kernel/arch/x86_64/gdt.hpp"
 #include "kernel/arch/x86_64/idt.hpp"
 #include "kernel/arch/x86_64/pic.hpp"
+#include "kernel/arch/x86_64/usermode.hpp"
 #include "kernel/drivers/video/console.hpp"
 #include "kernel/drivers/video/font.hpp"
 #include "kernel/drivers/video/framebuffer.hpp"
@@ -43,11 +47,6 @@
 #include "kernel/mm/vmm.hpp"
 #include "kernel/mm/heap.hpp"
 #include "kernel/mm/address_space.hpp"
-#include "kernel/proc/process.hpp"
-#include "kernel/proc/scheduler.hpp"
-
-#include "kernel/proc/per_cpu.hpp"
-#include "kernel/proc/sync.hpp"
 
 using cinux::arch::PIC;
 using cinux::drivers::Console;
@@ -57,49 +56,12 @@ using cinux::drivers::KeyEvent;
 using cinux::drivers::PIT;
 using cinux::drivers::PSFFont;
 
-// ============================================================
-// Producer-Consumer demo (milestone 021_proc_sync)
-// ============================================================
-
-/// Size of the shared circular buffer
-static constexpr int PC_BUF_SIZE = 4;
-
-/// Shared buffer and synchronisation primitives
-static int g_pc_buf[PC_BUF_SIZE];
-static cinux::proc::Semaphore g_sem_free(PC_BUF_SIZE);
-static cinux::proc::Semaphore g_sem_used(0);
-static cinux::proc::Mutex g_pc_mutex;
-
-static void producer() {
-    for (int i = 0; i <= 4; i++) {
-        g_sem_free.wait();
-        {
-            auto g = g_pc_mutex.guard();
-            g_pc_buf[i % PC_BUF_SIZE] = i;
-        }
-        g_sem_used.post();
-        cinux::lib::kprintf("sent: %d\n", i);
-    }
-}
-
-static void consumer() {
-    for (int i = 0; i <= 4; i++) {
-        g_sem_used.wait();
-        int val;
-        {
-            auto g = g_pc_mutex.guard();
-            val = g_pc_buf[i % PC_BUF_SIZE];
-        }
-        g_sem_free.post();
-        cinux::lib::kprintf("got: %d\n", val);
-    }
-}
-
 // BootInfo is placed at physical 0x7000 by the bootloader
 static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
 
 // Forward declarations for IRQ init (defined in irq_handlers.cpp)
 extern "C" void irq_init();
+
 
 /**
  * @brief Big kernel main entry point
@@ -118,11 +80,11 @@ extern "C" void kernel_main() {
 
     // Step 3: Initialise the GDT (must come before IDT)
     cinux::arch::g_gdt.init();
-    cinux::lib::kprintf("[BIG] GDT loaded.\n");
+    cinux::lib::kprintf("[BIG] GDT loaded (TSS with IST1 Double Fault stack).\n");
 
     // Step 4: Initialise the IDT (depends on GDT selectors)
     cinux::arch::g_idt.init();
-    cinux::lib::kprintf("[BIG] IDT loaded.\n");
+    cinux::lib::kprintf("[BIG] IDT loaded (#DF uses IST1).\n");
 
     // Step 5: Initialise the PIC (remap IRQ0-7 -> 0x20-0x27,
     //         IRQ8-15 -> 0x28-0x2F, all masked)
@@ -141,77 +103,60 @@ extern "C" void kernel_main() {
     __asm__ volatile("int $3");
     cinux::lib::kprintf("[BIG] Breakpoint returned, continuing.\n");
 
-    // Step 7: Initialise Physical Memory Manager
+    // Step 9: Initialise Physical Memory Manager
     auto* boot_info = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
     cinux::mm::g_pmm.init(*boot_info);
 
-    // Step 8: Initialise Virtual Memory Manager
+    // Step 10: Initialise Virtual Memory Manager
     cinux::mm::g_vmm.init();
 
-    // Step 9: Save kernel PML4 for per-process address spaces
+    // Step 11: Save kernel PML4 for per-process address spaces
     cinux::mm::AddressSpace::init_kernel();
 
-    // Step 10: Initialise kernel heap (64 KB initial region after kernel image)
+    // Step 12: Initialise kernel heap (64 KB initial region after kernel image)
     constexpr uint64_t HEAP_VIRT_BASE = 0xFFFF800000000000ULL;
     constexpr uint64_t HEAP_INITIAL_SIZE = 64 * 1024;
     cinux::mm::g_heap.init(HEAP_VIRT_BASE, HEAP_INITIAL_SIZE);
 
-    // Step 11: Initialise framebuffer from BootInfo
+    // Step 13: Initialise framebuffer from BootInfo
     Framebuffer fb;
     fb.init(*boot_info);
     cinux::lib::kprintf("[BIG] Framebuffer initialised: %ux%u %ubpp\n",
                         fb.width(), fb.height(), boot_info->fb_bpp);
 
-    // Step 12: Parse embedded PSF2 font
+    // Step 14: Parse embedded PSF2 font
     PSFFont font;
     font.init();
     cinux::lib::kprintf("[BIG] PSF2 font loaded: %ux%u\n",
                         font.width(), font.height());
 
-    // Step 13: Initialise text console and register as kprintf sink
+    // Step 15: Initialise text console and register as kprintf sink
     Console console;
     console.init(fb, font, 0x00FFFFFF, 0x00000000);
     cinux::lib::kprintf_register_sink(Console::console_sink_adapter, &console);
     cinux::lib::kprintf("[BIG] Console initialised -- dual output active.\n");
 
-    // Step 14: Initialise the PS/2 keyboard controller
+    // Step 16: Initialise the PS/2 keyboard controller
     Keyboard::init();
 
-    // Step 15: Initialise scheduler and create preemptive tasks
-    cinux::proc::Scheduler::init();
-
-    auto* task_prod = cinux::proc::TaskBuilder()
-        .set_entry(producer).set_name("producer").build();
-    auto* task_cons = cinux::proc::TaskBuilder()
-        .set_entry(consumer).set_name("consumer").build();
-
-    cinux::proc::Scheduler::add_task(task_prod);
-    cinux::proc::Scheduler::add_task(task_cons);
-
-    cinux::lib::kprintf("[BIG] Starting producer-consumer demo (Mutex + Semaphore)...\n");
-
-    // Step 16: Unmask IRQ0 (PIT timer) and IRQ1 (Keyboard), enable interrupts
+    // Step 17: Unmask IRQ0 (PIT timer) and IRQ1 (Keyboard), enable interrupts
     PIC::unmask(0);
     PIC::unmask(1);
     cinux::lib::kprintf("[BIG] IRQ0+IRQ1 unmasked, enabling interrupts...\n");
     __asm__ volatile("sti");
     cinux::lib::kprintf("[BIG] Interrupts enabled.\n");
 
-    cinux::proc::Task boot_task;
-    for (uint8_t* p = reinterpret_cast<uint8_t*>(&boot_task);
-         p < reinterpret_cast<uint8_t*>(&boot_task + 1); p++) {
-        *p = 0;
-    }
-    boot_task.state = cinux::proc::TaskState::Running;
-    boot_task.tid = 0;
-    boot_task.name = "boot";
+    // Step 18: Initialise user-mode support (STAR/EFER MSRs)
+    cinux::arch::usermode_init();
 
-    cinux::lib::kprintf("[BIG] Switching to first task...\n");
-    cinux::proc::Scheduler::run_first(&boot_task);
+    // Step 19: Launch the first user-mode program (Ring 3)
+    cinux::lib::kprintf("[BIG] ===== Milestone 022: User Mode (Ring 3) =====\n");
+    cinux::arch::launch_first_user();
 
-    cinux::lib::kprintf("[BIG] All tasks finished, entering idle.\n");
+    // Should never reach here (the user program triggers #GP which halts)
+    cinux::lib::kprintf("[BIG] Returned from user mode launch (unexpected).\n");
 
-    // Step 17: Keyboard poll loop -- echo keypresses to console + serial
+    // Step 21: Keyboard poll loop -- echo keypresses to console + serial
     KeyEvent ev;
     while (1) {
         __asm__ volatile("hlt");
