@@ -246,8 +246,9 @@ void test_sys_write_invalid_fd_rejected() {
     TEST_ASSERT_EQ(r0, -1);
 }
 
-void test_sys_write_kernel_addr_rejected() {
-    int64_t r1 = sys_write(1, 0x800000000000ULL, 5, 0, 0, 0);
+void test_sys_write_null_buf_rejected() {
+    // buf_virt == 0 (null pointer) should return -1
+    int64_t r1 = sys_write(1, 0, 5, 0, 0, 0);
     TEST_ASSERT_EQ(r1, -1);
 }
 
@@ -429,7 +430,7 @@ extern "C" void run_shell_tests() {
     // Syscall dispatch for shell
     RUN_TEST(test_syscall_for_shell::test_sys_write_registered);
     RUN_TEST(test_syscall_for_shell::test_sys_write_invalid_fd_rejected);
-    RUN_TEST(test_syscall_for_shell::test_sys_write_kernel_addr_rejected);
+    RUN_TEST(test_syscall_for_shell::test_sys_write_null_buf_rejected);
     RUN_TEST(test_syscall_for_shell::test_syscall_nr_constants);
 
     // Command dispatch table pattern

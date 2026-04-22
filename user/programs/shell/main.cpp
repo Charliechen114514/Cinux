@@ -158,6 +158,8 @@ constexpr CmdEntry builtin_cmds[] = {
     {"echo",  cmd_echo},
     {"help",  cmd_help},
     {"clear", cmd_clear},
+    {"cat",   cmd_cat},
+    {"ls",    cmd_ls},
     {nullptr, nullptr},
 };
 

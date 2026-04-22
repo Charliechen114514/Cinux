@@ -21,8 +21,11 @@ namespace cinux::syscall {
 enum class SyscallNr : uint64_t {
     SYS_read   = 0,
     SYS_write  = 1,
-    SYS_exit   = 60,
-    SYS_yield  = 24,
+    SYS_open   = 2,
+    SYS_close  = 3,
+    SYS_exit     = 60,
+    SYS_yield    = 24,
+    SYS_getdents = 78,
 };
 
 constexpr uint64_t SYSCALL_TABLE_SIZE = 256;

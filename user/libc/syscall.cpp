@@ -21,6 +21,17 @@ static inline int64_t _syscall1(uint64_t nr, uint64_t a1) {
     return ret;
 }
 
+static inline int64_t _syscall2(uint64_t nr, uint64_t a1, uint64_t a2) {
+    int64_t ret;
+    __asm__ volatile(
+        "syscall"
+        : "=a"(ret)
+        : "a"(nr), "D"(a1), "S"(a2)
+        : "rcx", "r11", "memory"
+    );
+    return ret;
+}
+
 static inline int64_t _syscall3(uint64_t nr, uint64_t a1, uint64_t a2, uint64_t a3) {
     int64_t ret;
     __asm__ volatile(
@@ -34,6 +45,16 @@ static inline int64_t _syscall3(uint64_t nr, uint64_t a1, uint64_t a2, uint64_t 
 
 using cinux::syscall::SyscallNr;
 
+int64_t sys_open(const char* path, int flags) {
+    return _syscall2(static_cast<uint64_t>(SyscallNr::SYS_open),
+                     (uint64_t)path, (uint64_t)flags);
+}
+
+int64_t sys_close(int fd) {
+    return _syscall1(static_cast<uint64_t>(SyscallNr::SYS_close),
+                     (uint64_t)fd);
+}
+
 int64_t sys_read(int fd, void* buf, size_t count) {
     return _syscall3(static_cast<uint64_t>(SyscallNr::SYS_read),
                      (uint64_t)fd, (uint64_t)buf, (uint64_t)count);
@@ -41,6 +62,11 @@ int64_t sys_read(int fd, void* buf, size_t count) {
 
 int64_t sys_write(int fd, const void* buf, size_t count) {
     return _syscall3(static_cast<uint64_t>(SyscallNr::SYS_write),
+                     (uint64_t)fd, (uint64_t)buf, (uint64_t)count);
+}
+
+int64_t sys_getdents(int fd, void* buf, size_t count) {
+    return _syscall3(static_cast<uint64_t>(SyscallNr::SYS_getdents),
                      (uint64_t)fd, (uint64_t)buf, (uint64_t)count);
 }
 

@@ -56,7 +56,10 @@ add_library(big_kernel_common OBJECT
     drivers/pci/pci.cpp
     drivers/ahci/ahci.cpp
     fs/ramdisk.cpp
+    fs/file.cpp
+    fs/vfs_mount.cpp
     lib/kprintf.cpp
+    lib/string.cpp
     mm/pmm.cpp
     mm/vmm.cpp
     mm/heap.cpp
@@ -71,8 +74,11 @@ add_library(big_kernel_common OBJECT
     arch/x86_64/syscall.cpp
     syscall/sys_read.cpp
     syscall/sys_write.cpp
+    syscall/sys_open.cpp
+    syscall/sys_close.cpp
     syscall/sys_exit.cpp
     syscall/sys_yield.cpp
+    syscall/sys_getdents.cpp
 )
 
 target_compile_options(big_kernel_common PUBLIC ${BIG_KERNEL_COMPILE_OPTIONS})
@@ -150,6 +156,7 @@ add_executable(big_kernel_test
     test/test_shell.cpp
     test/test_ahci.cpp
     test/test_ramdisk.cpp
+    test/test_vfs_syscall.cpp
 )
 
 target_sources(big_kernel_test PRIVATE $<TARGET_OBJECTS:big_kernel_common>)

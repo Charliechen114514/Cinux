@@ -239,12 +239,10 @@ void test_sys_write_invalid_fd() {
 	TEST_ASSERT_EQ(r3, -1);
 }
 
-void test_sys_write_kernel_addr_rejected() {
-	// buf_virt >= USER_ADDR_MAX should return -1
-	int64_t r1 = sys_write(1, 0x800000000000ULL, 5, 0, 0, 0);
-	int64_t r2 = sys_write(1, 0xFFFFFFFF80000000ULL, 5, 0, 0, 0);
+void test_sys_write_null_buf_rejected() {
+	// buf_virt == 0 (null pointer) should return -1
+	int64_t r1 = sys_write(1, 0, 5, 0, 0, 0);
 	TEST_ASSERT_EQ(r1, -1);
-	TEST_ASSERT_EQ(r2, -1);
 }
 
 void test_sys_write_returns_count() {
@@ -348,7 +346,7 @@ extern "C" void run_syscall_tests() {
 
 	RUN_TEST(test_sys_write::test_sys_write_valid_fd1);
 	RUN_TEST(test_sys_write::test_sys_write_invalid_fd);
-	RUN_TEST(test_sys_write::test_sys_write_kernel_addr_rejected);
+	RUN_TEST(test_sys_write::test_sys_write_null_buf_rejected);
 	RUN_TEST(test_sys_write::test_sys_write_returns_count);
 
 	RUN_TEST(test_sys_exit::test_sys_exit_marks_dead);

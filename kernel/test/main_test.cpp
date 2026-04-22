@@ -42,6 +42,7 @@ void run_syscall_tests();
 void run_shell_tests();
 void run_ahci_tests();
 void run_ramdisk_tests();
+void run_vfs_syscall_tests();
 }
 
 static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
@@ -113,6 +114,9 @@ extern "C" void kernel_main() {
 
     // Ramdisk tests (026): verifies ustar parsing of embedded initrd
     run_ramdisk_tests();
+
+    // VFS syscall integration tests (027): sys_open/read/write/close via VFS
+    run_vfs_syscall_tests();
 
     // Step 5: Report and exit
     int exit_code = (test::get_total_failed() > 0) ? 1 : 0;

@@ -384,3 +384,23 @@ constexpr uint64_t BIG_KERNEL_LOAD_ADDR  = 0x1000000;   // 16MB
 - ☑ `octal_to_uint(s,len)`：ustar size 字段为八进制 ASCII 转 uint64
 - ☑ `ramdisk_mount(void* base)`：遍历 ustar 条目（512 字节对齐），typeflag='0' 为文件，'5' 为目录，magic=`"ustar"` 验证
 - ☑ CMake：将 initrd 归档嵌入内核镜像，通过 `_binary_initrd_start/end` 访问
+
+---
+
+### `027_fs_vfs`
+**效果**：`open/read/write/close` syscall 框架可用
+
+- ☑ `kernel/fs/inode.hpp`：`InodeType` 枚举、`InodeOps` 函数指针表（read/write/readdir）、`Inode` 结构体
+- ☑ `kernel/fs/file.hpp` + `file.cpp`：`OpenFlags` 枚举、`File` 结构体、`FDTable` 类（alloc 从 fd 3 开始，0-2 保留给 stdin/stdout/stderr）
+- ☑ `kernel/fs/vfs_filesystem.hpp`：`FileSystem` 抽象基类（虚析构 + 纯虚 mount/lookup），后端继承实现
+- ☑ `kernel/fs/vfs_mount.hpp` + `vfs_mount.cpp`：`MountPoint` 挂载点表，`vfs_mount_init/add/remove/resolve`（最长前缀匹配）
+- ☑ `kernel/fs/ramdisk.hpp` + `ramdisk.cpp`：Ramdisk 继承 FileSystem，实现 mount()/lookup()，InodeOps（ramdisk_read/ramdisk_write/ramdisk_readdir）
+- ☑ `kernel/lib/string.hpp` + `string.cpp`：独立 string 函数（memset/memcpy/memmove/memcmp/strcmp/strncmp/strlen）
+- ☑ syscall 新增：`SYS_open=2`（sys_open：resolve→lookup→alloc fd）、`SYS_close=3`（sys_close：FDTable close）、`SYS_getdents=78`（sys_getdents：通过 fd→Inode→ops→readdir 读取目录项）
+- ☑ `sys_read/sys_write` 更新：fd=0 保留键盘、fd=1 保留 kprintf，其他 fd 走 VFS（File→Inode→ops）
+- ☑ 非规范地址校验：sys_open/sys_read/sys_write 均检查 x86_64 canonical address（bit 47 与 bits 48-63 一致）
+- ☑ `kernel/main.cpp`：ramdisk 改为 static，新增 vfs_mount_init() + vfs_mount_add("/", &ramdisk)
+- ☑ 用户态 libc：新增 sys_open/sys_close/sys_getdents wrapper
+- ☑ shell 命令：`cat <path>`（open→read→write→close）、`ls [path]`（open→getdents 循环→close）
+- ☑ Host 测试：test_fd_table（24 用例）、test_vfs_mount（19 用例）
+- ☑ Kernel 测试：test_ramdisk（lookup/InodeOps/VFS 集成）、test_vfs_syscall（23 用例覆盖 open/close/read/write/getdents 全链路）

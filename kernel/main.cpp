@@ -47,6 +47,7 @@
 #include "kernel/drivers/ahci/ahci.hpp"
 #include "kernel/drivers/pci/pci.hpp"
 #include "kernel/fs/ramdisk.hpp"
+#include "kernel/fs/vfs_mount.hpp"
 #include "kernel/drivers/video/console.hpp"
 #include "kernel/drivers/video/font.hpp"
 #include "kernel/drivers/video/framebuffer.hpp"
@@ -199,8 +200,16 @@ extern "C" void kernel_main() {
 
     // Step 22: Mount the embedded initrd ramdisk (ustar archive)
     cinux::lib::kprintf("[BIG] ===== Milestone 026: Ramdisk (initrd) =====\n");
-    cinux::fs::Ramdisk ramdisk;
-    ramdisk.mount();
+    static cinux::fs::Ramdisk ramdisk;
+    if (!ramdisk.mount()) {
+        cinux::lib::kprintf("[RAMDISK] mount failed!\n");
+    }
+
+    // Step 27: Register ramdisk in VFS mount table
+    cinux::lib::kprintf("[BIG] ===== Milestone 027: VFS =====\n");
+    cinux::fs::vfs_mount_init();
+    cinux::fs::vfs_mount_add("/", &ramdisk);
+    cinux::lib::kprintf("[VFS] Ramdisk mounted at /\n");
 
     // Step 23: Launch the first user-mode program (Ring 3)
     cinux::lib::kprintf("[BIG] ===== Milestone 023: Syscall from Ring 3 =====\n");

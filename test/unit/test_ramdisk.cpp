@@ -740,7 +740,7 @@ TEST("ramdisk_mount: symlink entry not counted as file or dir") {
 
 TEST("ramdisk_entry: RamdiskEntry struct fields") {
     RamdiskEntry entry{};
-    entry.name = "test.txt";
+    std::memcpy(entry.name, "test.txt", 9);  // includes null terminator
     entry.size = 42;
     entry.data = reinterpret_cast<const void*>(0x1000);
 

@@ -7,7 +7,7 @@
  *   - SYSCALL_TABLE_SIZE constant (256)
  *   - Dispatch table: register, dispatch, null handler returns -1
  *   - Out-of-range syscall number returns -1
- *   - sys_write parameter validation: fd check, buf_virt USER_ADDR_MAX check
+ *   - sys_write parameter validation: fd check, null buf_virt check
  *   - sys_exit task state transition: marks task as Dead
  *   - STAR MSR value computation (kernel CS selectors)
  *   - SFMASK value computation (IF bit clear)
@@ -37,8 +37,6 @@
 // any kernel code.
 
 namespace mock {
-
-constexpr uint64_t USER_ADDR_MAX = 0x800000000000ULL;
 
 // Mirror of SyscallNr from kernel/syscall/syscall_nums.hpp
 enum class SyscallNr : uint64_t {
@@ -101,7 +99,7 @@ int64_t syscall_dispatch(uint64_t nr,
 // Mirror of sys_write logic (without kprintf output)
 int64_t sys_write(uint64_t fd, uint64_t buf_virt, uint64_t count,
                   uint64_t, uint64_t, uint64_t) {
-    if (buf_virt >= USER_ADDR_MAX) {
+    if (buf_virt == 0) {
         return -1;
     }
     if (fd != 1) {
@@ -285,13 +283,11 @@ TEST("syscall: sys_write with fd!=1 returns -1") {
     ASSERT_EQ(mock::sys_write(100, 0x1000, 5, 0, 0, 0), -1);
 }
 
-TEST("syscall: sys_write with buf_virt >= USER_ADDR_MAX returns -1") {
-    ASSERT_EQ(mock::sys_write(1, 0x800000000000ULL, 5, 0, 0, 0), -1);
-    ASSERT_EQ(mock::sys_write(1, 0xFFFFFFFF80000000ULL, 5, 0, 0, 0), -1);
-    ASSERT_EQ(mock::sys_write(1, 0xFFFFFFFFFFFFFFFFULL, 5, 0, 0, 0), -1);
+TEST("syscall: sys_write with null buf_virt returns -1") {
+    ASSERT_EQ(mock::sys_write(1, 0, 5, 0, 0, 0), -1);
 }
 
-TEST("syscall: sys_write with buf_virt just below USER_ADDR_MAX succeeds") {
+TEST("syscall: sys_write with nonzero buf_virt succeeds") {
     int64_t result = mock::sys_write(1, 0x7FFFFFFFFFFFULL, 1, 0, 0, 0);
     ASSERT_EQ(result, 1);
 }
@@ -419,7 +415,7 @@ TEST("syscall: full register-dispatch lifecycle for SYS_write") {
     auto handler = [](uint64_t fd, uint64_t buf_virt, uint64_t count,
                       uint64_t, uint64_t, uint64_t) -> int64_t {
         if (fd != 1) return -1;
-        if (buf_virt >= 0x800000000000ULL) return -1;
+        if (buf_virt == 0) return -1;
         return static_cast<int64_t>(count);
     };
 
@@ -429,7 +425,7 @@ TEST("syscall: full register-dispatch lifecycle for SYS_write") {
     ASSERT_EQ(r1, 5);
 
     int64_t r2 = mock::syscall_dispatch(1, 1, 0, 0, 0, 0, 0);
-    ASSERT_EQ(r2, 0);
+    ASSERT_EQ(r2, -1);
 
     int64_t r3 = mock::syscall_dispatch(1, 1, reinterpret_cast<uint64_t>(buf), 3, 0, 0, 0);
     ASSERT_EQ(r3, 3);

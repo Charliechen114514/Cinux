@@ -74,6 +74,41 @@ int __cxa_atexit(void (*)(void*), void*, void*) {
 }
 
 // ============================================================
+// Guard Variables for Function-Local Statics
+// ============================================================
+
+/**
+ * @brief Acquire guard for function-local static initialization
+ *
+ * In a freestanding environment, the compiler generates calls to
+ * these functions when a function-local static needs thread-safe
+ * initialization.  On a single-core kernel we check/set the guard
+ * atomically without any locking.
+ *
+ * The guard variable is a 64-bit value:
+ *   - 0: not yet initialized
+ *   - 1: initialization complete
+ *
+ * @return 1 if initialization should proceed, 0 if already done
+ */
+int __cxa_guard_acquire(uint64_t* guard) {
+    if (*guard != 0) {
+        return 0;
+    }
+    return 1;
+}
+
+/**
+ * @brief Release guard after function-local static initialization
+ *
+ * Marks the guard as initialized so subsequent calls to
+ * __cxa_guard_acquire return 0 (already initialized).
+ */
+void __cxa_guard_release(uint64_t* guard) {
+    *guard = 1;
+}
+
+// ============================================================
 // Global Constructors
 // ============================================================
 

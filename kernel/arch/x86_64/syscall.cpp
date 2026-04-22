@@ -16,8 +16,11 @@
 #include "kernel/lib/kprintf.hpp"
 #include "kernel/syscall/sys_read.hpp"
 #include "kernel/syscall/sys_write.hpp"
+#include "kernel/syscall/sys_open.hpp"
+#include "kernel/syscall/sys_close.hpp"
 #include "kernel/syscall/sys_exit.hpp"
 #include "kernel/syscall/sys_yield.hpp"
+#include "kernel/syscall/sys_getdents.hpp"
 
 namespace cinux::arch {
 
@@ -50,8 +53,11 @@ void register_builtin_handlers() {
     using namespace cinux::syscall;
     syscall_register(SyscallNr::SYS_read,  sys_read);
     syscall_register(SyscallNr::SYS_write, sys_write);
+    syscall_register(SyscallNr::SYS_open,  sys_open);
+    syscall_register(SyscallNr::SYS_close, sys_close);
     syscall_register(SyscallNr::SYS_exit,  sys_exit);
     syscall_register(SyscallNr::SYS_yield, sys_yield);
+    syscall_register(SyscallNr::SYS_getdents, sys_getdents);
 }
 
 }  // anonymous namespace

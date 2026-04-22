@@ -393,9 +393,53 @@ add_executable(test_ramdisk
 )
 
 target_compile_definitions(test_ramdisk PRIVATE CINUX_HOST_TEST)
-target_include_directories(test_ramdisk PRIVATE ${TEST_INCLUDE_DIRS})
+target_include_directories(test_ramdisk PRIVATE
+    ${CMAKE_SOURCE_DIR}/test/framework
+    ${CMAKE_SOURCE_DIR}/kernel
+    ${CMAKE_SOURCE_DIR}
+)
 add_test(NAME ramdisk COMMAND test_ramdisk)
 set_tests_properties(ramdisk PROPERTIES LABELS "ramdisk")
+
+# ============================================================
+# 测试可执行文件：test_fd_table
+# ============================================================
+# FDTable: per-process file descriptor table -- alloc/close/get
+# Links directly with kernel/fs/file.cpp (no hardware dependencies).
+add_executable(test_fd_table
+    unit/test_fd_table.cpp
+    ${CMAKE_SOURCE_DIR}/kernel/fs/file.cpp
+)
+
+target_compile_definitions(test_fd_table PRIVATE CINUX_HOST_TEST)
+target_include_directories(test_fd_table PRIVATE
+    ${CMAKE_SOURCE_DIR}/test/framework
+    ${CMAKE_SOURCE_DIR}/kernel
+    ${CMAKE_SOURCE_DIR}
+)
+add_test(NAME fd_table COMMAND test_fd_table)
+set_tests_properties(fd_table PROPERTIES LABELS "fd_table")
+
+# ============================================================
+# 测试可执行文件：test_vfs_mount
+# ============================================================
+# VFS mount table: init/add/remove/resolve, longest-prefix match,
+# global FDTable accessor.
+# Links with kernel/fs/vfs_mount.cpp and kernel/fs/file.cpp.
+add_executable(test_vfs_mount
+    unit/test_vfs_mount.cpp
+    ${CMAKE_SOURCE_DIR}/kernel/fs/vfs_mount.cpp
+    ${CMAKE_SOURCE_DIR}/kernel/fs/file.cpp
+)
+
+target_compile_definitions(test_vfs_mount PRIVATE CINUX_HOST_TEST)
+target_include_directories(test_vfs_mount PRIVATE
+    ${CMAKE_SOURCE_DIR}/test/framework
+    ${CMAKE_SOURCE_DIR}/kernel
+    ${CMAKE_SOURCE_DIR}
+)
+add_test(NAME vfs_mount COMMAND test_vfs_mount)
+set_tests_properties(vfs_mount PROPERTIES LABELS "vfs_mount")
 
 # ============================================================
 # 测试辅助目标
@@ -404,7 +448,7 @@ set_tests_properties(ramdisk PROPERTIES LABELS "ramdisk")
 # Host 端单元测试
 add_custom_target(test_host
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test_ahci test_ramdisk
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount
     USES_TERMINAL
     COMMENT "Running host unit tests..."
 )
@@ -419,7 +463,7 @@ configure_file(
 
 add_custom_target(test
     COMMAND sh ${CMAKE_BINARY_DIR}/run_all_tests.sh
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test_ahci test_ramdisk test-image
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test-image
     USES_TERMINAL
     COMMENT "Running ALL tests (host then kernel)..."
 )
@@ -427,7 +471,7 @@ add_custom_target(test
 # 详细模式运行 host 测试
 add_custom_target(test_verbose
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose --output-on-failure
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test_ahci test_ramdisk
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount
     COMMENT "Running host tests in verbose mode..."
 )
 

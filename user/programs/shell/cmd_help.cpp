@@ -25,5 +25,7 @@ void cmd_help(int /*argc*/, char** /*argv*/) {
         "  echo <args...>  - print arguments to stdout\n"
         "  help            - show this help message\n"
         "  clear           - clear the screen\n"
+        "  cat <path>      - print file contents\n"
+        "  ls [path]       - list directory contents\n"
     );
 }
