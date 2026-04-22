@@ -363,3 +363,14 @@ constexpr uint64_t BIG_KERNEL_LOAD_ADDR  = 0x1000000;   // 16MB
 - ☐ builtin 表：`{"echo",cmd_echo},{"help",cmd_help},{"clear",cmd_clear},{nullptr,nullptr}`
 - ☐ `cmd_echo`：`write(1, argv[1..], ...)`；`cmd_clear`：`write(1, "\033[2J\033[H", 7)`（ANSI 清屏）；`cmd_help`：打印命令列表
 - ☐ CMake 切换嵌入 binary 从 `hello` 到 `shell`（`user/CMakeLists.txt`）
+
+## Phase 8 · 存储与文件系统
+
+### `025_driver_ahci`
+**效果**：串口输出 `[AHCI] Read sector 0: 55 AA`
+
+- ☑ `kernel/drivers/pci.hpp/cpp`：`PCIDevice {bus,slot,func,vendor_id,device_id,class_code,subclass,prog_if,bar[6]}`；`pci_read/pci_write`（写 `0xCF8`，读 `0xCFC`）；`pci_find_ahci(out)`（枚举 class=0x01 subclass=0x06）
+- ☑ `kernel/drivers/ahci.hpp/cpp`：`HBAmem [[gnu::packed]]`（cap/ghc/is/pi/...）；`HBAport [[gnu::packed]]`（clb/fb/is/ie/cmd/...）
+- ☑ `ahci_init()`：映射 BAR5 MMIO（`VMM::map`），检测 `pi` 位图，为每活跃端口分配 Command List（32×32B）+ FIS Buffer（256B），物理连续且对齐
+- ☑ `ahci_read(port,lba,count,buf)`：构造 CFIS（ATA READ DMA EXT=0x25）+ PRDT，写 `port.ci`，轮询 `port.is` 等待完成
+- ☑ `ahci_write(port,lba,count,buf)`：同上，命令改为 ATA WRITE DMA EXT=0x35

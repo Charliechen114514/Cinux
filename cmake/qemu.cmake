@@ -17,9 +17,21 @@ set(QEMU_COMMON_FLAGS
 set(QEMU_DEVELOP_FLAG     
     -no-shutdown)
 
+# AHCI test disk (1 MB, with MBR boot signature at offset 510-511)
+set(AHCI_TEST_IMAGE "${CMAKE_BINARY_DIR}/ahci_test.img")
+add_custom_command(
+    OUTPUT ${AHCI_TEST_IMAGE}
+    COMMAND ${CMAKE_SOURCE_DIR}/scripts/create_ahci_test_disk.sh ${AHCI_TEST_IMAGE}
+    COMMENT "Creating AHCI test disk image"
+    VERBATIM
+)
+
 # QEMU 额外测试标志（添加到 COMMON_FLAGS 之上）
 set(QEMU_TEST_EXTRA_FLAGS
     -device isa-debug-exit,iobase=0xf4,iosize=0x04
+    -device ahci,id=ahci
+    -drive file=${AHCI_TEST_IMAGE},format=raw,if=none,id=ahci-disk
+    -device ide-hd,drive=ahci-disk,bus=ahci.0
 )
 
 # ============================================================
@@ -73,9 +85,12 @@ add_custom_target(image ALL
 )
 
 add_custom_target(run
-    COMMAND ${QEMU_EXECUTABLE} ${QEMU_COMMON_FLAGS} ${QEMU_DEVELOP_FLAG} 
+    COMMAND ${QEMU_EXECUTABLE} ${QEMU_COMMON_FLAGS} ${QEMU_DEVELOP_FLAG}
         -drive file=${CINUX_IMAGE_PATH},format=raw,index=0,media=disk
-    DEPENDS image
+        -device ahci,id=ahci
+        -drive file=${AHCI_TEST_IMAGE},format=raw,if=none,id=ahci-disk
+        -device ide-hd,drive=ahci-disk,bus=ahci.0
+    DEPENDS image ${AHCI_TEST_IMAGE}
     COMMENT "Starting QEMU (serial: stdio)"
     VERBATIM
 )
@@ -210,7 +225,7 @@ add_custom_target(run-kernel-test
     COMMAND ${CMAKE_SOURCE_DIR}/scripts/qemu_test_wrapper.sh
         ${QEMU_EXECUTABLE} ${QEMU_COMMON_FLAGS} ${QEMU_TEST_EXTRA_FLAGS}
         -drive file=${CINUX_TEST_IMAGE_PATH},format=raw,index=0,media=disk
-    DEPENDS test-image
+    DEPENDS test-image ${AHCI_TEST_IMAGE}
     USES_TERMINAL
     COMMENT "Starting QEMU with TEST kernel (auto-exit)"
     VERBATIM

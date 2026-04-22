@@ -368,13 +368,28 @@ add_test(NAME shell COMMAND test_shell)
 set_tests_properties(shell PROPERTIES LABELS "shell")
 
 # ============================================================
+# 测试可执行文件：test_ahci
+# ============================================================
+# AHCI SATA driver: register layout, FIS construction, PCI constants,
+# PRDT setup logic, CFIS LBA/count encoding.  Pure arithmetic --
+# no kernel code linked.
+add_executable(test_ahci
+    unit/test_ahci.cpp
+)
+
+target_compile_definitions(test_ahci PRIVATE CINUX_HOST_TEST)
+target_include_directories(test_ahci PRIVATE ${TEST_INCLUDE_DIRS})
+add_test(NAME ahci COMMAND test_ahci)
+set_tests_properties(ahci PROPERTIES LABELS "ahci")
+
+# ============================================================
 # 测试辅助目标
 # ============================================================
 
 # Host 端单元测试
 add_custom_target(test_host
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test_ahci
     USES_TERMINAL
     COMMENT "Running host unit tests..."
 )
@@ -389,7 +404,7 @@ configure_file(
 
 add_custom_target(test
     COMMAND sh ${CMAKE_BINARY_DIR}/run_all_tests.sh
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test-image
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test_ahci test-image
     USES_TERMINAL
     COMMENT "Running ALL tests (host then kernel)..."
 )
@@ -397,7 +412,7 @@ add_custom_target(test
 # 详细模式运行 host 测试
 add_custom_target(test_verbose
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose --output-on-failure
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test_ahci
     COMMENT "Running host tests in verbose mode..."
 )
 

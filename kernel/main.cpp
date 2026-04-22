@@ -5,9 +5,8 @@
  * This is the C++ main function for the "big kernel" -- the full-featured
  * kernel that the mini kernel loads from disk and jumps to.
  *
- * Milestone 023 goal:
- *   User-mode syscall instruction triggers kernel print of
- *   [USER] Hello from Ring 3!
+ * Milestone 025 goal:
+ *   [AHCI] Read sector 0: 55 AA
  *
  * Initialisation order:
  *   1. Serial port (kprintf serial sink)
@@ -28,6 +27,8 @@
  *  16. Usermode init (STAR/EFER MSRs for SYSRET)
  *  17. Syscall init (LSTAR, SFMASK, GS base, handler registration)
  *  18. Launch first user-mode program (Ring 3)
+ *  19. PCI enumeration
+ *  20. AHCI init + read sector 0 (MBR signature test)
  */
 
 #include <stdint.h>
@@ -35,9 +36,12 @@
 #include "boot/boot_info.h"
 #include "kernel/arch/x86_64/gdt.hpp"
 #include "kernel/arch/x86_64/idt.hpp"
+#include "kernel/arch/x86_64/paging_config.hpp"
 #include "kernel/arch/x86_64/pic.hpp"
 #include "kernel/arch/x86_64/syscall.hpp"
 #include "kernel/arch/x86_64/usermode.hpp"
+#include "kernel/drivers/ahci/ahci.hpp"
+#include "kernel/drivers/pci/pci.hpp"
 #include "kernel/drivers/video/console.hpp"
 #include "kernel/drivers/video/font.hpp"
 #include "kernel/drivers/video/framebuffer.hpp"
@@ -153,13 +157,48 @@ extern "C" void kernel_main() {
     // Step 19: Initialise syscall infrastructure (LSTAR, SFMASK, dispatch table)
     cinux::arch::syscall_init();
 
-    // Step 20: Launch the first user-mode program (Ring 3)
+    // Step 20: PCI enumeration
+    cinux::lib::kprintf("[BIG] ===== Milestone 025: AHCI Driver =====\n");
+    cinux::drivers::pci::PCI pci;
+    pci.init();
+
+    // Step 21: Find AHCI controller and initialise
+    cinux::drivers::pci::PCIDevice ahci_dev;
+    if (pci.find_ahci(ahci_dev)) {
+        cinux::drivers::ahci::AHCI ahci;
+        ahci.init(ahci_dev);
+
+        // Step 22: Read sector 0 (MBR) and check boot signature
+        uint64_t buf_phys = cinux::mm::g_pmm.alloc_page();
+        if (buf_phys != 0) {
+            constexpr uint64_t buf_virt = 0xFFFF800000300000ULL;
+            constexpr uint64_t buf_flags = cinux::arch::FLAG_PRESENT
+                                         | cinux::arch::FLAG_WRITABLE;
+            cinux::mm::g_vmm.map(buf_virt, buf_phys, buf_flags);
+
+            auto* buf = reinterpret_cast<uint8_t*>(buf_virt);
+            for (uint32_t i = 0; i < 512; ++i) {
+                buf[i] = 0;
+            }
+
+            if (ahci.read(0, 0, 1, buf_phys)) {
+                cinux::lib::kprintf("[AHCI] Read sector 0: %02x %02x\n",
+                                    buf[510], buf[511]);
+            } else {
+                cinux::lib::kprintf("[AHCI] Failed to read sector 0.\n");
+            }
+        }
+    } else {
+        cinux::lib::kprintf("[AHCI] No AHCI controller found.\n");
+    }
+
+    // Step 23: Launch the first user-mode program (Ring 3)
     cinux::lib::kprintf("[BIG] ===== Milestone 023: Syscall from Ring 3 =====\n");
     cinux::arch::launch_first_user();
 
     cinux::lib::kprintf("[BIG] Returned from user mode launch (unexpected).\n");
 
-    // Step 21: Keyboard poll loop -- echo keypresses to console + serial
+    // Step 24: Keyboard poll loop -- echo keypresses to console + serial
     KeyEvent ev;
     while (1) {
         __asm__ volatile("hlt");

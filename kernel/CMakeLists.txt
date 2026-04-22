@@ -53,6 +53,8 @@ add_library(big_kernel_common OBJECT
     drivers/video/font.cpp
     drivers/video/font_data.S
     drivers/video/console.cpp
+    drivers/pci/pci.cpp
+    drivers/ahci/ahci.cpp
     lib/kprintf.cpp
     mm/pmm.cpp
     mm/vmm.cpp
@@ -117,6 +119,7 @@ add_executable(big_kernel_test
     test/test_usermode.cpp
     test/test_syscall.cpp
     test/test_shell.cpp
+    test/test_ahci.cpp
 )
 
 target_sources(big_kernel_test PRIVATE $<TARGET_OBJECTS:big_kernel_common>)
