@@ -8,6 +8,9 @@
  * Milestone 025 goal:
  *   [AHCI] Read sector 0: 55 AA
  *
+ * Milestone 026 goal:
+ *   [RAMDISK] List files in embedded initrd (ustar)
+ *
  * Initialisation order:
  *   1. Serial port (kprintf serial sink)
  *   2. GDT (segment descriptors + TSS with IST1 Double Fault stack)
@@ -29,6 +32,7 @@
  *  18. Launch first user-mode program (Ring 3)
  *  19. PCI enumeration
  *  20. AHCI init + read sector 0 (MBR signature test)
+ *  21. Ramdisk mount (parse embedded ustar initrd, list files)
  */
 
 #include <stdint.h>
@@ -42,6 +46,7 @@
 #include "kernel/arch/x86_64/usermode.hpp"
 #include "kernel/drivers/ahci/ahci.hpp"
 #include "kernel/drivers/pci/pci.hpp"
+#include "kernel/fs/ramdisk.hpp"
 #include "kernel/drivers/video/console.hpp"
 #include "kernel/drivers/video/font.hpp"
 #include "kernel/drivers/video/framebuffer.hpp"
@@ -191,6 +196,11 @@ extern "C" void kernel_main() {
     } else {
         cinux::lib::kprintf("[AHCI] No AHCI controller found.\n");
     }
+
+    // Step 22: Mount the embedded initrd ramdisk (ustar archive)
+    cinux::lib::kprintf("[BIG] ===== Milestone 026: Ramdisk (initrd) =====\n");
+    cinux::fs::Ramdisk ramdisk;
+    ramdisk.mount();
 
     // Step 23: Launch the first user-mode program (Ring 3)
     cinux::lib::kprintf("[BIG] ===== Milestone 023: Syscall from Ring 3 =====\n");

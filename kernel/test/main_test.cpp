@@ -41,6 +41,7 @@ void run_usermode_tests();
 void run_syscall_tests();
 void run_shell_tests();
 void run_ahci_tests();
+void run_ramdisk_tests();
 }
 
 static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
@@ -109,6 +110,9 @@ extern "C" void kernel_main() {
 
     // AHCI tests (025): requires PMM and VMM for BAR5 mapping and DMA buffers
     run_ahci_tests();
+
+    // Ramdisk tests (026): verifies ustar parsing of embedded initrd
+    run_ramdisk_tests();
 
     // Step 5: Report and exit
     int exit_code = (test::get_total_failed() > 0) ? 1 : 0;

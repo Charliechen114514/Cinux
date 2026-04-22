@@ -374,3 +374,13 @@ constexpr uint64_t BIG_KERNEL_LOAD_ADDR  = 0x1000000;   // 16MB
 - ☑ `ahci_init()`：映射 BAR5 MMIO（`VMM::map`），检测 `pi` 位图，为每活跃端口分配 Command List（32×32B）+ FIS Buffer（256B），物理连续且对齐
 - ☑ `ahci_read(port,lba,count,buf)`：构造 CFIS（ATA READ DMA EXT=0x25）+ PRDT，写 `port.ci`，轮询 `port.is` 等待完成
 - ☑ `ahci_write(port,lba,count,buf)`：同上，命令改为 ATA WRITE DMA EXT=0x35
+
+---
+
+### `026_fs_ramdisk`
+**效果**：串口列出 initrd 中的文件名和大小
+
+- ☑ `UstarHeader [[gnu::packed]]` 512 字节：`name[100]/mode[8]/uid/gid/size[12]/mtime[12]/checksum[8]/typeflag/magic[6]`；`static_assert(sizeof==512)`
+- ☑ `octal_to_uint(s,len)`：ustar size 字段为八进制 ASCII 转 uint64
+- ☑ `ramdisk_mount(void* base)`：遍历 ustar 条目（512 字节对齐），typeflag='0' 为文件，'5' 为目录，magic=`"ustar"` 验证
+- ☑ CMake：将 initrd 归档嵌入内核镜像，通过 `_binary_initrd_start/end` 访问

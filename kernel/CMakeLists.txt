@@ -55,6 +55,7 @@ add_library(big_kernel_common OBJECT
     drivers/video/console.cpp
     drivers/pci/pci.cpp
     drivers/ahci/ahci.cpp
+    fs/ramdisk.cpp
     lib/kprintf.cpp
     mm/pmm.cpp
     mm/vmm.cpp
@@ -81,6 +82,31 @@ target_include_directories(big_kernel_common PUBLIC
     ${CMAKE_SOURCE_DIR}
 )
 
+# ============================================================
+# Initrd (embedded ustar archive)
+# ============================================================
+
+# Convert the initrd tar file into a linkable ELF object.
+# This produces symbols _binary_initrd_start / _binary_initrd_end / _binary_initrd_size.
+set(INITRD_TAR ${CMAKE_CURRENT_SOURCE_DIR}/data/initrd.tar)
+set(INITRD_OBJ  ${CMAKE_BINARY_DIR}/kernel/initrd.o)
+
+# Convert initrd.tar into a linkable ELF object with stable symbol names
+# (_binary_initrd_start / _binary_initrd_end / _binary_initrd_size).
+# Uses a helper script because objcopy derives symbol names from the
+# absolute input path, making them non-portable.
+set(EMBED_SCRIPT ${CMAKE_SOURCE_DIR}/scripts/embed_binary.sh)
+
+add_custom_command(
+    OUTPUT  ${INITRD_OBJ}
+    COMMAND bash ${EMBED_SCRIPT}
+        ${INITRD_TAR} ${INITRD_OBJ} .initrd _binary_initrd
+    DEPENDS ${INITRD_TAR} ${EMBED_SCRIPT}
+    COMMENT "Converting initrd.tar -> initrd.o (embedded ramdisk)"
+)
+
+add_custom_target(initrd_obj DEPENDS ${INITRD_OBJ})
+
 # Production big kernel executable
 add_executable(big_kernel
     main.cpp
@@ -88,8 +114,11 @@ add_executable(big_kernel
 
 target_sources(big_kernel PRIVATE $<TARGET_OBJECTS:big_kernel_common>)
 target_link_libraries(big_kernel PRIVATE big_kernel_common)
-add_dependencies(big_kernel user_binary_obj)
-target_sources(big_kernel PRIVATE ${CMAKE_BINARY_DIR}/user/user_binary.o)
+add_dependencies(big_kernel user_binary_obj initrd_obj)
+target_sources(big_kernel PRIVATE
+    ${CMAKE_BINARY_DIR}/user/user_binary.o
+    ${INITRD_OBJ}
+)
 
 set_target_properties(big_kernel PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/kernel/big
@@ -120,12 +149,16 @@ add_executable(big_kernel_test
     test/test_syscall.cpp
     test/test_shell.cpp
     test/test_ahci.cpp
+    test/test_ramdisk.cpp
 )
 
 target_sources(big_kernel_test PRIVATE $<TARGET_OBJECTS:big_kernel_common>)
 target_link_libraries(big_kernel_test PRIVATE big_kernel_common)
-add_dependencies(big_kernel_test user_binary_obj)
-target_sources(big_kernel_test PRIVATE ${CMAKE_BINARY_DIR}/user/user_binary.o)
+add_dependencies(big_kernel_test user_binary_obj initrd_obj)
+target_sources(big_kernel_test PRIVATE
+    ${CMAKE_BINARY_DIR}/user/user_binary.o
+    ${INITRD_OBJ}
+)
 
 set_target_properties(big_kernel_test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/kernel/big
