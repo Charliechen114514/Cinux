@@ -37,12 +37,6 @@ namespace cinux::arch {
 /// Default virtual address for user program entry (linker base)
 constexpr uint64_t USER_ENTRY_BASE = 0x400000;
 
-/// Default virtual address for the top of the user stack
-constexpr uint64_t USER_STACK_TOP = 0x7FFFFF000;
-
-/// Number of 4 KB pages for the user stack (16 KB)
-constexpr uint64_t USER_STACK_PAGES = 4;
-
 // ============================================================
 // User-mode functions
 // ============================================================

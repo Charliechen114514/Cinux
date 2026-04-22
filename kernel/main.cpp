@@ -5,9 +5,9 @@
  * This is the C++ main function for the "big kernel" -- the full-featured
  * kernel that the mini kernel loads from disk and jumps to.
  *
- * Milestone 022 goal:
- *   First user-mode program (Ring 3) executing a privileged instruction
- *   (CLI) that triggers #GP, proving privilege isolation works.
+ * Milestone 023 goal:
+ *   User-mode syscall instruction triggers kernel print of
+ *   [USER] Hello from Ring 3!
  *
  * Initialisation order:
  *   1. Serial port (kprintf serial sink)
@@ -26,7 +26,7 @@
  *  14. Keyboard (PS/2 controller init)
  *  15. Unmask IRQ0 + IRQ1, enable interrupts (sti)
  *  16. Usermode init (STAR/EFER MSRs for SYSRET)
- *  17. Scheduler init, create tasks
+ *  17. Syscall init (LSTAR, SFMASK, GS base, handler registration)
  *  18. Launch first user-mode program (Ring 3)
  */
 
@@ -36,6 +36,7 @@
 #include "kernel/arch/x86_64/gdt.hpp"
 #include "kernel/arch/x86_64/idt.hpp"
 #include "kernel/arch/x86_64/pic.hpp"
+#include "kernel/arch/x86_64/syscall.hpp"
 #include "kernel/arch/x86_64/usermode.hpp"
 #include "kernel/drivers/video/console.hpp"
 #include "kernel/drivers/video/font.hpp"
@@ -47,6 +48,9 @@
 #include "kernel/mm/vmm.hpp"
 #include "kernel/mm/heap.hpp"
 #include "kernel/mm/address_space.hpp"
+#include "kernel/syscall/sys_write.hpp"
+#include "kernel/syscall/sys_exit.hpp"
+#include "kernel/syscall/sys_yield.hpp"
 
 using cinux::arch::PIC;
 using cinux::drivers::Console;
@@ -149,11 +153,22 @@ extern "C" void kernel_main() {
     // Step 18: Initialise user-mode support (STAR/EFER MSRs)
     cinux::arch::usermode_init();
 
-    // Step 19: Launch the first user-mode program (Ring 3)
-    cinux::lib::kprintf("[BIG] ===== Milestone 022: User Mode (Ring 3) =====\n");
+    // Step 19: Initialise syscall infrastructure (LSTAR, SFMASK, dispatch table)
+    {
+        uint64_t kernel_rsp;
+        __asm__ volatile("movq %%rsp, %0" : "=r"(kernel_rsp));
+        cinux::arch::syscall_init(kernel_rsp);
+
+        using namespace cinux::syscall;
+        cinux::arch::syscall_register(SyscallNr::SYS_write, sys_write);
+        cinux::arch::syscall_register(SyscallNr::SYS_exit, sys_exit);
+        cinux::arch::syscall_register(SyscallNr::SYS_yield, sys_yield);
+    }
+
+    // Step 20: Launch the first user-mode program (Ring 3)
+    cinux::lib::kprintf("[BIG] ===== Milestone 023: Syscall from Ring 3 =====\n");
     cinux::arch::launch_first_user();
 
-    // Should never reach here (the user program triggers #GP which halts)
     cinux::lib::kprintf("[BIG] Returned from user mode launch (unexpected).\n");
 
     // Step 21: Keyboard poll loop -- echo keypresses to console + serial

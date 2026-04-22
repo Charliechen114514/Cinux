@@ -64,6 +64,11 @@ add_library(big_kernel_common OBJECT
     arch/x86_64/context_switch.S
     arch/x86_64/usermode.S
     arch/x86_64/usermode.cpp
+    arch/x86_64/syscall.S
+    arch/x86_64/syscall.cpp
+    syscall/sys_write.cpp
+    syscall/sys_exit.cpp
+    syscall/sys_yield.cpp
 )
 
 target_compile_options(big_kernel_common PUBLIC ${BIG_KERNEL_COMPILE_OPTIONS})
@@ -80,6 +85,8 @@ add_executable(big_kernel
 
 target_sources(big_kernel PRIVATE $<TARGET_OBJECTS:big_kernel_common>)
 target_link_libraries(big_kernel PRIVATE big_kernel_common)
+add_dependencies(big_kernel user_binary_obj)
+target_sources(big_kernel PRIVATE ${CMAKE_BINARY_DIR}/user/user_binary.o)
 
 set_target_properties(big_kernel PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/kernel/big
@@ -107,10 +114,13 @@ add_executable(big_kernel_test
     test/test_scheduler.cpp
     test/test_sync.cpp
     test/test_usermode.cpp
+    test/test_syscall.cpp
 )
 
 target_sources(big_kernel_test PRIVATE $<TARGET_OBJECTS:big_kernel_common>)
 target_link_libraries(big_kernel_test PRIVATE big_kernel_common)
+add_dependencies(big_kernel_test user_binary_obj)
+target_sources(big_kernel_test PRIVATE ${CMAKE_BINARY_DIR}/user/user_binary.o)
 
 set_target_properties(big_kernel_test PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/kernel/big

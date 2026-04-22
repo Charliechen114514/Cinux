@@ -28,6 +28,7 @@ set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 
 add_subdirectory(boot)
+add_subdirectory(user)
 add_subdirectory(kernel)
 
 include(cmake/qemu.cmake)

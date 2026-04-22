@@ -126,6 +126,10 @@ Task* TaskBuilder::build() {
     task->ctx.rbp = 0;
     task->ctx.rbx = 0;
 
+    // Step 6.5: Initialise FPU state
+    __asm__ volatile("fninit");
+    __asm__ volatile("fxsave %0" : : "m"(task->fpu_state));
+
     // Step 7: Fill in the remaining task fields
     task->state            = TaskState::Ready;
     task->tid              = next_tid++;

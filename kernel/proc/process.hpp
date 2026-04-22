@@ -120,6 +120,9 @@ struct Task {
 
     /** Intrusive link for wait-queue linked lists (Mutex / Semaphore). */
     Task* wait_next;
+
+    /** FPU/SSE state (512 bytes, 16-byte aligned for fxsave/fxrstor). */
+    alignas(16) uint8_t fpu_state[512];
 };
 
 // ============================================================

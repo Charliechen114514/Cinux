@@ -180,7 +180,9 @@ void Scheduler::exit_current() {
     if (next != idle_task_) {
         cinux::arch::GDT::tss_set_rsp0(next->kernel_stack_top);
     }
+    __asm__ volatile("fxsave %0" : : "m"(prev->fpu_state));
     context_switch(&prev->ctx, &next->ctx);
+    __asm__ volatile("fxrstor %0" : : "m"(current_->fpu_state));
 }
 
 void Scheduler::run_first(Task* boot_task) {
@@ -197,7 +199,9 @@ void Scheduler::run_first(Task* boot_task) {
     current_ = next;
     g_per_cpu.current = next;
     cinux::arch::GDT::tss_set_rsp0(next->kernel_stack_top);
+    __asm__ volatile("fxsave %0" : : "m"(boot_task->fpu_state));
     context_switch(&boot_task->ctx, &next->ctx);
+    __asm__ volatile("fxrstor %0" : : "m"(current_->fpu_state));
 }
 
 Task* Scheduler::current() {
@@ -256,7 +260,9 @@ void Scheduler::schedule() {
         cinux::arch::GDT::tss_set_rsp0(next->kernel_stack_top);
     }
 
+    __asm__ volatile("fxsave %0" : : "m"(prev->fpu_state));
     context_switch(&prev->ctx, &next->ctx);
+    __asm__ volatile("fxrstor %0" : : "m"(current_->fpu_state));
 }
 
 void Scheduler::block(Task* task, const char* reason) {

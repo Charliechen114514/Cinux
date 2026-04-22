@@ -16,6 +16,7 @@
 #include "kernel/arch/x86_64/gdt.hpp"
 #include "kernel/arch/x86_64/idt.hpp"
 #include "kernel/arch/x86_64/usermode.hpp"
+#include "kernel/arch/x86_64/syscall.hpp"
 
 #include "boot/boot_info.h"
 #include "kernel/mm/pmm.hpp"
@@ -37,6 +38,7 @@ void run_address_space_tests();
 void run_scheduler_tests();
 void run_sync_tests();
 void run_usermode_tests();
+void run_syscall_tests();
 }
 
 static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
@@ -95,6 +97,12 @@ extern "C" void kernel_main() {
     // Usermode tests (022): requires usermode_init() for MSR setup
     cinux::arch::usermode_init();
     run_usermode_tests();
+
+    // Syscall tests (023): requires syscall_init() after usermode_init
+    uint64_t test_kernel_rsp;
+    __asm__ volatile("movq %%rsp, %0" : "=r"(test_kernel_rsp));
+    cinux::arch::syscall_init(test_kernel_rsp);
+    run_syscall_tests();
 
     // Step 5: Report and exit
     int exit_code = (test::get_total_failed() > 0) ? 1 : 0;

@@ -39,9 +39,24 @@ _start:
      * ----------------------------------------------------------
      * __kernel_stack_top is defined in linker.ld (16 KB above BSS).
      * We zero %rbp so stack walkers know this is the bottom frame.
+     * NOTE: cli + movq $imm, %rsp must be the first two instructions
+     * — the mini kernel validates this byte pattern (FA 48 BC/C7).
      */
     movq  $__kernel_stack_top, %rsp  # rsp→stack top: set stack pointer
     xorq  %rbp, %rbp                # 0→rbp: clear base pointer (end of call chain)
+
+    /* ----------------------------------------------------------
+     * Step 2b: Enable FPU/SSE
+     * ---------------------------------------------------------- */
+    movq  %cr4, %rax
+    orq   $((1 << 9) | (1 << 10)), %rax    /* OSFXSR + OSXMMEXCPT */
+    movq  %rax, %cr4
+
+    movq  %cr0, %rax
+    andq  $(~(1 << 2)), %rax               /* clear EM */
+    orq   $(1 << 1), %rax                   /* set MP */
+    movq  %rax, %cr0
+    clts                                     /* clear TS */
 
     /* ----------------------------------------------------------
      * Step 3: Clear BSS section

@@ -8,29 +8,17 @@
 
 ## Phase 7 · 用户态与系统调用
 
-### `023_syscall`
-**效果**：用户态 `syscall` 指令触发内核打印 `[USER] Hello from Ring 3!`
-
-- ☐ syscall 号常量：`SYS_read=0, SYS_write=1, SYS_exit=60, SYS_yield=24`
-- ☐ `syscall_init()`：写 `LSTAR` MSR（入口地址），`SFMASK` MSR（至少清 IF），`STAR` MSR（内核/用户段选择子）
-- ☐ `kernel/arch/x86_64/syscall.S`：`syscall_entry`，`swapgs`，切换到内核栈（`%gs:kernel_rsp`），保存 `%rcx/%r11` + arg 寄存器，`call syscall_dispatch`，恢复，切回用户栈，`swapgs`，`sysretq`
-- ☐ `using SyscallFn = int64_t(*)(uint64_t,uint64_t,uint64_t,uint64_t,uint64_t,uint64_t)`；`syscall_table[256]`
-- ☐ `sys_write(fd,buf_virt,count,...)`：验证 `buf_virt < 0x800000000000`，fd=1 输出到串口+Console
-- ☐ `sys_exit(code,...)`：task 标记 Dead，`Scheduler::yield()`
-- ☐ `sys_yield(...)`：直接 `Scheduler::yield()`
-- ☐ `user/libc/syscall.h`：`_syscall(nr,a,b,c)` 内联汇编封装；`write/exit/read` 宏
-
----
-
 ### `024_shell`
 **效果**：用户态 shell，`echo`/`help`/`clear` 可用
 
-- ☐ `user/libc/syscall.h` 完善：`read(fd,buf,len)` 封装
-- ☐ `user/shell/main.cpp`：主循环 `print_prompt → read_line(sys_read) → tokenize → dispatch → repeat`
+**前置条件（023 已完成）**：用户态编译基础设施、syscall 封装、`launch_first_user()` 启动机制、FPU/SSE 支持
+
+- ☐ `user/libc/syscall.h` 添加 `sys_read(fd,buf,len)` 封装
+- ☐ `user/shell/main.cpp`：`_start()` 主循环 `print_prompt → read_line(sys_read) → tokenize → dispatch → repeat`
 - ☐ tokenizer：按空格切割，返回 `argc/argv`
 - ☐ builtin 表：`{"echo",cmd_echo},{"help",cmd_help},{"clear",cmd_clear},{nullptr,nullptr}`
 - ☐ `cmd_echo`：`write(1, argv[1..], ...)`；`cmd_clear`：`write(1, "\033[2J\033[H", 7)`（ANSI 清屏）；`cmd_help`：打印命令列表
-- ☐ shell 作为第一个用户态进程由 `kernel_main` 启动（`jump_to_usermode` 跳入）
+- ☐ CMake 切换嵌入 binary 从 `hello` 到 `shell`（`user/CMakeLists.txt`）
 
 ---
 
