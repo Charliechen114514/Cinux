@@ -123,6 +123,9 @@ struct Task {
 
     /** FPU/SSE state (512 bytes, 16-byte aligned for fxsave/fxrstor). */
     alignas(16) uint8_t fpu_state[512];
+
+    /** Per-process current working directory (absolute path, NUL-terminated). */
+    char cwd[256];
 };
 
 // ============================================================

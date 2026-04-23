@@ -25,6 +25,9 @@
 #include "kernel/syscall/sys_mkdir.hpp"
 #include "kernel/syscall/sys_unlink.hpp"
 #include "kernel/syscall/sys_rmdir.hpp"
+#include "kernel/syscall/sys_chdir.hpp"
+#include "kernel/syscall/sys_getcwd.hpp"
+#include "kernel/syscall/sys_stat.hpp"
 
 namespace cinux::arch {
 
@@ -66,6 +69,10 @@ void register_builtin_handlers() {
     syscall_register(SyscallNr::SYS_mkdir,    sys_mkdir);
     syscall_register(SyscallNr::SYS_unlink,   sys_unlink);
     syscall_register(SyscallNr::SYS_rmdir,    sys_rmdir);
+    syscall_register(SyscallNr::SYS_chdir,    sys_chdir);
+    syscall_register(SyscallNr::SYS_getcwd,   sys_getcwd);
+    syscall_register(SyscallNr::SYS_stat,     sys_stat);
+    syscall_register(SyscallNr::SYS_fstat,    sys_fstat);
 }
 
 }  // anonymous namespace

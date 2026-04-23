@@ -26,5 +26,26 @@ int64_t sys_creat(const char* path);
 int64_t sys_mkdir(const char* path);
 int64_t sys_unlink(const char* path);
 int64_t sys_rmdir(const char* path);
+int64_t sys_chdir(const char* path);
+int64_t sys_getcwd(char* buf, size_t size);
 void sys_exit(int code);
 void sys_yield(void);
+
+struct sys_stat {
+    uint64_t st_dev;
+    uint64_t st_ino;
+    uint32_t st_mode;
+    uint32_t st_nlink;
+    uint32_t st_uid;
+    uint32_t st_gid;
+    uint64_t st_rdev;
+    int64_t  st_size;
+    uint64_t st_blksize;
+    uint64_t st_blocks;
+    uint64_t st_atime;
+    uint64_t st_mtime;
+    uint64_t st_ctime;
+};
+
+int64_t sys_stat(const char* path, struct sys_stat* st);
+int64_t sys_fstat(int fd, struct sys_stat* st);

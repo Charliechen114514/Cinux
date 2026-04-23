@@ -48,6 +48,7 @@ public:
     static void exit_current();
     static void run_first(Task* boot_task);
     static Task* current();
+    static void set_current(Task* task);
     static bool is_initialized();
 
     static void tick();

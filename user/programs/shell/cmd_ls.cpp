@@ -21,7 +21,16 @@ void write_str(const char* s) {
 }  // anonymous namespace
 
 void cmd_ls(int argc, char** argv) {
-    const char* path = (argc >= 2) ? argv[1] : "/";
+    char cwd_buf[256];
+    const char* path;
+
+    if (argc >= 2) {
+        path = argv[1];
+    } else if (sys_getcwd(cwd_buf, sizeof(cwd_buf)) > 0) {
+        path = cwd_buf;
+    } else {
+        path = "/";
+    }
 
     int64_t fd = sys_open(path, 0 /* O_RDONLY */);
     if (fd < 0) {

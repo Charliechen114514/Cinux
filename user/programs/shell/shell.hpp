@@ -55,3 +55,12 @@ void cmd_rm(int argc, char** argv);
 
 /** @brief rmdir: remove an empty directory (cmd_rmdir.cpp) */
 void cmd_rmdir(int argc, char** argv);
+
+/** @brief cd: change working directory (cmd_cd.cpp) */
+void cmd_cd(int argc, char** argv);
+
+/** @brief pwd: print working directory (cmd_pwd.cpp) */
+void cmd_pwd(int argc, char** argv);
+
+/** @brief stat: display file status (cmd_stat.cpp) */
+void cmd_stat(int argc, char** argv);

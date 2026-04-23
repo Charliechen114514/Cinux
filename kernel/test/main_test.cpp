@@ -50,6 +50,7 @@ void run_ext2_ops_tests();
 void run_ext2_inode_ops_tests();
 void run_syscall_ext2_tests();
 void run_shell_write_tests();
+void run_cwd_stat_tests();
 }
 
 static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
@@ -145,6 +146,9 @@ extern "C" void kernel_main() {
 
     // Shell write command tests (028b): touch/mkdir/rm/rmdir/echo redirect
     run_shell_write_tests();
+
+    // CWD/stat tests (028c): chdir/getcwd/stat/fstat/path canonicalize
+    run_cwd_stat_tests();
 
     // Step 5: Report and exit
     int exit_code = (test::get_total_failed() > 0) ? 1 : 0;

@@ -60,6 +60,7 @@ add_library(big_kernel_common OBJECT
     fs/ext2.cpp
     fs/file.cpp
     fs/vfs_mount.cpp
+    fs/path.cpp
     lib/kprintf.cpp
     lib/string.cpp
     mm/pmm.cpp
@@ -85,6 +86,10 @@ add_library(big_kernel_common OBJECT
     syscall/sys_mkdir.cpp
     syscall/sys_unlink.cpp
     syscall/sys_rmdir.cpp
+    syscall/path_util.cpp
+    syscall/sys_chdir.cpp
+    syscall/sys_getcwd.cpp
+    syscall/sys_stat.cpp
 )
 
 target_compile_options(big_kernel_common PUBLIC ${BIG_KERNEL_COMPILE_OPTIONS})
@@ -170,6 +175,7 @@ add_executable(big_kernel_test
     test/test_ext2_inode_ops.cpp
     test/test_syscall_ext2.cpp
     test/test_shell_write.cpp
+    test/test_cwd_stat.cpp
 )
 
 target_sources(big_kernel_test PRIVATE $<TARGET_OBJECTS:big_kernel_common>)

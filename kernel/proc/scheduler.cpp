@@ -208,6 +208,11 @@ Task* Scheduler::current() {
     return current_;
 }
 
+void Scheduler::set_current(Task* task) {
+    current_ = task;
+    g_per_cpu.current = task;
+}
+
 bool Scheduler::is_initialized() {
     return initialized_;
 }

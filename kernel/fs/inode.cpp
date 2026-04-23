@@ -33,4 +33,8 @@ int64_t InodeOps::unlink(Inode*, const char*, uint32_t) {
     return -1;
 }
 
+int64_t InodeOps::stat(const Inode*, struct stat*) {
+    return -1;
+}
+
 }  // namespace cinux::fs

@@ -164,6 +164,9 @@ constexpr CmdEntry builtin_cmds[] = {
     {"mkdir", cmd_mkdir},
     {"rm",    cmd_rm},
     {"rmdir", cmd_rmdir},
+    {"cd",    cmd_cd},
+    {"pwd",   cmd_pwd},
+    {"stat",  cmd_stat},
     {nullptr, nullptr},
 };
 

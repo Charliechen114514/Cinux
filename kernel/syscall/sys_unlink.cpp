@@ -10,18 +10,17 @@
 
 #include <stdint.h>
 
+#include "kernel/fs/path.hpp"
 #include "kernel/fs/vfs_mount.hpp"
 #include "kernel/lib/kprintf.hpp"
 #include "kernel/lib/string.hpp"
+#include "kernel/syscall/path_util.hpp"
 
 namespace cinux::syscall {
 
 namespace {
 
 using cinux::lib::kprintf;
-
-/// Maximum path length we accept (bytes, including null terminator)
-constexpr uint32_t PATH_MAX = 4096;
 
 /**
  * @brief Split a path into parent directory path and leaf name
@@ -82,49 +81,36 @@ bool split_pathname(const char* path, char* parent_out,
 
 int64_t sys_unlink(uint64_t path_virt, uint64_t, uint64_t,
                    uint64_t, uint64_t, uint64_t) {
-    auto* path = reinterpret_cast<const char*>(path_virt);
-
-    // Validate user-space pointer (canonical address check)
-    if (path_virt == 0) {
-        return -1;
-    }
-    uint64_t bit47 = (path_virt >> 47) & 1;
-    uint64_t upper = path_virt >> 48;
-    if (bit47 == 0 && upper != 0) {
-        return -1;
-    }
-    if (bit47 == 1 && upper != 0xFFFF) {
+    // Step 1: Resolve the path (cwd-aware)
+    char resolved[cinux::fs::PATH_MAX];
+    if (!resolve_user_path(path_virt, resolved)) {
         return -1;
     }
 
-    if (path[0] == '\0') {
-        return -1;
-    }
-
-    // Step 1: Resolve through the VFS mount table
+    // Step 2: Resolve through the VFS mount table
     const char* rel_path = nullptr;
-    cinux::fs::FileSystem* fs = cinux::fs::vfs_resolve(path, &rel_path);
+    cinux::fs::FileSystem* fs = cinux::fs::vfs_resolve(resolved, &rel_path);
 
     if (fs == nullptr) {
-        kprintf("[SYS_UNLINK] No filesystem mounted for '%s'\n", path);
+        kprintf("[SYS_UNLINK] No filesystem mounted for '%s'\n", resolved);
         return -1;
     }
 
-    // Step 2: Split relative path into parent dir and leaf name
-    char parent_buf[PATH_MAX];
+    // Step 3: Split relative path into parent dir and leaf name
+    char parent_buf[cinux::fs::PATH_MAX];
     const char* leaf_name = nullptr;
     uint32_t name_len = 0;
 
     if (!split_pathname(rel_path, parent_buf, &leaf_name, &name_len)) {
-        kprintf("[SYS_UNLINK] Invalid path: '%s'\n", path);
+        kprintf("[SYS_UNLINK] Invalid path: '%s'\n", resolved);
         return -1;
     }
 
-    // Step 3: Look up the parent directory inode
+    // Step 4: Look up the parent directory inode
     cinux::fs::Inode* parent = fs->lookup(parent_buf);
 
     if (parent == nullptr) {
-        kprintf("[SYS_UNLINK] Parent directory not found for '%s'\n", path);
+        kprintf("[SYS_UNLINK] Parent directory not found for '%s'\n", resolved);
         return -1;
     }
 
@@ -133,11 +119,11 @@ int64_t sys_unlink(uint64_t path_virt, uint64_t, uint64_t,
         return -1;
     }
 
-    // Step 4: Call unlink() on the parent directory
+    // Step 5: Call unlink() on the parent directory
     int64_t result = parent->ops->unlink(parent, leaf_name, name_len);
 
     if (result != 0) {
-        kprintf("[SYS_UNLINK] Failed to unlink '%s'\n", path);
+        kprintf("[SYS_UNLINK] Failed to unlink '%s'\n", resolved);
         return -1;
     }
 

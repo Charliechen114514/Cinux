@@ -140,6 +140,10 @@ Task* TaskBuilder::build() {
     task->sched_class      = sched_class_;
     task->name             = name_;
 
+    // Step 7.5: Initialise cwd to "/"
+    task->cwd[0] = '/';
+    task->cwd[1] = '\0';
+
     cinux::lib::kprintf("[PROC] Created task tid=%u name='%s' stack=0x%p\n",
                         task->tid, task->name,
                         reinterpret_cast<void*>(task->kernel_stack_top));

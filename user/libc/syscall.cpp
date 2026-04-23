@@ -90,6 +90,26 @@ int64_t sys_rmdir(const char* path) {
                      (uint64_t)path);
 }
 
+int64_t sys_chdir(const char* path) {
+    return _syscall1(static_cast<uint64_t>(SyscallNr::SYS_chdir),
+                     (uint64_t)path);
+}
+
+int64_t sys_getcwd(char* buf, size_t size) {
+    return _syscall2(static_cast<uint64_t>(SyscallNr::SYS_getcwd),
+                     (uint64_t)buf, (uint64_t)size);
+}
+
+int64_t sys_stat(const char* path, struct sys_stat* st) {
+    return _syscall2(static_cast<uint64_t>(SyscallNr::SYS_stat),
+                     (uint64_t)path, (uint64_t)st);
+}
+
+int64_t sys_fstat(int fd, struct sys_stat* st) {
+    return _syscall2(static_cast<uint64_t>(SyscallNr::SYS_fstat),
+                     (uint64_t)fd, (uint64_t)st);
+}
+
 void sys_exit(int code) {
     _syscall1(static_cast<uint64_t>(SyscallNr::SYS_exit), (uint64_t)code);
     __builtin_unreachable();

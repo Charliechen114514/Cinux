@@ -191,9 +191,30 @@ int64_t Ext2FileOps::write(Inode* inode, uint64_t offset,
     return static_cast<int64_t>(total_written);
 }
 
-// ============================================================
-// Ext2DirOps method implementations
-// ============================================================
+int64_t Ext2FileOps::stat(const Inode* inode, struct stat* st) {
+    if (inode == nullptr || inode->fs_private == nullptr || st == nullptr) {
+        return -1;
+    }
+
+    auto* cached = static_cast<const Ext2CachedInode*>(inode->fs_private);
+    const Ext2Inode& disk = cached->disk_inode;
+
+    st->st_dev     = 0;
+    st->st_ino     = inode->ino;
+    st->st_mode    = disk.i_mode;
+    st->st_nlink   = disk.i_links_count;
+    st->st_uid     = disk.i_uid;
+    st->st_gid     = disk.i_gid;
+    st->st_rdev    = 0;
+    st->st_size    = disk.i_size;
+    st->st_blksize = ext2_.block_size();
+    st->st_blocks  = disk.i_blocks;
+    st->st_atime   = disk.i_atime;
+    st->st_mtime   = disk.i_mtime;
+    st->st_ctime   = disk.i_ctime;
+
+    return 0;
+}
 
 Ext2DirOps::Ext2DirOps(Ext2& ext2) : ext2_(ext2) {}
 
@@ -320,6 +341,31 @@ int64_t Ext2DirOps::unlink(Inode* dir, const char* name, uint32_t namelen) {
     }
 
     return ext2_.unlink(static_cast<uint32_t>(dir->ino), name, namelen);
+}
+
+int64_t Ext2DirOps::stat(const Inode* inode, struct stat* st) {
+    if (inode == nullptr || inode->fs_private == nullptr || st == nullptr) {
+        return -1;
+    }
+
+    auto* cached = static_cast<const Ext2CachedInode*>(inode->fs_private);
+    const Ext2Inode& disk = cached->disk_inode;
+
+    st->st_dev     = 0;
+    st->st_ino     = inode->ino;
+    st->st_mode    = disk.i_mode;
+    st->st_nlink   = disk.i_links_count;
+    st->st_uid     = disk.i_uid;
+    st->st_gid     = disk.i_gid;
+    st->st_rdev    = 0;
+    st->st_size    = disk.i_size;
+    st->st_blksize = ext2_.block_size();
+    st->st_blocks  = disk.i_blocks;
+    st->st_atime   = disk.i_atime;
+    st->st_mtime   = disk.i_mtime;
+    st->st_ctime   = disk.i_ctime;
+
+    return 0;
 }
 
 // ============================================================
@@ -741,10 +787,8 @@ void Ext2::populate_vfs_inode(Ext2CachedInode& cached) {
 
     cached.vfs_inode.ino = cached.ino;
 
-    // File size: for regular files in revision 0, i_size is the full size
     cached.vfs_inode.size = disk.i_size;
 
-    // Determine type from i_mode
     uint16_t mode_type = disk.i_mode & EXT2_S_IFMT;
     if (mode_type == EXT2_S_IFDIR) {
         cached.vfs_inode.type = InodeType::Directory;
@@ -758,6 +802,15 @@ void Ext2::populate_vfs_inode(Ext2CachedInode& cached) {
     }
 
     cached.vfs_inode.fs_private = &cached;
+
+    cached.vfs_inode.mode  = disk.i_mode;
+    cached.vfs_inode.uid   = disk.i_uid;
+    cached.vfs_inode.gid   = disk.i_gid;
+    cached.vfs_inode.nlink = disk.i_links_count;
+    cached.vfs_inode.atime = disk.i_atime;
+    cached.vfs_inode.ctime = disk.i_ctime;
+    cached.vfs_inode.mtime = disk.i_mtime;
+    cached.vfs_inode.blocks = disk.i_blocks;
 }
 
 // ============================================================

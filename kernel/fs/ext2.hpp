@@ -58,6 +58,7 @@ public:
                  void* buf, uint64_t count) override;
     int64_t write(Inode* inode, uint64_t offset,
                   const void* buf, uint64_t count) override;
+    int64_t stat(const Inode* inode, struct stat* st) override;
 
 private:
     Ext2& ext2_;
@@ -78,6 +79,7 @@ public:
     Inode* create(Inode* dir, const char* name, uint32_t namelen) override;
     Inode* mkdir(Inode* dir, const char* name, uint32_t namelen) override;
     int64_t unlink(Inode* dir, const char* name, uint32_t namelen) override;
+    int64_t stat(const Inode* inode, struct stat* st) override;
 
 private:
     Ext2& ext2_;

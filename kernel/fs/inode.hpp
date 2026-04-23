@@ -17,6 +17,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "fs/stat.hpp"
+
 namespace cinux::fs {
 
 // ============================================================
@@ -57,6 +59,7 @@ public:
     virtual Inode* create(Inode* dir, const char* name, uint32_t namelen);
     virtual Inode* mkdir(Inode* dir, const char* name, uint32_t namelen);
     virtual int64_t unlink(Inode* dir, const char* name, uint32_t namelen);
+    virtual int64_t stat(const Inode* inode, struct stat* st);
 };
 
 // ============================================================
@@ -76,6 +79,15 @@ struct Inode {
     InodeType   type;         ///< Type of this inode
     InodeOps*   ops;          ///< Operation function table (may be nullptr)
     void*       fs_private;   ///< Opaque pointer for filesystem-specific data
+
+    uint32_t    mode;         ///< File mode (type + permissions)
+    uint32_t    uid;          ///< Owner user ID
+    uint32_t    gid;          ///< Owner group ID
+    uint32_t    nlink;        ///< Hard link count
+    uint64_t    atime;        ///< Time of last access
+    uint64_t    ctime;        ///< Time of last status change
+    uint64_t    mtime;        ///< Time of last modification
+    uint64_t    blocks;       ///< Number of 512-byte blocks allocated
 };
 
 }  // namespace cinux::fs

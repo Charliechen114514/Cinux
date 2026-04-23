@@ -8,19 +8,6 @@
 
 ## Phase 8 · 存储与文件系统
 
-### `028c_fs_cwd_stat`
-**效果**：shell 中 `cd /etc`、`pwd`、`stat /hello.txt` 可用
-
-- ☐ per-process 工作目录：`Process` 结构体增加 `cwd[256]` 字段，初始为 `"/"`
-- ☐ 路径解析增强：支持相对路径（`foo/bar`），结合 cwd 拼接为绝对路径后再 VFS resolve
-- ☐ `sys_chdir` syscall：更新当前进程 cwd，验证目标路径存在且为目录
-- ☐ `sys_getcwd` syscall：返回当前进程 cwd 字符串
-- ☐ `sys_stat` / `sys_fstat` syscall：返回 `struct stat {st_mode, st_size, st_ino, st_type}`
-- ☐ InodeOps 扩展：`stat` 函数指针，ext2 从磁盘 inode 填充 mode/uid/gid/ctime/mtime 等
-- ☐ Shell 新增命令：`cd`、`pwd`、`stat`
-
----
-
 ### `028d_sync_safety`
 **效果**：所有内核共享数据结构加锁保护，PMM/Heap/调度器/中断上下文可安全并发
 

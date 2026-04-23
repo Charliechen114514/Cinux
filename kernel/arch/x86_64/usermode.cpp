@@ -17,6 +17,7 @@
 #include "kernel/lib/kprintf.hpp"
 #include "kernel/mm/address_space.hpp"
 #include "kernel/mm/pmm.hpp"
+#include "kernel/proc/scheduler.hpp"
 
 
 namespace cinux::arch {
@@ -65,23 +66,40 @@ void launch_first_user() {
 
 	AddressSpace user_space;
 
-	uint64_t code_phys = g_pmm.alloc_page();
-	if (code_phys == 0) {
-		kprintf("[USER] FATAL: failed to allocate user code page\n");
-		return;
-	}
-
-	if (!user_space.map(USER_ENTRY_BASE, code_phys, kUserPageFlags)) {
-		kprintf("[USER] FATAL: failed to map user code page\n");
-		return;
-	}
-
 	constexpr uint64_t KERNEL_VMA = 0xFFFFFFFF80000000ULL;
 	size_t			   user_size  = _binary_shell_bin_end - _binary_shell_bin_start;
-	auto*			   code_virt  = reinterpret_cast<uint8_t*>(code_phys + KERNEL_VMA);
-	for (size_t i = 0; i < user_size; i++) {
-		code_virt[i] = _binary_shell_bin_start[i];
+
+	// Calculate how many code pages are needed
+	size_t code_pages = (user_size + PAGE_SIZE - 1) / PAGE_SIZE;
+	if (code_pages == 0) {
+		code_pages = 1;
 	}
+
+	for (size_t page = 0; page < code_pages; page++) {
+		uint64_t code_phys = g_pmm.alloc_page();
+		if (code_phys == 0) {
+			kprintf("[USER] FATAL: failed to allocate user code page %u\n", page);
+			return;
+		}
+
+		uint64_t virt = USER_ENTRY_BASE + page * PAGE_SIZE;
+		if (!user_space.map(virt, code_phys, kUserPageFlags)) {
+			kprintf("[USER] FATAL: failed to map user code page %u at %p\n",
+					page, reinterpret_cast<void*>(virt));
+			return;
+		}
+
+		// Copy the portion of shell binary that belongs to this page
+		auto*  code_virt = reinterpret_cast<uint8_t*>(code_phys + KERNEL_VMA);
+		size_t offset    = page * PAGE_SIZE;
+		size_t chunk     = (offset + PAGE_SIZE <= user_size) ? PAGE_SIZE : (user_size - offset);
+		for (size_t i = 0; i < chunk; i++) {
+			code_virt[i] = _binary_shell_bin_start[offset + i];
+		}
+	}
+
+	kprintf("[USER] Mapped %u code pages (%u bytes) for shell\n",
+			static_cast<unsigned>(code_pages), static_cast<unsigned>(user_size));
 
 	uint64_t stack_size = USER_STACK_PAGES * PAGE_SIZE;
 	uint64_t stack_base = USER_STACK_TOP - stack_size;
@@ -144,6 +162,13 @@ void launch_first_user() {
 
 	kprintf("[USER] Jumping to Ring 3: entry=%p stack=%p\n",
 			reinterpret_cast<void*>(USER_ENTRY_BASE), reinterpret_cast<void*>(USER_STACK_TOP));
+
+	// Create a minimal Task so chdir/getcwd can read/write a per-process cwd
+	static cinux::proc::Task shell_task{};
+	shell_task.cwd[0] = '/';
+	shell_task.cwd[1] = '\0';
+	shell_task.state = cinux::proc::TaskState::Running;
+	cinux::proc::Scheduler::set_current(&shell_task);
 
 	jump_to_usermode(USER_ENTRY_BASE, USER_STACK_TOP - USER_ABI_RSP_OFFSET, 0);
 

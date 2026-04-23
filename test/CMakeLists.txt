@@ -555,13 +555,28 @@ add_test(NAME shell_write COMMAND test_shell_write)
 set_tests_properties(shell_write PROPERTIES LABELS "shell_write")
 
 # ============================================================
+# 测试可执行文件：test_cwd_stat
+# ============================================================
+# CWD/stat: path_canonicalize, path_resolve, struct stat layout,
+# shell cd/pwd/stat commands.  Pure reimplementation with mock
+# syscalls -- no kernel code linked.
+add_executable(test_cwd_stat
+    unit/test_cwd_stat.cpp
+)
+
+target_compile_definitions(test_cwd_stat PRIVATE CINUX_HOST_TEST)
+target_include_directories(test_cwd_stat PRIVATE ${TEST_INCLUDE_DIRS})
+add_test(NAME cwd_stat COMMAND test_cwd_stat)
+set_tests_properties(cwd_stat PROPERTIES LABELS "cwd_stat")
+
+# ============================================================
 # 测试辅助目标
 # ============================================================
 
 # Host 端单元测试
 add_custom_target(test_host
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat
     USES_TERMINAL
     COMMENT "Running host unit tests..."
 )
@@ -576,7 +591,7 @@ configure_file(
 
 add_custom_target(test
     COMMAND sh ${CMAKE_BINARY_DIR}/run_all_tests.sh
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test-image
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat test-image
     USES_TERMINAL
     COMMENT "Running ALL tests (host then kernel)..."
 )
@@ -584,7 +599,7 @@ add_custom_target(test
 # 详细模式运行 host 测试
 add_custom_target(test_verbose
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose --output-on-failure
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat
     COMMENT "Running host tests in verbose mode..."
 )
 
