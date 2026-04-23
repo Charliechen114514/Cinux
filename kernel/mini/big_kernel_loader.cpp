@@ -12,6 +12,7 @@
 #include <stdint.h>
 
 #include "arch/x86_64/paging.hpp"
+#include "boot_info.h"
 #include "driver/ata.hpp"
 #include "elf_loader.hpp"
 #include "lib/kprintf.h"
@@ -162,7 +163,10 @@ bool load_big_kernel_phase1(uint64_t disk_lba, BigKernelLoadState& state) {
 // ============================================================
 
 uint64_t load_big_kernel_phase2(const BigKernelLoadState& state, uint64_t disk_lba) {
-	// Determine highest physical address we need to map
+	// Determine highest physical address we need to map.
+	// Start with ELF segment extents, then extend to cover all usable
+	// RAM so that phys_to_virt(phys + KERNEL_VMA) works for any
+	// page returned by PMM at runtime (Linux-style full direct map).
 	uint64_t highest_phys = BIG_KERNEL_LOAD_ADDR + state.total_elf_size;
 	for (uint16_t i = 0; i < state.phnum; i++) {
 		if (state.phdrs[i].p_type == PT_LOAD) {
@@ -171,7 +175,18 @@ uint64_t load_big_kernel_phase2(const BigKernelLoadState& state, uint64_t disk_l
 				highest_phys = seg_end;
 		}
 	}
-	highest_phys = align_up(highest_phys, arch::PAGE_2MB_SIZE) + arch::PAGE_2MB_SIZE;
+
+	// Scan E820 memory map for the highest usable RAM region
+	auto* bi = reinterpret_cast<const BootInfo*>(0x7000);
+	for (uint32_t i = 0; i < bi->mmap_count; i++) {
+		if (bi->mmap[i].type == 1) {  // usable RAM
+			uint64_t region_end = bi->mmap[i].base + bi->mmap[i].length;
+			if (region_end > highest_phys)
+				highest_phys = region_end;
+		}
+	}
+
+	highest_phys = align_up(highest_phys, arch::PAGE_2MB_SIZE);
 
 
 	// Extend identity mapping

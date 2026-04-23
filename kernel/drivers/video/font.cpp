@@ -63,4 +63,12 @@ void PSFFont::render_char(Framebuffer& fb, uint8_t c, uint32_t x, uint32_t y, ui
 	}
 }
 
+const uint8_t* PSFFont::glyph(uint8_t c) const {
+    if (glyphs_ == nullptr)
+        return nullptr;
+    if (c >= num_glyphs_)
+        c = 0;
+    return glyphs_ + static_cast<uint32_t>(c) * bytes_per_glyph_;
+}
+
 }  // namespace cinux::drivers

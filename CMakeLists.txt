@@ -7,6 +7,8 @@ project(cinux
     VERSION 0.1.0 
     LANGUAGES C CXX ASM)
 
+option(CINUX_GUI "Enable GUI mode" ON)
+
 if(NOT CMAKE_TOOLCHAIN_FILE)
     set(CMAKE_TOOLCHAIN_FILE
         "${CMAKE_SOURCE_DIR}/cmake/toolchain-x86_64.cmake"
@@ -27,6 +29,8 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_C_FLAGS_RELEASE "-O2 -DNDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 
+enable_testing()
+
 add_subdirectory(boot)
 add_subdirectory(user)
 add_subdirectory(kernel)
@@ -46,5 +50,6 @@ message(STATUS "  CXX Compiler:${CMAKE_CXX_COMPILER}")
 message(STATUS "  ASM Compiler:${CMAKE_ASM_COMPILER}")
 message(STATUS "  Toolchain:   ${CMAKE_TOOLCHAIN_FILE}")
 message(STATUS "  Build tests: ${CINUX_BUILD_TESTS}")
+message(STATUS "  GUI mode:    ${CINUX_GUI}")
 message(STATUS "===================================")
 message(STATUS "")

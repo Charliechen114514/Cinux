@@ -50,6 +50,23 @@ public:
     uint32_t width() const { return width_; }
     uint32_t height() const { return height_; }
 
+    /**
+     * @brief Access the raw glyph bitmap for a character
+     *
+     * Returns a pointer to the font bitmap data for the given character.
+     * Each row is one byte, MSB = leftmost pixel. The returned pointer
+     * is valid for bytes_per_glyph() bytes.
+     *
+     * @param c  Character code (0-255, clamped to range if out of bounds)
+     * @return   Pointer to glyph bitmap data, or nullptr if font not initialised
+     */
+    const uint8_t* glyph(uint8_t c) const;
+
+    /**
+     * @brief Number of bytes per glyph (rows * ceil(width/8))
+     */
+    uint32_t bytes_per_glyph() const { return bytes_per_glyph_; }
+
 private:
     const uint8_t* glyphs_ = nullptr;
     uint32_t bytes_per_glyph_ = 0;

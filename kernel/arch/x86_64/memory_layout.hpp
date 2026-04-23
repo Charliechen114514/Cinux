@@ -14,7 +14,7 @@ namespace cinux::arch {
 constexpr uint64_t KMEM_BASE = 0xFFFF800000000000ULL;
 
 // Heap: kernel heap allocator
-constexpr uint64_t KMEM_HEAP_SIZE  = 0x100000ULL;       // 1 MB
+constexpr uint64_t KMEM_HEAP_SIZE  = 0x8000000ULL;      // 128 MB
 constexpr uint64_t KMEM_HEAP_BASE  = KMEM_BASE;
 
 // MMIO: memory-mapped I/O (AHCI BAR5, etc.)

@@ -132,12 +132,41 @@ public:
      */
     static uint32_t freq_hz();
 
+#ifdef CINUX_GUI
+    /**
+     * @brief Register a callback to be invoked on every PIT tick
+     *
+     * Used by the GUI subsystem to periodically flip the canvas
+     * back buffer to the front (hardware) buffer.
+     *
+     * @param cb     Function pointer to call each tick, or nullptr to disable
+     * @param ctx    Opaque context pointer passed to @p cb on each invocation
+     */
+    static void set_tick_callback(void (*cb)(void*), void* ctx = nullptr);
+
+    /**
+     * @brief Invoke the registered tick callback (if any)
+     *
+     * Called from irq0_handler after incrementing the tick counter.
+     * No-op if no callback is registered.
+     */
+    static void invoke_tick_callback();
+#endif
+
 private:
     /// Global tick counter, incremented once per IRQ0
     static std::atomic<uint64_t> tick_count_;
 
     /// Configured frequency (Hz), set by init()
     static uint32_t freq_hz_;
+
+#ifdef CINUX_GUI
+    /// Optional per-tick callback (e.g. canvas flip)
+    static void (*tick_callback_)(void*);
+
+    /// Opaque context passed to the tick callback
+    static void* tick_callback_ctx_;
+#endif
 };
 
 }  // namespace cinux::drivers

@@ -223,17 +223,16 @@ void test_high_address() {
 namespace test_vmm_demand {
 
 void test_demand_page() {
-    volatile uint64_t* ptr = reinterpret_cast<volatile uint64_t*>(0x40000000ULL);
+    // The loader now maps all physical memory via 2MB/1GB huge pages
+    // (Linux-style full direct map), so every physical address is
+    // accessible without triggering demand faults.  Verify that the
+    // direct map covers a high address by writing and reading back.
+    uint64_t test_addr = 0x40000000ULL;  // 1 GB
 
+    volatile uint64_t* ptr = reinterpret_cast<volatile uint64_t*>(test_addr);
     *ptr = 0xCAFEBABEDEADC0DEULL;
 
     TEST_ASSERT_EQ(*ptr, 0xCAFEBABEDEADC0DEULL);
-
-    uint64_t phys = g_vmm.translate(0x40000000ULL);
-    TEST_ASSERT_NE(phys, 0u);
-
-    g_vmm.unmap(0x40000000ULL);
-    g_pmm.free_page(phys);
 }
 
 }  // namespace test_vmm_demand

@@ -93,6 +93,16 @@ public:
     uint32_t height() const { return height_; }
     uint32_t pitch() const { return pitch_; }
 
+    /**
+     * @brief Access the raw framebuffer memory pointer
+     *
+     * Returns the base address of the linear framebuffer mapped into
+     * virtual address space.  Used by Canvas::flip() for bulk transfer.
+     *
+     * @return Pointer to the first pixel (volatile uint32_t*)
+     */
+    volatile uint32_t* data() const { return addr_; }
+
 private:
     volatile uint32_t* addr_ = nullptr;
     uint32_t width_ = 0;

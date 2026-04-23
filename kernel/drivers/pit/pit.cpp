@@ -32,6 +32,11 @@ namespace cinux::drivers {
 std::atomic<uint64_t> PIT::tick_count_{0};
 uint32_t PIT::freq_hz_	  = 100;
 
+#ifdef CINUX_GUI
+void (*PIT::tick_callback_)(void*) = nullptr;
+void* PIT::tick_callback_ctx_ = nullptr;
+#endif
+
 // ============================================================
 // PIT::init() -- configure channel 0 as square-wave generator
 // ============================================================
@@ -79,6 +84,10 @@ void PIT::irq0_handler(InterruptFrame* /*frame*/) {
 	// Signal End-Of-Interrupt to the PIC so the next IRQ can arrive
 	PIC::send_eoi(0);
 
+#ifdef CINUX_GUI
+	invoke_tick_callback();
+#endif
+
 	cinux::proc::Scheduler::tick();
 }
 
@@ -106,6 +115,25 @@ uint64_t PIT::get_uptime_ms() {
 uint32_t PIT::freq_hz() {
 	return freq_hz_;
 }
+
+// ============================================================
+// PIT GUI tick callback (CINUX_GUI only)
+// ============================================================
+
+#ifdef CINUX_GUI
+
+void PIT::set_tick_callback(void (*cb)(void*), void* ctx) {
+	tick_callback_ = cb;
+	tick_callback_ctx_ = ctx;
+}
+
+void PIT::invoke_tick_callback() {
+	if (tick_callback_ != nullptr) {
+		tick_callback_(tick_callback_ctx_);
+	}
+}
+
+#endif
 
 }  // namespace cinux::drivers
 

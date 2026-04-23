@@ -100,6 +100,15 @@ target_include_directories(big_kernel_common PUBLIC
     ${CMAKE_SOURCE_DIR}
 )
 
+# GUI mode: add compile definition and extra sources
+if(CINUX_GUI)
+    target_compile_definitions(big_kernel_common PUBLIC CINUX_GUI)
+    target_sources(big_kernel_common PRIVATE
+        drivers/canvas.cpp
+    )
+    add_subdirectory(gui)
+endif()
+
 # ============================================================
 # Initrd (embedded ustar archive)
 # ============================================================
@@ -178,6 +187,7 @@ add_executable(big_kernel_test
     test/test_syscall_ext2.cpp
     test/test_shell_write.cpp
     test/test_cwd_stat.cpp
+    test/test_canvas.cpp
 )
 
 target_sources(big_kernel_test PRIVATE $<TARGET_OBJECTS:big_kernel_common>)

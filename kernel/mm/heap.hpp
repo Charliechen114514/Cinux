@@ -111,8 +111,9 @@ private:
      * Allocates physical pages via PMM and maps them via VMM.
      *
      * @param min_bytes  Minimum number of additional bytes needed
+     * @return true if expansion succeeded, false if OOM
      */
-    void expand(size_t min_bytes);
+    bool expand(size_t min_bytes);
 
     /**
      * @brief Coalesce a free block with its successor if also free
@@ -123,6 +124,7 @@ private:
 
     uint64_t      base_{};
     uint64_t      size_{};
+    uint64_t      max_size_{};
     uint64_t      used_{};
     BlockHeader*  free_list_{};
     cinux::proc::Spinlock lock_;

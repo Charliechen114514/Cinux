@@ -8,6 +8,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "kernel/arch/x86_64/memory_layout.hpp"
 #include "kernel/arch/x86_64/paging_config.hpp"
 #include "kernel/lib/kprintf.hpp"
 #include "kernel/mm/pmm.hpp"
@@ -89,12 +90,14 @@ void Heap::init(uint64_t virt_base, uint64_t initial_size) {
     // Step 5: Store heap metadata
     base_     = virt_base;
     size_     = aligned_size;
+    max_size_ = cinux::arch::KMEM_HEAP_SIZE;
     used_     = 0;
     free_list_ = first;
 
-    cinux::lib::kprintf("[HEAP] Initialised at 0x%p, size %u KB\n",
+    cinux::lib::kprintf("[HEAP] Initialised at 0x%p, size %u KB, max %u MB\n",
                         reinterpret_cast<void*>(virt_base),
-                        aligned_size / 1024);
+                        aligned_size / 1024,
+                        max_size_ / (1024 * 1024));
 }
 
 // ============================================================
@@ -183,9 +186,12 @@ void* Heap::alloc_locked(size_t size, size_t align) {
     }
 
     // No suitable block found, expand the heap
-    expand(size + align + HEADER_SIZE);
+    if (!expand(size + align + HEADER_SIZE)) {
+        // Expansion failed (OOM) -- do not recurse, return nullptr
+        return nullptr;
+    }
 
-    // Retry allocation after expansion
+    // Retry allocation after successful expansion
     return alloc_locked(size, align);
 }
 
@@ -244,7 +250,7 @@ void Heap::free(void* ptr) {
 // Heap::expand
 // ============================================================
 
-void Heap::expand(size_t min_bytes) {
+bool Heap::expand(size_t min_bytes) {
     // Step 1: Determine how many pages to add
     uint64_t needed_bytes = align_up(
         min_bytes + HEADER_SIZE, cinux::arch::PAGE_SIZE);
@@ -257,12 +263,19 @@ void Heap::expand(size_t min_bytes) {
 
     uint64_t expand_size = needed_pages * cinux::arch::PAGE_SIZE;
 
+    // Bounds check: do not expand past the reserved heap region
+    if (size_ + expand_size > max_size_) {
+        cinux::lib::kprintf("[HEAP] Expansion limit reached: %u KB / %u MB\n",
+                            size_ / 1024, max_size_ / (1024 * 1024));
+        return false;
+    }
+
     // Step 2: Map new pages at the end of the current heap region
     for (uint64_t offset = 0; offset < expand_size; offset += cinux::arch::PAGE_SIZE) {
         uint64_t phys = g_pmm.alloc_page();
         if (phys == 0) {
             cinux::lib::kprintf("[HEAP] OOM during expansion at offset %u\n", offset);
-            return;
+            return false;
         }
         g_vmm.map(base_ + size_ + offset, phys, PAGE_FLAGS);
     }
@@ -284,6 +297,7 @@ void Heap::expand(size_t min_bytes) {
 
     cinux::lib::kprintf("[HEAP] Expanded by %u KB, total %u KB\n",
                         expand_size / 1024, size_ / 1024);
+    return true;
 }
 
 // ============================================================

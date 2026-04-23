@@ -53,6 +53,7 @@ void run_syscall_ext2_tests();
 void run_shell_write_tests();
 void run_cwd_stat_tests();
 void run_sync_concurrent_tests();
+void run_canvas_tests();
 }
 
 static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
@@ -98,6 +99,9 @@ extern "C" void kernel_main() {
     cinux::mm::g_heap.init(HEAP_VIRT_BASE, HEAP_INIT_SIZE);
     run_heap_tests();
     run_heap_lock_stress_tests();
+
+    // Canvas tests (029): GUI double-buffered rendering (uses Framebuffer + PSFFont + Heap)
+    run_canvas_tests();
 
     // AddressSpace tests: init kernel PML4 after VMM, then run tests
     cinux::mm::AddressSpace::init_kernel();

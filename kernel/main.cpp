@@ -52,6 +52,9 @@
 #include "kernel/drivers/video/framebuffer.hpp"
 #include "kernel/drivers/pit/pit.hpp"
 #include "kernel/drivers/keyboard/keyboard.hpp"
+#ifdef CINUX_GUI
+#include "kernel/drivers/canvas.hpp"
+#endif
 #include "kernel/lib/kprintf.hpp"
 #include "kernel/mm/pmm.hpp"
 #include "kernel/mm/vmm.hpp"
@@ -150,6 +153,39 @@ extern "C" void kernel_main() {
     cinux::lib::kprintf_register_sink(Console::console_sink_adapter, &console);
     cinux::lib::kprintf("[BIG] Console initialised -- dual output active.\n");
 
+#ifdef CINUX_GUI
+    // Step 15b: Initialise GUI canvas (double-buffered drawing surface)
+    cinux::drivers::Canvas g_canvas;
+    g_canvas.init(fb);
+    cinux::lib::kprintf("[BIG] GUI Canvas initialised: %ux%u\n",
+                        g_canvas.width(), g_canvas.height());
+
+    // Draw GUI demo: dark background + random-coloured rectangles + title
+    g_canvas.clear(0x001A1A2E);
+    uint32_t rng_state = 12345;
+    auto lcg_next = [&rng_state]() {
+        rng_state = rng_state * 1103515245u + 12345u;
+        return (rng_state >> 16) & 0x7FFF;
+    };
+    for (int i = 0; i < 10; i++) {
+        uint32_t x = lcg_next() % (g_canvas.width() - 100);
+        uint32_t y = lcg_next() % (g_canvas.height() - 60);
+        uint32_t w = 40 + (lcg_next() % 120);
+        uint32_t h = 30 + (lcg_next() % 80);
+        uint32_t r = 0x40 + (lcg_next() % 0xC0);
+        uint32_t g = 0x40 + (lcg_next() % 0xC0);
+        uint32_t b = 0x40 + (lcg_next() % 0xC0);
+        uint32_t color = (r << 16) | (g << 8) | b;
+        g_canvas.draw_rect(x, y, w, h, color);
+    }
+    const char* title = "Cinux GUI";
+    uint32_t text_w = 9 * font.width();
+    uint32_t text_x = (g_canvas.width() - text_w) / 2;
+    g_canvas.draw_text(text_x, 10, title, 0x00FFFFFF, font);
+    g_canvas.flip();
+    cinux::lib::kprintf("[BIG] GUI demo rendered to framebuffer.\n");
+#endif
+
     // Step 16: Initialise the PS/2 keyboard controller
     Keyboard::init();
 
@@ -159,6 +195,14 @@ extern "C" void kernel_main() {
     cinux::lib::kprintf("[BIG] IRQ0+IRQ1 unmasked, enabling interrupts...\n");
     __asm__ volatile("sti");
     cinux::lib::kprintf("[BIG] Interrupts enabled.\n");
+
+#ifdef CINUX_GUI
+    // Step 17b: Register canvas flip as PIT tick callback
+    PIT::set_tick_callback([](void* ctx) {
+        static_cast<cinux::drivers::Canvas*>(ctx)->flip();
+    }, &g_canvas);
+    cinux::lib::kprintf("[BIG] GUI flip registered on PIT tick.\n");
+#endif
 
     // Step 18: Initialise user-mode support (STAR/EFER MSRs)
     cinux::arch::usermode_init();

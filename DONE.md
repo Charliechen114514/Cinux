@@ -507,3 +507,26 @@ constexpr uint64_t BIG_KERNEL_LOAD_ADDR  = 0x1000000;   // 16MB
 - ☑ host 单元测试全部通过（28 tests）
 - ☑ QEMU 内核测试（run-kernel-test）通过
 - ☑ QEMU 生产内核（run）启动正常：scheduler → init thread → ext2 mount → shell
+
+---
+
+### `029_gui_canvas`
+**效果**：GUI 模式下屏幕出现渐变色矩形和 `Cinux GUI` 字样；CLI 模式下行为不变
+
+**CMake 构建**
+- ☑ 顶层 `CMakeLists.txt` 新增 `option(CINUX_GUI "Enable GUI mode" ON)`
+- ☑ GUI 模式下编译 `kernel/drivers/canvas.hpp/cpp`、`kernel/gui/` 目录；CLI 模式下排除
+- ☑ 新增 `kernel/gui/CMakeLists.txt`（当前为空，后续 030/031 填充）
+
+**Canvas 双缓冲**
+- ☑ `kernel/drivers/canvas.hpp`：`class Canvas { front_buf_, *back_buf_, width_, height_, pitch_ }`；`draw_pixel(x,y,color)`、`draw_rect(x,y,w,h,color)`、`draw_rect_outline(x,y,w,h,color)`、`draw_line(x0,y0,x1,y1,color)`（Bresenham）、`draw_text(x,y,str,color)`、`blit(dst_x,dst_y,src_canvas,sx,sy,w,h)`、`flip()`（back→front memcpy）、`clear(color=0)`、`width()/height()/pitch()`
+- ☑ `kernel/drivers/canvas.cpp`：构造器接收 `Framebuffer&`，`back_buf` 用 `kmalloc(width*height*4)` 分配；`draw_text` 复用现有 `PSFFont` 渲染；`draw_line` 实现 Bresenham 算法；`flip()` 按 pitch 逐行 memcpy
+- ☑ CLI 模式兼容：`Canvas` 不参与编译；`Console` 保持现有行为（直接写 Framebuffer front buffer）
+
+**kernel_main 集成**
+- ☑ `#ifdef CINUX_GUI` 条件编译：GUI 模式下创建全局 `Canvas`，注册为 Console 的可选后端（或替代 Console 直接输出到 Canvas back buffer）；CLI 模式下走原有 Console 路径
+- ☑ GUI 模式下 `flip()` 由 PIT tick 定时调用（或手动触发），确保屏幕刷新
+
+**测试**
+- ☑ Host 单元测试 `test_canvas.cpp`：mock Framebuffer，验证 draw_rect/draw_line/draw_text/blit 输出像素正确
+- ☑ QEMU 内核测试：GUI 模式下绘制 10 个随机色矩形 + 标题文字 `Cinux GUI`，`flip()` 后屏幕显示；CLI 模式下测试行为不变
