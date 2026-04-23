@@ -299,3 +299,41 @@ extern "C" void run_heap_tests() {
 
     TEST_SUMMARY();
 }
+
+// ============================================================
+// Test 10: sync safety — repeated alloc/free cycles (lock stress)
+// ============================================================
+
+namespace test_heap_lock_stress {
+
+void test_lock_stress_cycles() {
+    constexpr int N = 30;
+    void* ptrs[N];
+    size_t sizes[N];
+
+    for (int round = 0; round < 5; round++) {
+        for (int i = 0; i < N; i++) {
+            sizes[i] = static_cast<size_t>((i * 11 + 16 + round * 3) % 256 + 1);
+            ptrs[i] = g_heap.alloc(sizes[i]);
+            TEST_ASSERT_NOT_NULL(ptrs[i]);
+
+            auto* buf = static_cast<uint8_t*>(ptrs[i]);
+            buf[0] = static_cast<uint8_t>(i + round);
+            buf[sizes[i] - 1] = static_cast<uint8_t>((i + round) ^ 0xFF);
+        }
+
+        for (int i = 0; i < N; i++) {
+            g_heap.free(ptrs[i]);
+        }
+    }
+}
+
+}  // namespace test_heap_lock_stress
+
+extern "C" void run_heap_lock_stress_tests() {
+    TEST_SECTION("Heap Lock Stress Tests (028d)");
+
+    RUN_TEST(test_heap_lock_stress::test_lock_stress_cycles);
+
+    TEST_SUMMARY();
+}

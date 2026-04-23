@@ -47,7 +47,7 @@ using namespace cinux::fs;
  */
 class MockFileOps : public InodeOps {
 public:
-    int64_t read(const Inode* /*inode*/, uint64_t offset,
+    int64_t read(const Inode* /*inode*/, uint64_t /*offset*/,
                  void* buf, uint64_t count) override {
         // Simulate a successful read: fill buffer with 'R' bytes
         auto* data = static_cast<uint8_t*>(buf);

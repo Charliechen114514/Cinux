@@ -9,8 +9,13 @@
 #define TEST_FRAMEWORK_IMPL
 #include "test_framework.h"
 
+#include <atomic>
+#include <mutex>
 #include <stdint.h>
 #include <string.h>
+#include <thread>
+#include <unordered_set>
+#include <vector>
 
 #include "boot/boot_info.h"
 
@@ -333,6 +338,186 @@ TEST("pmm: mark used/free counts are correct") {
     // Double mark_free is a no-op on already-free pages
     pmm.mark_free(10, 5);
     ASSERT_EQ(pmm.free_count(), 25u);
+}
+
+// ============================================================
+// Host-side Spinlock for concurrent tests
+// ============================================================
+
+namespace {
+
+class HostSpinlock {
+public:
+    void acquire() {
+        while (locked_.exchange(true, std::memory_order_acquire)) {
+        }
+    }
+
+    void release() {
+        locked_.store(false, std::memory_order_release);
+    }
+
+    [[nodiscard]] auto guard() {
+        return Guard(this);
+    }
+
+private:
+    std::atomic<bool> locked_{false};
+
+    class Guard {
+    public:
+        explicit Guard(HostSpinlock* lock) : lock_(lock) { lock_->acquire(); }
+        ~Guard() { lock_->release(); }
+        Guard(const Guard&) = delete;
+        Guard& operator=(const Guard&) = delete;
+
+    private:
+        HostSpinlock* lock_;
+    };
+};
+
+/// Thread-safe PMM wrapper using HostSpinlock.
+class LockedTestPMM {
+public:
+    explicit LockedTestPMM(uint64_t max_pages)
+        : total_pages_(max_pages), free_pages_(0) {
+        bm_size_ = (max_pages + 7) / 8;
+        bm_ = new uint8_t[bm_size_];
+        memset(bm_, 0xFF, bm_size_);
+    }
+
+    ~LockedTestPMM() { delete[] bm_; }
+
+    void mark_free(uint64_t start_page, uint64_t count) {
+        for (uint64_t p = start_page; p < start_page + count && p < total_pages_; p++) {
+            if (bm_[p / 8] & (1U << (p % 8))) {
+                bm_[p / 8] &= static_cast<uint8_t>(~(1U << (p % 8)));
+                free_pages_++;
+            }
+        }
+    }
+
+    uint64_t alloc_page() {
+        auto g = lock_.guard();
+        (void)g;
+        const auto* bm64 = reinterpret_cast<const uint64_t*>(bm_);
+        uint64_t qw = bm_size_ / sizeof(uint64_t);
+
+        for (uint64_t i = 0; i < qw; i++) {
+            if (bm64[i] != ~0ULL) {
+                int bit = __builtin_ctzll(~bm64[i]);
+                uint64_t idx = i * 64 + static_cast<uint64_t>(bit);
+                if (idx < total_pages_) {
+                    bm_[idx / 8] |= static_cast<uint8_t>(1U << (idx % 8));
+                    free_pages_--;
+                    return idx * PAGE_SIZE;
+                }
+            }
+        }
+
+        for (uint64_t byte = qw * 8; byte < bm_size_; byte++) {
+            if (bm_[byte] != 0xFF) {
+                for (uint64_t bit = 0; bit < 8; bit++) {
+                    uint64_t idx = byte * 8 + bit;
+                    if (idx < total_pages_ && !(bm_[byte] & (1U << bit))) {
+                        bm_[byte] |= static_cast<uint8_t>(1U << bit);
+                        free_pages_--;
+                        return idx * PAGE_SIZE;
+                    }
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    void free_page(uint64_t phys) {
+        auto g = lock_.guard();
+        (void)g;
+        if (phys == 0) return;
+        uint64_t idx = phys / PAGE_SIZE;
+        if (idx >= total_pages_) return;
+        if (!(bm_[idx / 8] & (1U << (idx % 8)))) return;
+        bm_[idx / 8] &= static_cast<uint8_t>(~(1U << (idx % 8)));
+        free_pages_++;
+    }
+
+    uint64_t free_count() const { return free_pages_; }
+
+private:
+    HostSpinlock lock_;
+    uint8_t* bm_;
+    uint64_t total_pages_;
+    uint64_t free_pages_;
+    uint64_t bm_size_;
+};
+
+}  // anonymous namespace
+
+// ============================================================
+// Concurrent stress tests
+// ============================================================
+
+TEST("concurrent: no double-alloc under contention") {
+    constexpr int NUM_THREADS = 4;
+    constexpr int ALLOCS_PER_THREAD = 500;
+    constexpr uint64_t TOTAL_PAGES = 4096;
+
+    LockedTestPMM pmm(TOTAL_PAGES);
+    pmm.mark_free(1, TOTAL_PAGES - 1);
+
+    std::unordered_set<uint64_t> all_allocated;
+    std::mutex set_mutex;
+    std::vector<std::thread> threads;
+
+    for (int t = 0; t < NUM_THREADS; t++) {
+        threads.emplace_back([&]() {
+            std::vector<uint64_t> local;
+            local.reserve(ALLOCS_PER_THREAD);
+            for (int i = 0; i < ALLOCS_PER_THREAD; i++) {
+                uint64_t page = pmm.alloc_page();
+                ASSERT_NE(page, 0u);
+                local.push_back(page);
+            }
+            {
+                std::lock_guard<std::mutex> lk(set_mutex);
+                for (uint64_t p : local) {
+                    auto [it, inserted] = all_allocated.insert(p);
+                    ASSERT_TRUE(inserted);
+                }
+            }
+        });
+    }
+
+    for (auto& th : threads) th.join();
+
+    ASSERT_EQ(all_allocated.size(),
+              static_cast<size_t>(NUM_THREADS * ALLOCS_PER_THREAD));
+}
+
+TEST("concurrent: alloc/free cycles preserve free count") {
+    constexpr int NUM_THREADS = 4;
+    constexpr int CYCLES = 200;
+    constexpr uint64_t TOTAL_PAGES = 4096;
+
+    LockedTestPMM pmm(TOTAL_PAGES);
+    pmm.mark_free(1, TOTAL_PAGES - 1);
+    uint64_t initial_free = pmm.free_count();
+
+    std::vector<std::thread> threads;
+    for (int t = 0; t < NUM_THREADS; t++) {
+        threads.emplace_back([&]() {
+            for (int i = 0; i < CYCLES; i++) {
+                uint64_t page = pmm.alloc_page();
+                ASSERT_NE(page, 0u);
+                pmm.free_page(page);
+            }
+        });
+    }
+
+    for (auto& th : threads) th.join();
+
+    ASSERT_EQ(pmm.free_count(), initial_free);
 }
 
 // ============================================================

@@ -127,6 +127,33 @@ void test_double_free_noop() {
 }  // namespace test_pmm_edge
 
 // ============================================================
+// Test 6: Concurrent alloc/free with cooperative task switching
+// ============================================================
+
+namespace test_pmm_concurrent {
+
+void test_concurrent_alloc_free_no_leak() {
+    uint64_t initial_free = g_pmm.free_page_count();
+
+    constexpr int N = 8;
+    uint64_t pages[N];
+    for (int i = 0; i < N; i++) {
+        pages[i] = g_pmm.alloc_page();
+        TEST_ASSERT_NE(pages[i], 0u);
+    }
+
+    TEST_ASSERT_EQ(g_pmm.free_page_count(), initial_free - N);
+
+    for (int i = 0; i < N; i++) {
+        g_pmm.free_page(pages[i]);
+    }
+
+    TEST_ASSERT_EQ(g_pmm.free_page_count(), initial_free);
+}
+
+}  // namespace test_pmm_concurrent
+
+// ============================================================
 // Entry point
 // ============================================================
 
@@ -139,6 +166,8 @@ extern "C" void run_pmm_tests() {
     RUN_TEST(test_pmm_contiguous::test_alloc_pages_contiguous);
     RUN_TEST(test_pmm_edge::test_free_zero_noop);
     RUN_TEST(test_pmm_edge::test_double_free_noop);
+
+    RUN_TEST(test_pmm_concurrent::test_concurrent_alloc_free_no_leak);
 
     TEST_SUMMARY();
 }

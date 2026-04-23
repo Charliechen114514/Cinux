@@ -430,6 +430,102 @@ void test_block_unblock() {
 }  // namespace test_scheduler_new
 
 // ============================================================
+// Test 10: RoundRobin spinlock correctness (028d)
+// ============================================================
+
+namespace test_round_robin_locked {
+
+void test_locked_enqueue_dequeue() {
+    RoundRobin rr;
+
+    Task* t1 = TaskBuilder()
+        .set_entry(test_task_builder::dummy_entry)
+        .set_name("lk_1")
+        .build();
+    Task* t2 = TaskBuilder()
+        .set_entry(test_task_builder::dummy_entry)
+        .set_name("lk_2")
+        .build();
+    Task* t3 = TaskBuilder()
+        .set_entry(test_task_builder::dummy_entry)
+        .set_name("lk_3")
+        .build();
+
+    TEST_ASSERT_NOT_NULL(t1);
+    TEST_ASSERT_NOT_NULL(t2);
+    TEST_ASSERT_NOT_NULL(t3);
+
+    rr.enqueue(t1);
+    rr.enqueue(t2);
+    rr.enqueue(t3);
+
+    Task* n1 = rr.pick_next();
+    TEST_ASSERT_EQ(n1, t1);
+    TEST_ASSERT_EQ(static_cast<int>(n1->state),
+                   static_cast<int>(TaskState::Running));
+
+    Task* n2 = rr.pick_next();
+    TEST_ASSERT_EQ(n2, t2);
+
+    Task* n3 = rr.pick_next();
+    TEST_ASSERT_EQ(n3, t3);
+
+    Task* n4 = rr.pick_next();
+    TEST_ASSERT_EQ(n4, t1);
+}
+
+void test_locked_dequeue_middle() {
+    RoundRobin rr;
+
+    Task* t1 = TaskBuilder()
+        .set_entry(test_task_builder::dummy_entry)
+        .set_name("ldq_1")
+        .build();
+    Task* t2 = TaskBuilder()
+        .set_entry(test_task_builder::dummy_entry)
+        .set_name("ldq_2")
+        .build();
+    Task* t3 = TaskBuilder()
+        .set_entry(test_task_builder::dummy_entry)
+        .set_name("ldq_3")
+        .build();
+
+    rr.enqueue(t1);
+    rr.enqueue(t2);
+    rr.enqueue(t3);
+
+    rr.dequeue(t2);
+
+    TEST_ASSERT_EQ(rr.pick_next(), t1);
+    TEST_ASSERT_EQ(rr.pick_next(), t3);
+}
+
+void test_locked_fifo_order() {
+    RoundRobin rr;
+
+    Task* tasks[8];
+    for (int i = 0; i < 8; i++) {
+        char name[4];
+        name[0] = 'f';
+        name[1] = static_cast<char>('0' + i);
+        name[2] = '\0';
+        tasks[i] = TaskBuilder()
+            .set_entry(test_task_builder::dummy_entry)
+            .set_name(name)
+            .build();
+        TEST_ASSERT_NOT_NULL(tasks[i]);
+        rr.enqueue(tasks[i]);
+    }
+
+    for (int i = 0; i < 8; i++) {
+        Task* n = rr.pick_next();
+        TEST_ASSERT_EQ(n, tasks[i]);
+    }
+}
+
+}  // namespace test_round_robin_locked
+
+// ============================================================
 // Entry point
 // ============================================================
 
@@ -451,6 +547,10 @@ extern "C" void run_scheduler_tests() {
     RUN_TEST(test_scheduler_new::test_is_initialized);
     RUN_TEST(test_scheduler_new::test_remove_task);
     RUN_TEST(test_scheduler_new::test_block_unblock);
+
+    RUN_TEST(test_round_robin_locked::test_locked_enqueue_dequeue);
+    RUN_TEST(test_round_robin_locked::test_locked_dequeue_middle);
+    RUN_TEST(test_round_robin_locked::test_locked_fifo_order);
 
     TEST_SUMMARY();
 }

@@ -8,21 +8,6 @@
 
 ## Phase 8 · 存储与文件系统
 
-### `028d_sync_safety`
-**效果**：所有内核共享数据结构加锁保护，PMM/Heap/调度器/中断上下文可安全并发
-
-- ☐ 重新审查所有的组件，看看哪一些组件需要保证线程安全，重新设计本Roadmap milestone
-- ☐ `Spinlock` 改用 `std::atomic<bool>` 替换 `volatile bool locked_`，补齐 acquire/release 语义
-- ☐ `PMM::alloc_page/alloc_pages/free_pages` 临界区加 `Spinlock`（find + set/clear 必须原子）
-- ☐ `Heap::alloc/free` 临界区加 `Spinlock`（free list 遍历 + 修改原子化）
-- ☐ `Scheduler` 运行队列加 `Spinlock`：`enqueue/dequeue/pick_next` 持锁，`tick()` 中关中断
-- ☐ `Scheduler::tick_count_`、`Process` 的 `next_tid` / `next_stack_vaddr` 改用 `std::atomic`
-- ☐ 键盘 IRQ handler 与 `poll()/enqueue()` 之间：ring buffer 访问加关中断保护或 `Spinlock`
-- ☐ `FDTable::alloc/close` 加 `Spinlock`，防止 double-close / use-after-free
-- ☐ `syscall_register()` / `syscall_dispatch()` 对 syscall table 加 `Spinlock` 或 RCU 风格（写时加锁、读时无需）
-- ☐ 全局审计：`grep` 所有 static/global 可变状态，确认均已保护或标注「启动单线程只用一次」
-- ☐ 新建 `test/unit/test_sync_safety.cpp`：为每个已加锁组件（Spinlock、PMM、Heap、Scheduler 队列、FDTable）编写并发压力测试 — 多线程同时操作，验证无数据竞争、无资源泄漏、状态一致
-
 ---
 
 ## Phase 9 · GUI（长期目标）

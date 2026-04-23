@@ -98,24 +98,20 @@ void Heap::init(uint64_t virt_base, uint64_t initial_size) {
 }
 
 // ============================================================
-// Heap::alloc
+// Heap::alloc_locked (internal, caller holds lock)
 // ============================================================
 
-void* Heap::alloc(size_t size, size_t align) {
-    // Step 1: Refuse zero-size allocations
+void* Heap::alloc_locked(size_t size, size_t align) {
     if (size == 0) {
         return nullptr;
     }
 
-    // Step 2: Minimum alignment is 16 bytes
     if (align < 16) {
         align = 16;
     }
 
-    // Step 3: Adjust requested size to include alignment padding
     size_t needed = size + (align - 1);
 
-    // Step 4: First-fit search over the free list
     BlockHeader* prev = nullptr;
     BlockHeader* curr = free_list_;
 
@@ -186,11 +182,21 @@ void* Heap::alloc(size_t size, size_t align) {
         curr = curr->next;
     }
 
-    // Step 9: No suitable block found, expand the heap
+    // No suitable block found, expand the heap
     expand(size + align + HEADER_SIZE);
 
-    // Step 10: Retry allocation after expansion
-    return alloc(size, align);
+    // Retry allocation after expansion
+    return alloc_locked(size, align);
+}
+
+// ============================================================
+// Heap::alloc (public, acquires lock)
+// ============================================================
+
+void* Heap::alloc(size_t size, size_t align) {
+    auto g = lock_.guard();
+    (void)g;
+    return alloc_locked(size, align);
 }
 
 // ============================================================
@@ -198,6 +204,9 @@ void* Heap::alloc(size_t size, size_t align) {
 // ============================================================
 
 void Heap::free(void* ptr) {
+    auto g = lock_.guard();
+    (void)g;
+
     // Step 1: Null check
     if (ptr == nullptr) {
         return;

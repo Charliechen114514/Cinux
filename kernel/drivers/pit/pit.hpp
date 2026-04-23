@@ -23,6 +23,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <atomic>
 
 // Forward declaration -- InterruptFrame is defined in idt.hpp
 namespace cinux::arch {
@@ -133,7 +134,7 @@ public:
 
 private:
     /// Global tick counter, incremented once per IRQ0
-    static uint64_t tick_count_;
+    static std::atomic<uint64_t> tick_count_;
 
     /// Configured frequency (Hz), set by init()
     static uint32_t freq_hz_;

@@ -20,6 +20,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "kernel/proc/sync.hpp"
+
 namespace cinux::mm {
 
 // ============================================================
@@ -98,6 +100,11 @@ public:
 
 private:
     /**
+     * @brief Internal allocation logic (caller must hold lock_)
+     */
+    void* alloc_locked(size_t size, size_t align);
+
+    /**
      * @brief Expand the heap by mapping additional pages
      *
      * Called internally when no free block can satisfy a request.
@@ -118,6 +125,7 @@ private:
     uint64_t      size_{};
     uint64_t      used_{};
     BlockHeader*  free_list_{};
+    cinux::proc::Spinlock lock_;
 };
 
 /// Global Heap instance.

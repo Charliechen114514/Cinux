@@ -88,13 +88,17 @@ int64_t sys_read(uint64_t fd, uint64_t buf_virt, uint64_t count,
     }
 
     auto* buf = reinterpret_cast<void*>(buf_virt);
-    int64_t result = file->inode->ops->read(file->inode, file->offset, buf, count);
+    {
+        auto g = file->offset_lock_.guard();
+        (void)g;
+        int64_t result = file->inode->ops->read(file->inode, file->offset, buf, count);
 
-    if (result > 0) {
-        file->offset += static_cast<uint64_t>(result);
+        if (result > 0) {
+            file->offset += static_cast<uint64_t>(result);
+        }
+        return result;
     }
 
-    return result;
 }
 
 }  // namespace cinux::syscall

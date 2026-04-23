@@ -30,9 +30,12 @@ FDTable::FDTable() {
 static constexpr uint32_t FD_FIRST = 3;
 
 int FDTable::alloc(Inode* inode, OpenFlags flags) {
+    auto g = lock_.guard();
+    (void)g;
+
     for (uint32_t i = FD_FIRST; i < FD_TABLE_SIZE; ++i) {
         if (fds_[i] == nullptr) {
-            fds_[i] = new File{inode, 0, flags};
+            fds_[i] = new File(inode, 0, flags);
             return static_cast<int>(i);
         }
     }
@@ -44,6 +47,9 @@ int FDTable::alloc(Inode* inode, OpenFlags flags) {
 // ============================================================
 
 int FDTable::close(int fd) {
+    auto g = lock_.guard();
+    (void)g;
+
     if (fd < 0 || fd >= static_cast<int>(FD_TABLE_SIZE)) {
         return -1;
     }
@@ -60,6 +66,9 @@ int FDTable::close(int fd) {
 // ============================================================
 
 File* FDTable::get(int fd) const {
+    auto g = lock_.guard();
+    (void)g;
+
     if (fd < 0 || fd >= static_cast<int>(FD_TABLE_SIZE)) {
         return nullptr;
     }

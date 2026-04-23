@@ -17,6 +17,8 @@
 
 #include <stdint.h>
 
+#include "kernel/proc/sync.hpp"
+
 namespace cinux::mm {
 
 class VMM {
@@ -75,6 +77,7 @@ public:
 
 private:
     uint64_t kernel_pml4_{};
+    cinux::proc::Spinlock lock_;
 };
 
 /// Global VMM instance.

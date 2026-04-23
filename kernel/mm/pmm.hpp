@@ -12,6 +12,7 @@
 #include <stdint.h>
 
 #include "boot/boot_info.h"
+#include "kernel/proc/sync.hpp"
 
 namespace cinux::mm {
 
@@ -70,6 +71,10 @@ private:
     void mark_region_used(uint64_t phys, uint64_t length);
     void mark_region_free(uint64_t phys, uint64_t length);
 
+    uint64_t alloc_page_locked();
+    void free_page_locked(uint64_t phys);
+
+    cinux::proc::Spinlock lock_;
     uint8_t* bitmap_{};
     uint64_t total_pages_{};
     uint64_t free_pages_{};

@@ -447,3 +447,32 @@ constexpr uint64_t BIG_KERNEL_LOAD_ADDR  = 0x1000000;   // 16MB
 - ☑ `sys_stat` / `sys_fstat` syscall：返回 `struct stat {st_mode, st_size, st_ino, st_type}`
 - ☑ InodeOps 扩展：`stat` 函数指针，ext2 从磁盘 inode 填充 mode/uid/gid/ctime/mtime 等
 - ☑ Shell 新增命令：`cd`、`pwd`、`stat`
+
+---
+
+### `028d_sync_safety`
+**效果**：所有内核共享数据结构加锁保护，PMM/Heap/调度器/中断上下文可安全并发
+
+**RAII 基建**（已完成）
+- ☑ InterruptGuard（pushfq/cli/popfq RAII）+ Spinlock::IrqGuard（关中断+自旋锁组合 RAII）
+- ☑ Host 端并发测试框架（std::thread 压力测试）+ Kernel 端并发测试框架（协作式多任务）
+
+**TIER 0 — 核心分配器（数据竞争必然崩溃）**
+- ☑ `PMM` 临界区加 Spinlock：`alloc_page/alloc_pages/free_page/free_pages` 持锁（find+set/clear 原子化）
+- ☑ `Heap` 临界区加 Spinlock：`alloc/free` 持锁（free_list 遍历+修改原子化）
+- ☑ `Scheduler` 运行队列加 Spinlock：`enqueue/dequeue/pick_next` 持锁，`tick()` 中 irq_guard
+- ☑ `FDTable` 加 Spinlock：`alloc/close/get` 防止 double-close / use-after-free
+
+**TIER 1 — 高频共享计数器**
+- ☑ `PIT::tick_count_` 改用 `std::atomic<uint64_t>`
+- ☑ `Scheduler::tick_count_`、`current_slice_` 改用 `std::atomic`
+- ☑ `TaskBuilder` 的 `next_tid` / `next_stack_vaddr` 改用 `std::atomic`
+- ☑ `Keyboard` ring buffer：IRQ 写端 + 线程读端用关中断保护
+
+**TIER 2 — 中等风险组件**
+- ☑ `File::offset` 加 Spinlock
+- ☑ `VMM::map/unmap` 加 Spinlock
+- ☑ `g_mount_table` 操作加 Spinlock
+
+**验证**
+- ☑ 全局审计：grep 所有 static/global 可变状态，确认已保护或标注「启动单线程」

@@ -13,6 +13,7 @@
 #include "kernel/fs/file.hpp"
 
 #include "kernel/lib/string.hpp"
+#include "kernel/proc/sync.hpp"
 
 namespace cinux::fs {
 
@@ -21,6 +22,7 @@ namespace cinux::fs {
 // ============================================================
 
 static MountPoint g_mount_table[MOUNT_TABLE_SIZE];
+static cinux::proc::Spinlock g_mount_lock;
 
 // ============================================================
 // Init
@@ -42,6 +44,9 @@ bool vfs_mount_add(const char* path, FileSystem* fs) {
     if (path == nullptr || fs == nullptr) {
         return false;
     }
+
+    auto g = g_mount_lock.guard();
+    (void)g;
 
     // Find a free slot
     for (uint32_t i = 0; i < MOUNT_TABLE_SIZE; ++i) {
@@ -75,6 +80,9 @@ bool vfs_mount_remove(const char* path) {
         return false;
     }
 
+    auto g = g_mount_lock.guard();
+    (void)g;
+
     for (uint32_t i = 0; i < MOUNT_TABLE_SIZE; ++i) {
         if (g_mount_table[i].in_use &&
             strncmp(g_mount_table[i].path, path, MOUNT_PATH_MAX) == 0) {
@@ -94,6 +102,9 @@ FileSystem* vfs_resolve(const char* path, const char** rel_path) {
     if (path == nullptr || rel_path == nullptr) {
         return nullptr;
     }
+
+    auto g = g_mount_lock.guard();
+    (void)g;
 
     FileSystem* best_fs   = nullptr;
     uint32_t    best_len  = 0;

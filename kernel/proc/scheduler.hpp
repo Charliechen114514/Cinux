@@ -2,8 +2,10 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <atomic>
 
 #include "kernel/proc/process.hpp"
+#include "kernel/proc/sync.hpp"
 
 namespace cinux::proc {
 
@@ -33,6 +35,7 @@ private:
     int head_;
     int tail_;
     int count_;
+    Spinlock lock_;
 };
 
 class Scheduler {
@@ -65,8 +68,8 @@ private:
     static RoundRobin default_rr_;
     static Task* idle_task_;
     static bool initialized_;
-    static int tick_count_;
-    static int current_slice_;
+    static std::atomic<int> tick_count_;
+    static std::atomic<int> current_slice_;
 };
 
 }  // namespace cinux::proc

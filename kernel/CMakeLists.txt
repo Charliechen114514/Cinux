@@ -127,6 +127,7 @@ add_custom_target(initrd_obj DEPENDS ${INITRD_OBJ})
 # Production big kernel executable
 add_executable(big_kernel
     main.cpp
+    stress/stress_test.cpp
 )
 
 target_sources(big_kernel PRIVATE $<TARGET_OBJECTS:big_kernel_common>)
@@ -162,6 +163,7 @@ add_executable(big_kernel_test
     test/test_address_space.cpp
     test/test_scheduler.cpp
     test/test_sync.cpp
+    test/test_sync_concurrent.cpp
     test/test_usermode.cpp
     test/test_syscall.cpp
     test/test_shell.cpp

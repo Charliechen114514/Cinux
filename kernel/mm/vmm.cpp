@@ -106,6 +106,9 @@ void VMM::init() {
 }
 
 bool VMM::map(uint64_t virt, uint64_t phys, uint64_t flags, uint64_t* pml4) {
+	auto g = lock_.guard();
+	(void)g;
+
 	uint64_t pml4_phys	= pml4 ? *pml4 : kernel_pml4_;
 	auto*	 pml4_table = phys_to_virt(pml4_phys);
 	uint64_t user_flag	= flags & FLAG_USER;
@@ -130,6 +133,9 @@ bool VMM::map(uint64_t virt, uint64_t phys, uint64_t flags, uint64_t* pml4) {
 }
 
 void VMM::unmap(uint64_t virt, uint64_t* pml4) {
+	auto g = lock_.guard();
+	(void)g;
+
 	uint64_t pml4_phys	= pml4 ? *pml4 : kernel_pml4_;
 	auto*	 pml4_table = phys_to_virt(pml4_phys);
 	auto*	 pdpt		= walk_level(pml4_table, PML4_INDEX(virt), false);

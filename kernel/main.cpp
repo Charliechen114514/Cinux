@@ -72,6 +72,7 @@ static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
 
 // Forward declarations for IRQ init (defined in irq_handlers.cpp)
 extern "C" void irq_init();
+extern "C" void run_concurrent_stress();
 
 
 /**
@@ -213,7 +214,7 @@ extern "C" void kernel_main() {
 
     // Step 23: Launch the first user-mode program (Ring 3)
     cinux::lib::kprintf("[BIG] ===== Milestone 023: Syscall from Ring 3 =====\n");
-    cinux::arch::launch_first_user();
+    run_concurrent_stress();
 
     cinux::lib::kprintf("[BIG] Returned from user mode launch (unexpected).\n");
 

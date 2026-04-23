@@ -28,6 +28,11 @@
 
 #include <cstdint>
 #include <cstring>
+#include <thread>
+#include <vector>
+#include <atomic>
+#include <set>
+#include <mutex>
 
 #include "fs/file.hpp"
 #include "fs/inode.hpp"

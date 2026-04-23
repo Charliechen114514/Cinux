@@ -13,6 +13,7 @@
 #include "kernel/arch/x86_64/io.hpp"
 #include "kernel/arch/x86_64/pic.hpp"
 #include "kernel/lib/kprintf.hpp"
+#include "kernel/proc/sync.hpp"
 
 using cinux::arch::PIC;
 using cinux::io::io_inb;
@@ -276,12 +277,13 @@ void Keyboard::irq1_handler(cinux::arch::InterruptFrame* /*frame*/) {
 // ============================================================
 
 bool Keyboard::poll(KeyEvent& out) {
-    // Buffer is empty when head equals tail
+    cinux::proc::InterruptGuard guard;
+    (void)guard;
+
     if (head_ == tail_) {
         return false;
     }
 
-    // Copy the event at head and advance
     out = queue_[head_];
     head_ = (head_ + 1) % KEY_QUEUE_SIZE;
     return true;

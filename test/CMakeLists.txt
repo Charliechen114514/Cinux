@@ -244,6 +244,7 @@ target_include_directories(test_pmm PRIVATE
     ${TEST_INCLUDE_DIRS}
     ${CMAKE_SOURCE_DIR}
 )
+target_link_libraries(test_pmm PRIVATE -pthread)
 add_test(NAME pmm COMMAND test_pmm)
 set_tests_properties(pmm PROPERTIES LABELS "pmm")
 
@@ -408,6 +409,7 @@ set_tests_properties(ramdisk PROPERTIES LABELS "ramdisk")
 # Links directly with kernel/fs/file.cpp (no hardware dependencies).
 add_executable(test_fd_table
     unit/test_fd_table.cpp
+    unit/host_spinlock.cpp
     ${CMAKE_SOURCE_DIR}/kernel/fs/inode.cpp
     ${CMAKE_SOURCE_DIR}/kernel/fs/file.cpp
 )
@@ -429,6 +431,7 @@ set_tests_properties(fd_table PROPERTIES LABELS "fd_table")
 # Links with kernel/fs/vfs_mount.cpp and kernel/fs/file.cpp.
 add_executable(test_vfs_mount
     unit/test_vfs_mount.cpp
+    unit/host_spinlock.cpp
     ${CMAKE_SOURCE_DIR}/kernel/fs/inode.cpp
     ${CMAKE_SOURCE_DIR}/kernel/fs/vfs_mount.cpp
     ${CMAKE_SOURCE_DIR}/kernel/fs/file.cpp
@@ -570,13 +573,29 @@ add_test(NAME cwd_stat COMMAND test_cwd_stat)
 set_tests_properties(cwd_stat PROPERTIES LABELS "cwd_stat")
 
 # ============================================================
+# 测试可执行文件：test_sync_concurrent
+# ============================================================
+# Concurrent stress tests for synchronization primitives using real
+# OS threads (std::thread).  Verifies Spinlock correctness under
+# genuine concurrent access, InterruptGuard nesting, IrqGuard.
+add_executable(test_sync_concurrent
+    unit/test_sync_concurrent.cpp
+)
+
+target_compile_definitions(test_sync_concurrent PRIVATE CINUX_HOST_TEST)
+target_include_directories(test_sync_concurrent PRIVATE ${TEST_INCLUDE_DIRS})
+target_link_libraries(test_sync_concurrent PRIVATE -pthread)
+add_test(NAME sync_concurrent COMMAND test_sync_concurrent)
+set_tests_properties(sync_concurrent PROPERTIES LABELS "sync_concurrent")
+
+# ============================================================
 # 测试辅助目标
 # ============================================================
 
 # Host 端单元测试
 add_custom_target(test_host
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_sync_concurrent test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat
     USES_TERMINAL
     COMMENT "Running host unit tests..."
 )
@@ -591,7 +610,7 @@ configure_file(
 
 add_custom_target(test
     COMMAND sh ${CMAKE_BINARY_DIR}/run_all_tests.sh
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat test-image
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_sync_concurrent test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat test-image
     USES_TERMINAL
     COMMENT "Running ALL tests (host then kernel)..."
 )
@@ -599,7 +618,7 @@ add_custom_target(test
 # 详细模式运行 host 测试
 add_custom_target(test_verbose
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose --output-on-failure
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_sync_concurrent test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat
     COMMENT "Running host tests in verbose mode..."
 )
 

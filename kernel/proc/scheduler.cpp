@@ -18,6 +18,8 @@ RoundRobin::RoundRobin()
 }
 
 void RoundRobin::enqueue(Task* task) {
+    auto g = lock_.irq_guard();
+    (void)g;
     if (count_ >= MAX_TASKS) {
         cinux::lib::kprintf("[SCHED] RoundRobin: run queue full\n");
         return;
@@ -29,6 +31,8 @@ void RoundRobin::enqueue(Task* task) {
 }
 
 void RoundRobin::dequeue(Task* task) {
+    auto g = lock_.irq_guard();
+    (void)g;
     for (int i = 0; i < count_; i++) {
         int idx = (head_ + i) % MAX_TASKS;
         if (run_queue_[idx] == task) {
@@ -46,6 +50,8 @@ void RoundRobin::dequeue(Task* task) {
 }
 
 Task* RoundRobin::pick_next() {
+    auto g = lock_.irq_guard();
+    (void)g;
     if (count_ == 0) {
         return nullptr;
     }
@@ -82,8 +88,8 @@ Task* Scheduler::current_ = nullptr;
 RoundRobin Scheduler::default_rr_;
 Task* Scheduler::idle_task_ = nullptr;
 bool Scheduler::initialized_ = false;
-int Scheduler::tick_count_ = 0;
-int Scheduler::current_slice_ = 0;
+std::atomic<int> Scheduler::tick_count_{0};
+std::atomic<int> Scheduler::current_slice_{0};
 
 // ============================================================
 // Scheduler implementation
@@ -99,8 +105,8 @@ void Scheduler::init() {
     class_count_ = 0;
     current_ = nullptr;
     idle_task_ = nullptr;
-    tick_count_ = 0;
-    current_slice_ = 0;
+    tick_count_.store(0, std::memory_order_relaxed);
+    current_slice_.store(0, std::memory_order_relaxed);
     register_class(&default_rr_);
 
     idle_task_ = TaskBuilder()
@@ -189,7 +195,7 @@ void Scheduler::run_first(Task* boot_task) {
     current_ = boot_task;
     g_per_cpu.current = boot_task;
     cinux::arch::GDT::tss_set_rsp0(boot_task->kernel_stack_top);
-    current_slice_ = 0;
+    current_slice_.store(0, std::memory_order_relaxed);
 
     Task* next = default_rr_.pick_next();
     if (next == nullptr) {
@@ -222,11 +228,11 @@ void Scheduler::tick() {
         return;
     }
 
-    tick_count_++;
-    current_slice_++;
+    tick_count_.fetch_add(1, std::memory_order_relaxed);
+    current_slice_.fetch_add(1, std::memory_order_relaxed);
 
-    if (current_slice_ >= DEFAULT_TIME_SLICE) {
-        current_slice_ = 0;
+    if (current_slice_.load(std::memory_order_relaxed) >= DEFAULT_TIME_SLICE) {
+        current_slice_.store(0, std::memory_order_relaxed);
         schedule();
     }
 }
@@ -259,7 +265,7 @@ void Scheduler::schedule() {
 
     current_ = next;
     g_per_cpu.current = next;
-    current_slice_ = 0;
+    current_slice_.store(0, std::memory_order_relaxed);
 
     if (next != idle_task_) {
         cinux::arch::GDT::tss_set_rsp0(next->kernel_stack_top);

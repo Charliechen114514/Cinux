@@ -47,6 +47,11 @@ public:
         return Guard(this);
     }
 
+    /** IRQ-safe RAII guard -- disables interrupts then acquires. */
+    [[nodiscard]] auto irq_guard() {
+        return IrqGuard(this);
+    }
+
 private:
     volatile bool locked_ = false;
 
@@ -65,6 +70,19 @@ private:
 
     private:
         Spinlock* lock_;
+    };
+
+    class IrqGuard {
+    public:
+        explicit IrqGuard(Spinlock* lock);
+        ~IrqGuard();
+
+        IrqGuard(const IrqGuard&) = delete;
+        IrqGuard& operator=(const IrqGuard&) = delete;
+
+    private:
+        Spinlock* lock_;
+        uint64_t saved_flags_;
     };
 };
 
@@ -210,6 +228,30 @@ private:
 
     /** Remove and return the head of the wait queue. */
     Task* dequeue_waiter();
+};
+
+// ============================================================
+// InterruptGuard -- RAII interrupt disable/restore
+// ============================================================
+
+/**
+ * @brief RAII wrapper for interrupt state save/restore
+ *
+ * Saves RFLAGS (including IF) on construction and disables interrupts
+ * (cli).  On destruction, restores the saved RFLAGS via popfq, which
+ * correctly handles nesting -- if interrupts were already disabled when
+ * the guard was created, they remain disabled after destruction.
+ */
+class InterruptGuard {
+public:
+    InterruptGuard();
+    ~InterruptGuard();
+
+    InterruptGuard(const InterruptGuard&) = delete;
+    InterruptGuard& operator=(const InterruptGuard&) = delete;
+
+private:
+    uint64_t saved_flags_;
 };
 
 }  // namespace cinux::proc

@@ -14,6 +14,9 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <thread>
+#include <atomic>
+#include <vector>
 
 // ============================================================
 // Constants (mirrored from heap.cpp)
@@ -854,6 +857,159 @@ TEST("heap: size accounting invariant holds") {
     ASSERT_GE(heap.total(), accounted);
     // But shouldn't lose more than 10% to fragmentation
     ASSERT_GT(heap.free_total(), heap.total() * 9 / 10);
+}
+
+// ============================================================
+// Thread-safe TestHeap wrapper and concurrent tests
+// ============================================================
+
+namespace {
+
+class Spinlock {
+public:
+    Spinlock() = default;
+
+    void acquire() {
+        while (locked_.exchange(true, std::memory_order_acquire)) {
+        }
+    }
+
+    void release() {
+        locked_.store(false, std::memory_order_release);
+    }
+
+    [[nodiscard]] auto guard() {
+        return Guard(this);
+    }
+
+private:
+    std::atomic<bool> locked_{false};
+
+    class Guard {
+    public:
+        explicit Guard(Spinlock* lock) : lock_(lock) {
+            lock_->acquire();
+        }
+        ~Guard() {
+            lock_->release();
+        }
+        Guard(const Guard&) = delete;
+        Guard& operator=(const Guard&) = delete;
+    private:
+        Spinlock* lock_;
+    };
+};
+
+class ThreadSafeTestHeap {
+public:
+    void init(size_t region_size) {
+        heap_.init(region_size);
+    }
+
+    void* alloc(size_t size, size_t align = 16) {
+        auto g = lock_.guard();
+        (void)g;
+        return heap_.alloc(size, align);
+    }
+
+    void free_mem(void* ptr) {
+        auto g = lock_.guard();
+        (void)g;
+        heap_.free_mem(ptr);
+    }
+
+    size_t used() const { return heap_.used(); }
+    size_t total() const { return heap_.total(); }
+    bool validate_free_list() const { return heap_.validate_free_list(); }
+
+private:
+    TestHeap heap_;
+    Spinlock lock_;
+};
+
+}  // anonymous namespace
+
+TEST("heap: concurrent alloc/free with spinlock") {
+    ThreadSafeTestHeap heap;
+    heap.init(256 * PAGE_SIZE);
+
+    constexpr int NUM_THREADS = 4;
+    constexpr int OPS_PER_THREAD = 100;
+    std::atomic<int> errors{0};
+
+    auto worker = [&](int thread_id) {
+        void* ptrs[OPS_PER_THREAD];
+        for (int i = 0; i < OPS_PER_THREAD; i++) {
+            size_t sz = static_cast<size_t>((thread_id * 7 + i * 13) % 200 + 16);
+            ptrs[i] = heap.alloc(sz);
+            if (ptrs[i] == nullptr) {
+                errors.fetch_add(1, std::memory_order_relaxed);
+                continue;
+            }
+            auto* buf = static_cast<uint8_t*>(ptrs[i]);
+            buf[0] = static_cast<uint8_t>(thread_id);
+            buf[sz - 1] = static_cast<uint8_t>(thread_id ^ 0xFF);
+        }
+        for (int i = 0; i < OPS_PER_THREAD; i++) {
+            if (ptrs[i] != nullptr) {
+                heap.free_mem(ptrs[i]);
+            }
+        }
+    };
+
+    std::vector<std::thread> threads;
+    threads.reserve(NUM_THREADS);
+    for (int t = 0; t < NUM_THREADS; t++) {
+        threads.emplace_back(worker, t);
+    }
+    for (auto& th : threads) {
+        th.join();
+    }
+
+    ASSERT_EQ(errors.load(), 0);
+    ASSERT_EQ(heap.used(), 0u);
+    ASSERT_TRUE(heap.validate_free_list());
+}
+
+TEST("heap: concurrent interleaved alloc/free") {
+    ThreadSafeTestHeap heap;
+    heap.init(512 * PAGE_SIZE);
+
+    constexpr int NUM_THREADS = 4;
+    constexpr int CYCLES = 50;
+    std::atomic<int> errors{0};
+
+    auto worker = [&](int) {
+        for (int c = 0; c < CYCLES; c++) {
+            void* a = heap.alloc(32);
+            void* b = heap.alloc(64);
+            void* d = heap.alloc(128);
+            if (a == nullptr || b == nullptr || d == nullptr) {
+                errors.fetch_add(1, std::memory_order_relaxed);
+            }
+            if (b) heap.free_mem(b);
+            if (a) heap.free_mem(a);
+            void* e = heap.alloc(48);
+            if (e == nullptr) {
+                errors.fetch_add(1, std::memory_order_relaxed);
+            }
+            if (d) heap.free_mem(d);
+            if (e) heap.free_mem(e);
+        }
+    };
+
+    std::vector<std::thread> threads;
+    threads.reserve(NUM_THREADS);
+    for (int t = 0; t < NUM_THREADS; t++) {
+        threads.emplace_back(worker, t);
+    }
+    for (auto& th : threads) {
+        th.join();
+    }
+
+    ASSERT_EQ(errors.load(), 0);
+    ASSERT_EQ(heap.used(), 0u);
+    ASSERT_TRUE(heap.validate_free_list());
 }
 
 // ============================================================

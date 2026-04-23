@@ -34,6 +34,7 @@ void run_keyboard_tests();
 void run_pmm_tests();
 void run_vmm_tests();
 void run_heap_tests();
+void run_heap_lock_stress_tests();
 void run_address_space_tests();
 void run_scheduler_tests();
 void run_sync_tests();
@@ -51,6 +52,7 @@ void run_ext2_inode_ops_tests();
 void run_syscall_ext2_tests();
 void run_shell_write_tests();
 void run_cwd_stat_tests();
+void run_sync_concurrent_tests();
 }
 
 static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
@@ -95,6 +97,7 @@ extern "C" void kernel_main() {
     constexpr uint64_t HEAP_INIT_SIZE  = 64 * 1024;  // 64 KB
     cinux::mm::g_heap.init(HEAP_VIRT_BASE, HEAP_INIT_SIZE);
     run_heap_tests();
+    run_heap_lock_stress_tests();
 
     // AddressSpace tests: init kernel PML4 after VMM, then run tests
     cinux::mm::AddressSpace::init_kernel();
@@ -105,6 +108,9 @@ extern "C" void kernel_main() {
 
     // Sync tests (021): uses Scheduler block/unblock, Mutex, Semaphore
     run_sync_tests();
+
+    // Sync concurrent tests (028d): InterruptGuard, IrqSpinlockGuard
+    run_sync_concurrent_tests();
 
     // Usermode tests (022): requires usermode_init() for MSR setup
     cinux::arch::usermode_init();

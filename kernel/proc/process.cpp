@@ -6,6 +6,7 @@
 #include "kernel/proc/process.hpp"
 
 #include <stdint.h>
+#include <atomic>
 #include <stddef.h>
 
 #include "kernel/arch/x86_64/paging_config.hpp"
@@ -23,13 +24,12 @@ namespace cinux::proc {
 
 namespace {
 
-uint64_t next_tid = 1;
+std::atomic<uint64_t> next_tid{1};
 
-uint64_t next_stack_vaddr = 0xFFFF800000100000ULL;
+std::atomic<uint64_t> next_stack_vaddr{0xFFFF800000100000ULL};
 
 uint64_t alloc_stack_vaddr(uint64_t pages) {
-    uint64_t vaddr = next_stack_vaddr;
-    next_stack_vaddr += pages * cinux::arch::PAGE_SIZE;
+    uint64_t vaddr = next_stack_vaddr.fetch_add(pages * cinux::arch::PAGE_SIZE, std::memory_order_relaxed);
     return vaddr;
 }
 
@@ -132,7 +132,7 @@ Task* TaskBuilder::build() {
 
     // Step 7: Fill in the remaining task fields
     task->state            = TaskState::Ready;
-    task->tid              = next_tid++;
+    task->tid              = next_tid.fetch_add(1, std::memory_order_relaxed);
     task->priority         = priority_;
     task->kernel_stack     = stack_virt;
     task->kernel_stack_top = stack_virt + stack_size;

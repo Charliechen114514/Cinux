@@ -199,10 +199,10 @@ void PMM::init(const BootInfo& info) {
 }
 
 // ============================================================
-// PMM::alloc_page / free_page
+// PMM::alloc_page_locked / free_page_locked (no lock)
 // ============================================================
 
-uint64_t PMM::alloc_page() {
+uint64_t PMM::alloc_page_locked() {
     int64_t idx = bm_find_first_free(bitmap_, highest_page_, bitmap_size_);
     if (idx < 0) return 0;
 
@@ -211,7 +211,7 @@ uint64_t PMM::alloc_page() {
     return static_cast<uint64_t>(idx) * PAGE_SIZE;
 }
 
-void PMM::free_page(uint64_t phys) {
+void PMM::free_page_locked(uint64_t phys) {
     if (phys == 0) return;
     uint64_t idx = phys / PAGE_SIZE;
     if (idx >= highest_page_) return;
@@ -222,12 +222,32 @@ void PMM::free_page(uint64_t phys) {
 }
 
 // ============================================================
-// PMM::alloc_pages / free_pages
+// PMM::alloc_page / free_page (public, locked)
+// ============================================================
+
+uint64_t PMM::alloc_page() {
+    auto g = lock_.guard();
+    (void)g;
+    return alloc_page_locked();
+}
+
+void PMM::free_page(uint64_t phys) {
+    auto g = lock_.guard();
+    (void)g;
+    free_page_locked(phys);
+}
+
+// ============================================================
+// PMM::alloc_pages / free_pages (public, locked)
 // ============================================================
 
 uint64_t PMM::alloc_pages(uint64_t count) {
     if (count == 0) return 0;
-    if (count == 1) return alloc_page();
+
+    auto g = lock_.guard();
+    (void)g;
+
+    if (count == 1) return alloc_page_locked();
 
     uint64_t run   = 0;
     uint64_t start = 0;
@@ -252,8 +272,10 @@ uint64_t PMM::alloc_pages(uint64_t count) {
 }
 
 void PMM::free_pages(uint64_t phys, uint64_t count) {
+    auto g = lock_.guard();
+    (void)g;
     for (uint64_t i = 0; i < count; i++) {
-        free_page(phys + i * PAGE_SIZE);
+        free_page_locked(phys + i * PAGE_SIZE);
     }
 }
 

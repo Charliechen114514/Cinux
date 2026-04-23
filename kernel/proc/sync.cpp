@@ -27,6 +27,16 @@ void Spinlock::release() {
     __atomic_clear(&locked_, __ATOMIC_RELEASE);
 }
 
+Spinlock::IrqGuard::IrqGuard(Spinlock* lock) : lock_(lock) {
+    __asm__ volatile("pushfq; popq %0; cli" : "=rm"(saved_flags_));
+    lock_->acquire();
+}
+
+Spinlock::IrqGuard::~IrqGuard() {
+    lock_->release();
+    __asm__ volatile("pushq %0; popfq" : : "rm"(saved_flags_));
+}
+
 // ============================================================
 // Mutex implementation
 // ============================================================
@@ -206,6 +216,18 @@ bool Semaphore::try_wait() {
 
 int64_t Semaphore::count() const {
     return count_;
+}
+
+// ============================================================
+// InterruptGuard implementation
+// ============================================================
+
+InterruptGuard::InterruptGuard() {
+    __asm__ volatile("pushfq; popq %0; cli" : "=rm"(saved_flags_));
+}
+
+InterruptGuard::~InterruptGuard() {
+    __asm__ volatile("pushq %0; popfq" : : "rm"(saved_flags_));
 }
 
 }  // namespace cinux::proc

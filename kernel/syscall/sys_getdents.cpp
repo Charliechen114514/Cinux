@@ -39,22 +39,23 @@ int64_t sys_getdents(uint64_t fd, uint64_t buf_virt, uint64_t count,
     }
 
     auto* name_buf = reinterpret_cast<char*>(buf_virt);
-    int64_t result = file->inode->ops->readdir(
-        file->inode, file->offset, name_buf, count);
+    {
+        auto g = file->offset_lock_.guard();
+        (void)g;
+        int64_t result = file->inode->ops->readdir(
+            file->inode, file->offset, name_buf, count);
 
-    if (result == 1) {
-        // Entry was read successfully -- advance offset and return name length
-        file->offset++;
-        // Find the length of the name (readdir writes a NUL-terminated string)
-        uint64_t len = 0;
-        while (len < count && name_buf[len] != '\0') {
-            ++len;
+        if (result == 1) {
+            file->offset++;
+            uint64_t len = 0;
+            while (len < count && name_buf[len] != '\0') {
+                ++len;
+            }
+            return static_cast<int64_t>(len);
         }
-        return static_cast<int64_t>(len);
-    }
 
-    // result == 0 means end of directory, result == -1 means error
-    return result;
+        return result;
+    }
 }
 
 }  // namespace cinux::syscall
