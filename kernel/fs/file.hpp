@@ -119,6 +119,22 @@ public:
      */
     File* get(int fd) const;
 
+    /**
+     * @brief Force-set a File at a specific descriptor slot
+     *
+     * Replaces whatever is currently at @p fd (if anything) with the
+     * given File pointer.  The caller is responsible for ensuring that
+     * any previous File at this slot has been properly released.
+     *
+     * This is used by sys_pipe and future fd redirection (dup2) to
+     * install a File at a well-known descriptor number (e.g. 0, 1, 2).
+     *
+     * @param fd    Descriptor index (must be in [0, FD_TABLE_SIZE))
+     * @param file  File pointer to install (ownership transferred to FDTable)
+     * @return true on success, false if fd is out of range
+     */
+    bool set(int fd, File* file);
+
 private:
     /// Fixed-size array of File pointers (nullptr = unused slot)
     File* fds_[FD_TABLE_SIZE];

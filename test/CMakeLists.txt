@@ -665,13 +665,105 @@ add_test(NAME window_manager COMMAND test_window_manager)
 set_tests_properties(window_manager PROPERTIES LABELS "window_manager")
 
 # ============================================================
+# 测试可执行文件：test_terminal
+# ============================================================
+# Terminal window: 80x25 char buffer, cursor, write, ANSI sequences,
+# scroll, backspace, tab, clear, on_key.
+# Pure reimplementation with mock Canvas/PSFFont -- no kernel code linked.
+add_executable(test_terminal
+    unit/test_terminal.cpp
+)
+
+target_compile_definitions(test_terminal PRIVATE CINUX_HOST_TEST)
+target_include_directories(test_terminal PRIVATE ${TEST_INCLUDE_DIRS})
+add_test(NAME terminal COMMAND test_terminal)
+set_tests_properties(terminal PROPERTIES LABELS "terminal")
+
+# ============================================================
+# 测试可执行文件：test_pipe
+# ============================================================
+# Pipe ring-buffer IPC: write/read, close semantics, EOF, state queries,
+# wrap-around, PipeReadOps/PipeWriteOps direction restrictions.
+# Links with kernel/ipc/pipe.cpp, kernel/ipc/pipe_ops.cpp,
+# kernel/fs/inode.cpp, and unit/host_spinlock.cpp for Spinlock.
+add_executable(test_pipe
+    unit/test_pipe.cpp
+    unit/host_spinlock.cpp
+    ${CMAKE_SOURCE_DIR}/kernel/ipc/pipe.cpp
+    ${CMAKE_SOURCE_DIR}/kernel/ipc/pipe_ops.cpp
+    ${CMAKE_SOURCE_DIR}/kernel/fs/inode.cpp
+)
+
+target_compile_definitions(test_pipe PRIVATE CINUX_HOST_TEST)
+target_include_directories(test_pipe PRIVATE
+    ${CMAKE_SOURCE_DIR}/test/framework
+    ${CMAKE_SOURCE_DIR}/kernel
+    ${CMAKE_SOURCE_DIR}
+)
+add_test(NAME pipe COMMAND test_pipe)
+set_tests_properties(pipe PROPERTIES LABELS "pipe")
+
+# ============================================================
+# 测试可执行文件：test_sys_pipe
+# ============================================================
+# sys_pipe integration: FDTable::set(), Pipe + InodeOps round-trip,
+# close semantics through FDTable indirection.
+# Links with kernel/fs/file.cpp, kernel/ipc/pipe.cpp, kernel/ipc/pipe_ops.cpp,
+# kernel/fs/inode.cpp, and unit/host_spinlock.cpp.
+add_executable(test_sys_pipe
+    unit/test_sys_pipe.cpp
+    unit/host_spinlock.cpp
+    ${CMAKE_SOURCE_DIR}/kernel/fs/inode.cpp
+    ${CMAKE_SOURCE_DIR}/kernel/fs/file.cpp
+    ${CMAKE_SOURCE_DIR}/kernel/ipc/pipe.cpp
+    ${CMAKE_SOURCE_DIR}/kernel/ipc/pipe_ops.cpp
+)
+
+target_compile_definitions(test_sys_pipe PRIVATE CINUX_HOST_TEST)
+target_include_directories(test_sys_pipe PRIVATE
+    ${CMAKE_SOURCE_DIR}/test/framework
+    ${CMAKE_SOURCE_DIR}/kernel
+    ${CMAKE_SOURCE_DIR}
+)
+add_test(NAME sys_pipe COMMAND test_sys_pipe)
+set_tests_properties(sys_pipe PROPERTIES LABELS "sys_pipe")
+
+# ============================================================
+# 测试可执行文件：test_shell_redirect
+# ============================================================
+# Shell stdin/stdout pipe redirection: FDTable pipe binding,
+# InodeOps read/write through pipes, round-trip data flow,
+# try_read/try_write non-blocking polling.
+# Links with kernel/fs/file.cpp, kernel/fs/inode.cpp,
+# kernel/fs/vfs_mount.cpp, kernel/ipc/pipe.cpp, kernel/ipc/pipe_ops.cpp,
+# and unit/host_spinlock.cpp.
+add_executable(test_shell_redirect
+    unit/test_shell_redirect.cpp
+    unit/host_spinlock.cpp
+    ${CMAKE_SOURCE_DIR}/kernel/fs/inode.cpp
+    ${CMAKE_SOURCE_DIR}/kernel/fs/file.cpp
+    ${CMAKE_SOURCE_DIR}/kernel/fs/vfs_mount.cpp
+    ${CMAKE_SOURCE_DIR}/kernel/ipc/pipe.cpp
+    ${CMAKE_SOURCE_DIR}/kernel/ipc/pipe_ops.cpp
+)
+
+target_compile_definitions(test_shell_redirect PRIVATE CINUX_HOST_TEST)
+target_include_directories(test_shell_redirect PRIVATE
+    ${CMAKE_SOURCE_DIR}/test/framework
+    ${CMAKE_SOURCE_DIR}/kernel
+    ${CMAKE_SOURCE_DIR}
+)
+add_test(NAME shell_redirect COMMAND test_shell_redirect)
+set_tests_properties(shell_redirect PROPERTIES LABELS "shell_redirect")
+
+# ============================================================
 # 测试辅助目标
 # ============================================================
 
 # Host 端单元测试
 add_custom_target(test_host
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_sync_concurrent test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat test_canvas test_mouse test_event_queue test_window test_window_manager
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_sync_concurrent test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat test_canvas test_mouse test_event_queue test_window test_window_manager test_terminal test_pipe test_sys_pipe test_shell_redirect
     USES_TERMINAL
     COMMENT "Running host unit tests..."
 )
@@ -686,7 +778,7 @@ configure_file(
 
 add_custom_target(test_all
     COMMAND sh ${CMAKE_BINARY_DIR}/run_all_tests.sh
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_sync_concurrent test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat test_canvas test_mouse test_event_queue test_window test_window_manager test-image
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_sync_concurrent test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat test_canvas test_mouse test_event_queue test_window test_window_manager test_terminal test_pipe test_sys_pipe test_shell_redirect test-image
     USES_TERMINAL
     COMMENT "Running ALL tests (host then kernel)..."
 )
@@ -694,7 +786,7 @@ add_custom_target(test_all
 # 详细模式运行 host 测试
 add_custom_target(test_verbose
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose --output-on-failure
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_sync_concurrent test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat test_canvas test_mouse test_event_queue test_window test_window_manager
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_sync_concurrent test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat test_canvas test_mouse test_event_queue test_window test_window_manager test_terminal test_pipe test_sys_pipe test_shell_redirect
     COMMENT "Running host tests in verbose mode..."
 )
 

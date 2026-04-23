@@ -237,7 +237,7 @@ void Canvas::draw_text(uint32_t x, uint32_t y, const char* str, uint32_t color,
     }
 }
 
-void Canvas::blit(uint32_t dst_x, uint32_t dst_y, Canvas& src,
+void Canvas::blit(int32_t dst_x, int32_t dst_y, Canvas& src,
                   uint32_t sx, uint32_t sy, uint32_t w, uint32_t h) {
     if (back_buf_ == nullptr || src.back_buf_ == nullptr)
         return;
@@ -247,14 +247,31 @@ void Canvas::blit(uint32_t dst_x, uint32_t dst_y, Canvas& src,
 
     for (uint32_t row = 0; row < h; row++) {
         uint32_t src_row = sy + row;
-        uint32_t dst_row = dst_y + row;
+        int32_t dst_row = dst_y + static_cast<int32_t>(row);
 
-        if (src_row >= src.height_ || dst_row >= height_)
+        // Skip rows that are above or below the destination canvas
+        if (dst_row < 0) {
+            continue;
+        }
+        if (dst_row >= static_cast<int32_t>(height_) || src_row >= src.height_)
             break;
 
-        for (uint32_t col = 0; col < w; col++) {
-            uint32_t src_col = sx + col;
-            uint32_t dst_col = dst_x + col;
+        // Adjust source column start if destination starts before left edge
+        int32_t col_skip = 0;
+        int32_t eff_dst_x = dst_x;
+        uint32_t eff_sx = sx;
+        if (eff_dst_x < 0) {
+            col_skip = -eff_dst_x;
+            eff_dst_x = 0;
+            eff_sx += static_cast<uint32_t>(col_skip);
+        }
+
+        uint32_t dst_col_start = static_cast<uint32_t>(eff_dst_x);
+        uint32_t col_count = w - static_cast<uint32_t>(col_skip);
+
+        for (uint32_t i = 0; i < col_count; i++) {
+            uint32_t src_col = eff_sx + i;
+            uint32_t dst_col = dst_col_start + i;
 
             if (src_col >= src.width_ || dst_col >= width_)
                 break;

@@ -91,6 +91,9 @@ add_library(big_kernel_common OBJECT
     syscall/sys_chdir.cpp
     syscall/sys_getcwd.cpp
     syscall/sys_stat.cpp
+    ipc/pipe.cpp
+    ipc/pipe_ops.cpp
+    syscall/sys_pipe.cpp
 )
 
 target_compile_options(big_kernel_common PUBLIC ${BIG_KERNEL_COMPILE_OPTIONS})
@@ -193,6 +196,10 @@ add_executable(big_kernel_test
     test/test_window.cpp
     test/test_window_manager.cpp
     test/test_gui_integration.cpp
+    test/test_terminal.cpp
+    test/test_pipe.cpp
+    test/test_sys_pipe.cpp
+    test/test_terminal_shell.cpp
 )
 
 target_sources(big_kernel_test PRIVATE $<TARGET_OBJECTS:big_kernel_common>)

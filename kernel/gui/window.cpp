@@ -69,6 +69,9 @@ void Window::draw_title_bar(cinux::drivers::PSFFont& font) {
 void Window::draw_content() {
     // Clear the content area (below the title bar) with the background colour
     canvas_.draw_rect(0, TITLE_BAR_HEIGHT, w_, h_, COLOR_CONTENT_BG);
+
+    // Give subclasses a chance to paint custom content on top
+    on_paint(canvas_);
 }
 
 void Window::blit_to(cinux::drivers::Canvas& dst) {
@@ -76,9 +79,9 @@ void Window::blit_to(cinux::drivers::Canvas& dst) {
         return;
     }
 
-    // Blit the entire window canvas (title bar + content) to the destination
-    dst.blit(static_cast<uint32_t>(x_), static_cast<uint32_t>(y_),
-             canvas_, 0, 0, w_, total_height());
+    // Blit the entire window canvas (title bar + content) to the destination.
+    // Pass signed coordinates so the blit can handle partial off-screen windows.
+    dst.blit(x_, y_, canvas_, 0, 0, w_, total_height());
 }
 
 // ============================================================

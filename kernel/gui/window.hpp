@@ -17,6 +17,7 @@
 #include <stdint.h>
 
 #include "kernel/drivers/canvas.hpp"
+#include "kernel/gui/event.hpp"
 
 namespace cinux::gui {
 
@@ -75,10 +76,34 @@ public:
            uint32_t w = DEFAULT_WIDTH,
            uint32_t h = DEFAULT_HEIGHT);
 
-    ~Window() = default;
+    virtual ~Window() = default;
 
     Window(const Window&) = delete;
     Window& operator=(const Window&) = delete;
+
+    // ============================================================
+    // Virtual event handlers (override in subclasses)
+    // ============================================================
+
+    /**
+     * @brief Handle a keyboard event
+     *
+     * Called by the WindowManager when this window has input focus.
+     * The default implementation does nothing.
+     *
+     * @param ev  The keyboard event
+     */
+    virtual void on_key(KeyEvent& ev) { (void)ev; }
+
+    /**
+     * @brief Handle a paint request
+     *
+     * Called by the WindowManager when this window needs to be redrawn.
+     * The default implementation does nothing.
+     *
+     * @param canvas  The canvas to paint onto
+     */
+    virtual void on_paint(cinux::drivers::Canvas& canvas) { (void)canvas; }
 
     // ============================================================
     // Drawing

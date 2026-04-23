@@ -170,6 +170,10 @@ void Mouse::init() {
 	buttons_	  = 0;
 	prev_buttons_ = 0;
 
+	// Clear any stale events that accumulated between PIC::unmask(12)
+	// (in main.cpp) and this init call (in kernel_init_thread).
+	g_event_queue_.clear();
+
 	kprintf("[MOUSE] PS/2 mouse driver initialised.\n");
 }
 

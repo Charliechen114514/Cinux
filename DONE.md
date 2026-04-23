@@ -560,3 +560,45 @@ constexpr uint64_t BIG_KERNEL_LOAD_ADDR  = 0x1000000;   // 16MB
 - ☑ Host 单元测试 `test_event_queue.cpp`：验证 enqueue/dequeue 环形缓冲、满/空边界
 - ☑ Host 单元测试 `test_window_manager.cpp`：mock Canvas，验证 create/destroy/raise Z-order、composite blit 区域
 - ☑ QEMU 内核测试：GUI 模式下创建 3 个窗口，鼠标拖动验证位置更新，点击关闭按钮验证 destroy；CLI 模式下测试行为不变
+
+---
+
+### `031_gui_native_app`
+**效果**：GUI 模式下屏幕出现可交互的终端模拟器窗口，shell 在其中运行；CLI 模式下行为不变
+
+- ☑ **Phase 1**: Pipe 内核基础设施 — `kernel/ipc/pipe.hpp/cpp`, `kernel/ipc/pipe_ops.hpp/cpp`（4KB 环形缓冲区 + VFS InodeOps 适配）
+  - ☑ Pipe 类：ring buffer write/read, close, spin-wait 阻塞
+  - ☑ PipeReadOps / PipeWriteOps：VFS 适配，分读写方向
+  - ☑ Host 单元测试 `test/unit/test_pipe.cpp`（26 项）
+  - ☑ Kernel 测试 `kernel/test/test_pipe.cpp`（15 项）
+- ☑ **Phase 2**: sys_pipe 系统调用 + fd table 集成
+  - ☑ 新增 `sys_pipe` syscall，创建 pipe 并返回 fd 对
+  - ☑ FDTable 扩展：支持手动设置 slot 0/1（`set()` 方法）
+  - ☑ sys_read/sys_write 通过 InodeOps 自然支持 pipe fd
+  - ☑ Host 单元测试 `test/unit/test_sys_pipe.cpp`
+  - ☑ Kernel 测试 `kernel/test/test_sys_pipe.cpp`
+- ☑ **Phase 3**: Window 虚函数化 + WM 键盘路由
+  - ☑ Window 基类添加 `virtual on_key(KeyEvent&)` / `virtual on_paint(Canvas&)`
+  - ☑ WindowManager::handle_key() 转发到 focused window
+  - ☑ 现有测试零回归（vptr 兼容性验证）
+  - ☑ Host/Kernel 测试补充
+- ☑ **Phase 4**: Terminal 窗口（字符缓冲 + 渲染 + 光标）
+  - ☑ `user/programs/terminal/terminal.hpp/cpp`：Terminal 继承 Window
+  - ☑ 80x25 screen_ 字符缓冲 + cursor 管理 + fg/bg 颜色
+  - ☑ on_paint() 遍历 screen_ 调 canvas_->draw_text()，光标反色块
+  - ☑ write() 处理控制字符（换行、退格、滚动）
+  - ☑ Host 单元测试 `test/unit/test_terminal.cpp`
+  - ☑ Kernel 测试 `kernel/test/test_terminal.cpp`
+- ☑ **Phase 5**: Terminal-Shell 集成（Pipe 连接 + init 修改）
+  - ☑ kernel_init_thread GUI 模式：创建 Terminal + pipe 对
+  - ☑ shell stdin/stdout 重定向到 pipe 端点
+  - ☑ Terminal::on_key 写入 pipe（shell stdin）
+  - ☑ Terminal::write 从 pipe 读取（shell stdout）
+  - ☑ `#ifdef CINUX_GUI` 双模式路径
+  - ☑ Host 单元测试 `test/unit/test_shell_redirect.cpp`
+  - ☑ Kernel 测试 `kernel/test/test_terminal_shell.cpp`
+- ☑ **Phase 6**: 关闭按钮 + 标题栏 + 端到端验收
+  - ☑ 标题栏 "Cinux Terminal"，关闭按钮退出 shell
+  - ☑ EOF 传播：关闭 pipe 通知 shell 退出
+  - ☑ CLI 模式行为不变
+  - ☑ 端到端内核测试

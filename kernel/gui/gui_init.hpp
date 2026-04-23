@@ -33,13 +33,17 @@ namespace cinux::gui {
  */
 void gui_init(cinux::drivers::Canvas& screen, cinux::drivers::PSFFont& font);
 
+class Terminal;
+
 /**
  * @brief Register the GUI tick callback on the PIT (call from kernel_init_thread)
  *
  * After calling this, every PIT tick will drain the event queue,
  * dispatch input to the window manager, and composite the frame.
- * Also creates three test windows for verification.
+ * Also creates a Terminal window for shell integration.
+ *
+ * @return Pointer to the created Terminal window (owned by WindowManager)
  */
-void gui_start();
+Terminal* gui_start();
 
 }  // namespace cinux::gui

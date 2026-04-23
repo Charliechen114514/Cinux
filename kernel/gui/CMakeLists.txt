@@ -25,3 +25,8 @@ target_sources(big_kernel_common PRIVATE
 target_sources(big_kernel_common PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/gui_init.cpp
 )
+
+# Terminal window (80x25 character buffer, cursor, ANSI sequences)
+target_sources(big_kernel_common PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/terminal.cpp
+)

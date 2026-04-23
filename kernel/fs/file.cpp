@@ -75,4 +75,19 @@ File* FDTable::get(int fd) const {
     return fds_[fd];
 }
 
+// ============================================================
+// Set
+// ============================================================
+
+bool FDTable::set(int fd, File* file) {
+    auto g = lock_.guard();
+    (void)g;
+
+    if (fd < 0 || fd >= static_cast<int>(FD_TABLE_SIZE)) {
+        return false;
+    }
+    fds_[fd] = file;
+    return true;
+}
+
 }  // namespace cinux::fs

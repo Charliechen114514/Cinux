@@ -58,6 +58,10 @@ void run_mouse_event_tests();
 void run_window_tests();
 void run_window_manager_tests();
 void run_gui_integration_tests();
+void run_terminal_tests();
+void run_pipe_tests();
+void run_sys_pipe_tests();
+void run_terminal_shell_tests();
 }
 
 static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
@@ -104,6 +108,13 @@ extern "C" void kernel_main() {
     run_heap_tests();
     run_heap_lock_stress_tests();
 
+    // Pipe tests (031 Phase 1): ring-buffer IPC, close semantics, PipeOps
+    run_pipe_tests();
+
+    // Sys pipe tests (031 Phase 2): FDTable::set(), Pipe+InodeOps integration,
+    // sys_pipe address validation
+    run_sys_pipe_tests();
+
     // Canvas tests (029): GUI double-buffered rendering (uses Framebuffer + PSFFont + Heap)
     run_canvas_tests();
 
@@ -119,6 +130,13 @@ extern "C" void kernel_main() {
     // GUI integration tests (030D): gui_init wiring, keyboard dual-path,
     // PIT tick callback, mouse event flow through EventQueue -> WM
     run_gui_integration_tests();
+
+    // Terminal tests (031): character buffer, cursor, write, ANSI, scroll
+    run_terminal_tests();
+
+    // Terminal-Shell integration tests (Phase 5): pipe redirection,
+    // on_key -> stdin pipe, stdout pipe -> poll_output, fd binding
+    run_terminal_shell_tests();
 
     // AddressSpace tests: init kernel PML4 after VMM, then run tests
     cinux::mm::AddressSpace::init_kernel();

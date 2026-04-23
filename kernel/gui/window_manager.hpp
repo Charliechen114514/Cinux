@@ -116,6 +116,17 @@ public:
     uint32_t create(const char* title, uint32_t w, uint32_t h);
 
     /**
+     * @brief Add a pre-allocated window to the top of Z-order
+     *
+     * Takes ownership of the window pointer.  The window is drawn
+     * (title bar + content) immediately and given input focus.
+     *
+     * @param win  Heap-allocated window (ownership transferred to WM)
+     * @return     ID of the added window, or 0 on failure (max reached)
+     */
+    uint32_t add_window(Window* win);
+
+    /**
      * @brief Destroy a window by its ID
      *
      * Removes the window from the internal array, shifting subsequent

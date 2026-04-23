@@ -76,15 +76,29 @@ public:
         }
     }
 
-    void blit(uint32_t dst_x, uint32_t dst_y, MockCanvas& src,
+    void blit(int32_t dst_x, int32_t dst_y, MockCanvas& src,
               uint32_t sx, uint32_t sy, uint32_t w, uint32_t h) {
         for (uint32_t row = 0; row < h; row++) {
             uint32_t src_row = sy + row;
-            uint32_t dst_row = dst_y + row;
-            if (src_row >= src.height_ || dst_row >= height_) break;
-            for (uint32_t col = 0; col < w; col++) {
-                uint32_t src_col = sx + col;
-                uint32_t dst_col = dst_x + col;
+            int32_t dst_row = dst_y + static_cast<int32_t>(row);
+            if (dst_row < 0) continue;
+            if (src_row >= src.height_ || dst_row >= static_cast<int32_t>(height_)) break;
+
+            int32_t col_skip = 0;
+            int32_t eff_dst_x = dst_x;
+            uint32_t eff_sx = sx;
+            if (eff_dst_x < 0) {
+                col_skip = -eff_dst_x;
+                eff_dst_x = 0;
+                eff_sx += static_cast<uint32_t>(col_skip);
+            }
+
+            uint32_t dst_col_start = static_cast<uint32_t>(eff_dst_x);
+            uint32_t col_count = w - static_cast<uint32_t>(col_skip);
+
+            for (uint32_t i = 0; i < col_count; i++) {
+                uint32_t src_col = eff_sx + i;
+                uint32_t dst_col = dst_col_start + i;
                 if (src_col >= src.width_ || dst_col >= width_) break;
                 back_buf_[dst_row * width_ + dst_col] =
                     src.back_buf_[src_row * src.width_ + src_col];
@@ -138,6 +152,46 @@ private:
 };
 
 // ============================================================
+// Re-implemented Event types (mirrors kernel/gui/event.hpp)
+// ============================================================
+
+enum class MockEventType : uint8_t {
+    MouseMove = 0,
+    MouseDown,
+    MouseUp,
+    KeyDown,
+    KeyUp,
+};
+
+struct MockMouseEvent {
+    int32_t  x;
+    int32_t  y;
+    int32_t  dx;
+    int32_t  dy;
+    uint8_t  buttons;
+    bool     left;
+    bool     right;
+    bool     middle;
+};
+
+struct MockKeyEvent {
+    char    ascii;
+    uint8_t scancode;
+    bool    pressed;
+    bool    shift;
+    bool    ctrl;
+    bool    alt;
+};
+
+struct MockEvent {
+    MockEventType type_;
+    union {
+        MockMouseEvent mouse;
+        MockKeyEvent   key;
+    };
+};
+
+// ============================================================
 // Re-implemented Window (mirrors kernel/gui/window.hpp/.cpp logic)
 // ============================================================
 
@@ -174,7 +228,10 @@ public:
         allocate_canvas();
     }
 
-    ~MockWindow() = default;
+    virtual ~MockWindow() = default;
+
+    virtual void on_key(MockKeyEvent& ev) { (void)ev; }
+    virtual void on_paint(MockCanvas& canvas) { (void)canvas; }
 
     void draw_title_bar(MockPSFFont& font) {
         canvas_.draw_rect(0, 0, w_, TITLE_BAR_HEIGHT, COLOR_TITLE_BG);
@@ -193,8 +250,7 @@ public:
 
     void blit_to(MockCanvas& dst) {
         if (!visible_) return;
-        dst.blit(static_cast<uint32_t>(x_), static_cast<uint32_t>(y_),
-                 canvas_, 0, 0, w_, total_height());
+        dst.blit(x_, y_, canvas_, 0, 0, w_, total_height());
     }
 
     void set_position(int32_t x, int32_t y) { x_ = x; y_ = y; }
@@ -259,46 +315,6 @@ private:
 };
 
 uint32_t MockWindow::next_id_ = 1;
-
-// ============================================================
-// Re-implemented Event types (mirrors kernel/gui/event.hpp)
-// ============================================================
-
-enum class MockEventType : uint8_t {
-    MouseMove = 0,
-    MouseDown,
-    MouseUp,
-    KeyDown,
-    KeyUp,
-};
-
-struct MockMouseEvent {
-    int32_t  x;
-    int32_t  y;
-    int32_t  dx;
-    int32_t  dy;
-    uint8_t  buttons;
-    bool     left;
-    bool     right;
-    bool     middle;
-};
-
-struct MockKeyEvent {
-    char    ascii;
-    uint8_t scancode;
-    bool    pressed;
-    bool    shift;
-    bool    ctrl;
-    bool    alt;
-};
-
-struct MockEvent {
-    MockEventType type_;
-    union {
-        MockMouseEvent mouse;
-        MockKeyEvent   key;
-    };
-};
 
 // ============================================================
 // Re-implemented WindowManager (mirrors kernel/gui/window_manager.hpp/.cpp)
@@ -448,7 +464,9 @@ public:
     }
 
     void handle_key(MockEvent& ev) {
-        (void)ev;
+        if (focused_ != nullptr) {
+            focused_->on_key(ev.key);
+        }
     }
 
     uint32_t window_count() const { return count_; }
@@ -1216,6 +1234,83 @@ TEST("wm: handle_key does not crash") {
 
     // Should not crash, no observable state change
     ASSERT_EQ(wm.window_count(), 1u);
+}
+
+// ============================================================
+// Virtual dispatch tests: on_key / on_paint
+// ============================================================
+
+// Subclass that tracks on_key calls via a static flag
+class KeyTrackingWindow : public MockWindow {
+public:
+    static int call_count;
+    static char last_ascii;
+
+    KeyTrackingWindow(const char* title = "Track",
+                      int32_t x = 0, int32_t y = 0,
+                      uint32_t w = 100, uint32_t h = 50)
+        : MockWindow(title, x, y, w, h) {}
+
+    void on_key(MockKeyEvent& ev) override {
+        call_count++;
+        last_ascii = ev.ascii;
+    }
+
+    static void reset() {
+        call_count = 0;
+        last_ascii = 0;
+    }
+};
+
+int KeyTrackingWindow::call_count = 0;
+char KeyTrackingWindow::last_ascii = 0;
+
+// Verify virtual on_key dispatches correctly through base pointer
+TEST("wm: virtual on_key dispatches through base pointer") {
+    KeyTrackingWindow::reset();
+    KeyTrackingWindow w;
+    MockWindow* base = &w;
+
+    MockKeyEvent ev{};
+    ev.ascii = 'Z';
+    ev.pressed = true;
+
+    base->on_key(ev);
+
+    ASSERT_EQ(KeyTrackingWindow::call_count, 1);
+    ASSERT_EQ(KeyTrackingWindow::last_ascii, 'Z');
+}
+
+// Verify default MockWindow on_key does not crash (base class default impl)
+TEST("wm: default window on_key does not crash") {
+    MockWindow w;
+    MockKeyEvent ev{};
+    ev.ascii = 'X';
+    ev.scancode = 0x2D;
+    ev.pressed = true;
+
+    // Default implementation should be a no-op
+    w.on_key(ev);
+    ASSERT_TRUE(true);
+}
+
+// Verify handle_key with no focused window does not crash
+TEST("wm: handle_key with no focused window does not crash") {
+    MockCanvas screen;
+    screen.init(800, 600);
+
+    MockWindowManager wm;
+    init_wm(wm, &screen, nullptr);
+    // No windows created, so focused_ is nullptr
+
+    MockEvent ev;
+    ev.type_ = MockEventType::KeyDown;
+    ev.key.ascii = 'a';
+    ev.key.pressed = true;
+
+    wm.handle_key(ev);
+    // Should not crash
+    ASSERT_EQ(wm.window_count(), 0u);
 }
 
 // ============================================================

@@ -146,17 +146,20 @@ public:
      *
      * Copies a sub-region of the source canvas to a position on this canvas.
      * Both source and destination coordinates are clamped to their respective
-     * canvas bounds.
+     * canvas bounds.  Destination coordinates are signed to support windows
+     * that are partially off-screen (dragged above or to the left).
      *
-     * @param dst_x  Destination X coordinate on this canvas
-     * @param dst_y  Destination Y coordinate on this canvas
+     * @param dst_x  Destination X coordinate on this canvas (signed for
+     *               partial off-screen blitting)
+     * @param dst_y  Destination Y coordinate on this canvas (signed for
+     *               partial off-screen blitting)
      * @param src    Source canvas to copy from
      * @param sx     Source region left edge
      * @param sy     Source region top edge
      * @param w      Width of the region to copy
      * @param h      Height of the region to copy
      */
-    void blit(uint32_t dst_x, uint32_t dst_y, Canvas& src,
+    void blit(int32_t dst_x, int32_t dst_y, Canvas& src,
               uint32_t sx, uint32_t sy, uint32_t w, uint32_t h);
 
     uint32_t width() const { return width_; }
