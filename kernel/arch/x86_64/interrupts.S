@@ -52,11 +52,25 @@
     pushq %r14                        # %r14→(%rsp): save R14
     pushq %r15                        # %r15→(%rsp): save R15
 
-    /* Pass InterruptFrame* as first argument */
-    movq %rsp, %rdi                   # %rsp→%rdi: pass stack pointer as first argument
+    /*
+     * Stack alignment padding.
+     *
+     * The CPU pushes 5 qwords (SS, RSP, RFLAGS, CS, RIP = 40 bytes)
+     * before entering the ISR.  We push 17 qwords above (1 dummy error
+     * code + 15 GPRs + 1 padding = 136 bytes).  Total: 176 bytes,
+     * which is a multiple of 16.  The subsequent 'call' pushes 8 bytes,
+     * giving the C handler the standard ABI entry alignment of RSP % 16 == 8.
+     */
+    pushq $0                          # alignment padding (8 bytes)
+
+    /* Pass InterruptFrame* as first argument (skip alignment padding) */
+    leaq 8(%rsp), %rdi                # (RSP+8)→%rdi: point past padding to r15
 
     /* Call the C handler function */
     call \handler                     # call the corresponding C exception handler
+
+    /* Remove alignment padding */
+    addq $8, %rsp                     # $8→%rsp: skip alignment padding
 
     /* Restore all general-purpose registers */
     popq %r15                         # (%rsp)→%r15: restore R15
@@ -109,11 +123,25 @@
     pushq %r14                        # %r14→(%rsp): save R14
     pushq %r15                        # %r15→(%rsp): save R15
 
-    /* Pass InterruptFrame* as first argument */
-    movq %rsp, %rdi                   # %rsp→%rdi: pass stack pointer as first argument
+    /*
+     * Stack alignment padding.
+     *
+     * For error-code exceptions the CPU pushes 6 qwords
+     * (SS, RSP, RFLAGS, CS, RIP, error = 48 bytes) before entering
+     * the ISR.  We push 15 GPRs + 1 padding = 16 qwords (128 bytes).
+     * Total: 176 bytes, a multiple of 16.  The 'call' then gives the
+     * C handler the standard ABI entry alignment of RSP % 16 == 8.
+     */
+    pushq $0                          # alignment padding (8 bytes)
+
+    /* Pass InterruptFrame* as first argument (skip alignment padding) */
+    leaq 8(%rsp), %rdi                # (RSP+8)→%rdi: point past padding to r15
 
     /* Call the C handler function */
     call \handler                     # call the corresponding C exception handler
+
+    /* Remove alignment padding */
+    addq $8, %rsp                     # $8→%rsp: skip alignment padding
 
     /* Restore all general-purpose registers */
     popq %r15                         # (%rsp)→%r15: restore R15
@@ -187,7 +215,7 @@ ISR_NOERRCODE irq8_stub,  irq_default_handler   /* IRQ8(0x28):  RTC */
 ISR_NOERRCODE irq9_stub,  irq_default_handler   /* IRQ9(0x29):  Free */
 ISR_NOERRCODE irq10_stub, irq_default_handler   /* IRQ10(0x2A): Free */
 ISR_NOERRCODE irq11_stub, irq_default_handler   /* IRQ11(0x2B): Free */
-ISR_NOERRCODE irq12_stub, irq_default_handler   /* IRQ12(0x2C): PS/2 Mouse */
+ISR_NOERRCODE irq12_stub, mouse_irq12_handler   /* IRQ12(0x2C): PS/2 Mouse */
 ISR_NOERRCODE irq13_stub, irq_default_handler   /* IRQ13(0x2D): FPU */
 ISR_NOERRCODE irq14_stub, irq_default_handler   /* IRQ14(0x2E): Primary ATA */
 ISR_NOERRCODE irq15_stub, irq_default_handler   /* IRQ15(0x2F): Secondary ATA */

@@ -17,36 +17,6 @@
 > - **CLI 模式**（`OFF`）：仅保留 Framebuffer + Console（纯文字输出），不编译鼠标/WM/双缓冲代码，镜像更精简。
 > - 两种模式共享 Framebuffer 驱动和 PSF2 字体渲染；CLI 模式下 Console 直接写 front buffer（无双缓冲开销）。
 
-### `030_gui_wm_basic`
-**效果**：GUI 模式下可拖动窗口，Z-order 正确；CLI 模式下行为不变
-
-**PS/2 鼠标驱动**
-- ☐ `kernel/drivers/mouse.hpp`：`class Mouse { x_, y_, buttons_; }`；`init()`（8042 CMD `0xA8` 启用鼠标、`0x20` 读配置→bit1 置1→`0x60` 写回、CMD `0xD4` 发 `0xF4` 给鼠标激活）、IRQ12 handler 解析 3 字节包（byte0=buttons, byte1=dx, byte2=dy），`poll(MouseEvent& out)` 获取事件
-- ☐ `MouseEvent {dx, dy, buttons, left, right, middle}`；驱动内部维护 `mouse_x_/y_`，clamp 到屏幕范围
-- ☐ CLI 模式兼容：鼠标驱动不参与编译，IRQ12 不注册
-
-**Window 与事件体系**
-- ☐ `kernel/gui/window.hpp`：`class Window {x_,y_,w_,h_,title_[64],*canvas_,visible_,focused_,id_}`；`draw_title_bar()`、`draw_content()`
-- ☐ `kernel/gui/event.hpp`：`enum class EventType {MouseMove, MouseDown, MouseUp, KeyDown, KeyUp}`；`struct Event { type_, union{MouseEvent,KeyEvent} }`；环形事件队列 `EventQueue {buf_[128], head_, tail_}`
-- ☐ `kernel/gui/window_manager.hpp`：`class WindowManager { windows_[64], count_, *focused_, mouse_x_, mouse_y_ }`；`create(title,w,h)`、`destroy(id)`、`raise(id)`、`composite()`、`handle_mouse(Event&)`、`handle_key(Event&)`
-
-**合成与交互**
-- ☐ `composite()`：从低 Z-order 到高，依次 blit 各 window canvas 到屏幕 Canvas back_buf，最后 `flip()`
-- ☐ 拖动：`handle_mouse` 检测 left button 按下+移动，更新 focused window 的 x/y，每帧 `composite()` 刷新
-- ☐ 标题栏：蓝色背景 + 白色标题文字 + 关闭按钮（红色小方块），点击关闭按钮调用 `destroy()`
-
-**kernel_main 集成**
-- ☐ `#ifdef CINUX_GUI`：GUI 模式下 `kernel_init_thread` 启动 WM 初始化（`WindowManager::init(canvas)`）；PIT tick 中调 `composite()`
-- ☐ 键盘事件双路分发：GUI 模式下键盘 IRQ 同时写入 EventQueue（供 WM）和 key_queue（供 CLI fallback）
-
-**测试**
-- ☐ Host 单元测试 `test_mouse.cpp`：mock 8042 I/O，验证 3 字节包解析（dx/dy/buttons 正确）
-- ☐ Host 单元测试 `test_event_queue.cpp`：验证 enqueue/dequeue 环形缓冲、满/空边界
-- ☐ Host 单元测试 `test_window_manager.cpp`：mock Canvas，验证 create/destroy/raise Z-order、composite blit 区域
-- ☐ QEMU 内核测试：GUI 模式下创建 3 个窗口，鼠标拖动验证位置更新，点击关闭按钮验证 destroy；CLI 模式下测试行为不变
-
----
-
 ### `031_gui_native_app`
 **效果**：GUI 模式下屏幕出现可交互的终端模拟器窗口，shell 在其中运行；CLI 模式下行为不变
 

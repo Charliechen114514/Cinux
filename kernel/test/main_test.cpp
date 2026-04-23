@@ -54,6 +54,10 @@ void run_shell_write_tests();
 void run_cwd_stat_tests();
 void run_sync_concurrent_tests();
 void run_canvas_tests();
+void run_mouse_event_tests();
+void run_window_tests();
+void run_window_manager_tests();
+void run_gui_integration_tests();
 }
 
 static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
@@ -102,6 +106,19 @@ extern "C" void kernel_main() {
 
     // Canvas tests (029): GUI double-buffered rendering (uses Framebuffer + PSFFont + Heap)
     run_canvas_tests();
+
+    // Mouse & Event tests (030): EventQueue, MouseEvent/KeyEvent structs, button parsing
+    run_mouse_event_tests();
+
+    // Window tests (030): Window class construction, drawing, hit testing, blit
+    run_window_tests();
+
+    // WindowManager tests (030): init, create, destroy, raise, composite, drag
+    run_window_manager_tests();
+
+    // GUI integration tests (030D): gui_init wiring, keyboard dual-path,
+    // PIT tick callback, mouse event flow through EventQueue -> WM
+    run_gui_integration_tests();
 
     // AddressSpace tests: init kernel PML4 after VMM, then run tests
     cinux::mm::AddressSpace::init_kernel();

@@ -604,13 +604,74 @@ add_test(NAME canvas COMMAND test_canvas)
 set_tests_properties(canvas PROPERTIES LABELS "canvas")
 
 # ============================================================
+# 测试可执行文件：test_mouse
+# ============================================================
+# PS/2 mouse driver: init command sequence, 3-byte packet parsing,
+# 9-bit signed dx/dy, button edge detection, cursor clamping.
+# Pure reimplementation with mock I/O -- no kernel code linked.
+add_executable(test_mouse
+    unit/test_mouse.cpp
+)
+
+target_compile_definitions(test_mouse PRIVATE CINUX_HOST_TEST)
+target_include_directories(test_mouse PRIVATE ${TEST_INCLUDE_DIRS})
+add_test(NAME mouse COMMAND test_mouse)
+set_tests_properties(mouse PROPERTIES LABELS "mouse")
+
+# ============================================================
+# 测试可执行文件：test_event_queue
+# ============================================================
+# GUI EventQueue ring buffer: enqueue/dequeue, full/empty, wrap-around,
+# clear, mixed event types, FIFO ordering.
+# Pure reimplementation -- no kernel code linked.
+add_executable(test_event_queue
+    unit/test_event_queue.cpp
+)
+
+target_compile_definitions(test_event_queue PRIVATE CINUX_HOST_TEST)
+target_include_directories(test_event_queue PRIVATE ${TEST_INCLUDE_DIRS})
+add_test(NAME event_queue COMMAND test_event_queue)
+set_tests_properties(event_queue PROPERTIES LABELS "event_queue")
+
+# ============================================================
+# 测试可执行文件：test_window
+# ============================================================
+# Window class: construction, id auto-increment, title bar drawing,
+# content drawing, close button hit testing, contains, set_position,
+# resize, set_title, blit_to, canvas allocation.
+# Pure reimplementation with mock Canvas/PSFFont -- no kernel code linked.
+add_executable(test_window
+    unit/test_window.cpp
+)
+
+target_compile_definitions(test_window PRIVATE CINUX_HOST_TEST)
+target_include_directories(test_window PRIVATE ${TEST_INCLUDE_DIRS})
+add_test(NAME window COMMAND test_window)
+set_tests_properties(window PROPERTIES LABELS "window")
+
+# ============================================================
+# 测试可执行文件：test_window_manager
+# ============================================================
+# WindowManager: init, create, destroy, raise, composite, handle_mouse,
+# handle_key, Z-ordering, drag support.
+# Pure reimplementation with mock Canvas/PSFFont -- no kernel code linked.
+add_executable(test_window_manager
+    unit/test_window_manager.cpp
+)
+
+target_compile_definitions(test_window_manager PRIVATE CINUX_HOST_TEST)
+target_include_directories(test_window_manager PRIVATE ${TEST_INCLUDE_DIRS})
+add_test(NAME window_manager COMMAND test_window_manager)
+set_tests_properties(window_manager PROPERTIES LABELS "window_manager")
+
+# ============================================================
 # 测试辅助目标
 # ============================================================
 
 # Host 端单元测试
 add_custom_target(test_host
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_sync_concurrent test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat test_canvas
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_sync_concurrent test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat test_canvas test_mouse test_event_queue test_window test_window_manager
     USES_TERMINAL
     COMMENT "Running host unit tests..."
 )
@@ -625,7 +686,7 @@ configure_file(
 
 add_custom_target(test_all
     COMMAND sh ${CMAKE_BINARY_DIR}/run_all_tests.sh
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_sync_concurrent test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat test_canvas test-image
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_sync_concurrent test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat test_canvas test_mouse test_event_queue test_window test_window_manager test-image
     USES_TERMINAL
     COMMENT "Running ALL tests (host then kernel)..."
 )
@@ -633,7 +694,7 @@ add_custom_target(test_all
 # 详细模式运行 host 测试
 add_custom_target(test_verbose
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose --output-on-failure
-    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_sync_concurrent test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat test_canvas
+    DEPENDS test_smoke test_kprintf_format test_gdt_idt test_ata test_elf_loader test_big_kernel_loader test_kprintf test_pic test_pit test_font test_console test_framebuffer test_keyboard test_pmm test_vmm test_heap test_address_space test_scheduler test_sync test_sync_concurrent test_usermode test_syscall test_shell test_ahci test_ramdisk test_fd_table test_vfs_mount test_ext2 test_ahci_write test_ext2_allocator test_ext2_ops test_ext2_inode_ops test_syscall_ext2 test_shell_write test_cwd_stat test_canvas test_mouse test_event_queue test_window test_window_manager
     COMMENT "Running host tests in verbose mode..."
 )
 

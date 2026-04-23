@@ -74,6 +74,20 @@ int __cxa_atexit(void (*)(void*), void*, void*) {
 }
 
 // ============================================================
+// DSO Handle (required by global destructor registration)
+// ============================================================
+
+/**
+ * @brief DSO handle for global destructor atexit registration
+ *
+ * The compiler generates __dso_handle references when global objects
+ * with destructors are registered via __cxa_atexit in .init_array.
+ * In a freestanding kernel there is no dynamic loading, so a null
+ * pointer suffices.
+ */
+void* __dso_handle = nullptr;
+
+// ============================================================
 // Guard Variables for Function-Local Statics
 // ============================================================
 

@@ -12,6 +12,7 @@ set(QEMU_COMMON_FLAGS
     -debugcon file:debug.log
     -global isa-debugcon.iobase=0xe9
     -accel kvm -cpu max
+    -usb -device usb-tablet
 )
 
 set(QEMU_DEVELOP_FLAG     

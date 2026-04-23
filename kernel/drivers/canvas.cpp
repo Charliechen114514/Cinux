@@ -65,6 +65,26 @@ void Canvas::init(Framebuffer& fb) {
     memfill32(back_buf_, 0, total_pixels);
 }
 
+void Canvas::init(uint32_t w, uint32_t h) {
+    // Free any previously allocated back buffer
+    if (back_buf_ != nullptr) {
+        delete[] back_buf_;
+        back_buf_ = nullptr;
+    }
+
+    front_buf_ = nullptr;
+    width_     = w;
+    height_    = h;
+    pitch_     = w * 4;  // 4 bytes per pixel, no alignment padding
+
+    // Allocate back buffer
+    uint32_t total_pixels = width_ * height_;
+    back_buf_ = new uint32_t[total_pixels];
+
+    // Clear to black
+    memfill32(back_buf_, 0, total_pixels);
+}
+
 void Canvas::draw_pixel(uint32_t x, uint32_t y, uint32_t color) {
     if (x >= width_ || y >= height_)
         return;

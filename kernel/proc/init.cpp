@@ -8,6 +8,10 @@
 #include "kernel/proc/scheduler.hpp"
 #include "kernel/proc/sync.hpp"
 
+#ifdef CINUX_GUI
+#include "kernel/gui/gui_init.hpp"
+#endif
+
 namespace cinux::proc {
 
 void kernel_init_thread() {
@@ -25,6 +29,11 @@ void kernel_init_thread() {
     cinux::fs::vfs_mount_init();
     cinux::fs::vfs_mount_add("/", &ext2);
     cinux::lib::kprintf("[VFS] ext2 mounted at /\n");
+
+#ifdef CINUX_GUI
+    // Start the GUI: mouse init, test windows, PIT tick callback
+    cinux::gui::gui_start();
+#endif
 
     cinux::lib::kprintf("[INIT] ===== Milestone 023: Syscall from Ring 3 =====\n");
     cinux::arch::launch_first_user();

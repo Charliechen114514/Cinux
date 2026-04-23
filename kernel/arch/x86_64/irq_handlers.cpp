@@ -96,6 +96,21 @@ void irq_default_handler(InterruptFrame* /*frame*/) {
 	PIC::send_eoi(0);
 }
 
+#ifndef CINUX_GUI
+/**
+ * @brief Default IRQ12 handler when GUI mode is disabled
+ *
+ * In non-GUI builds the mouse driver is not compiled, so we provide
+ * a stub that simply acknowledges the interrupt.  In GUI builds the
+ * real implementation lives in mouse.cpp and overrides this weak alias.
+ *
+ * @param frame  Interrupt stack frame (unused)
+ */
+void mouse_irq12_handler(InterruptFrame* /*frame*/) {
+	PIC::send_eoi(12);
+}
+#endif
+
 }  // extern "C"
 
 // ============================================================

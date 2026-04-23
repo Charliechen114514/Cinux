@@ -15,6 +15,11 @@
 #include "kernel/lib/kprintf.hpp"
 #include "kernel/proc/sync.hpp"
 
+#ifdef CINUX_GUI
+#include "kernel/drivers/mouse.hpp"
+#include "kernel/gui/event.hpp"
+#endif
+
 using cinux::arch::PIC;
 using cinux::io::io_inb;
 using cinux::io::io_outb;
@@ -267,6 +272,22 @@ void Keyboard::irq1_handler(cinux::arch::InterruptFrame* /*frame*/) {
 
     // Enqueue the event
     enqueue(ev);
+
+#ifdef CINUX_GUI
+    // Dual dispatch: also push into the GUI EventQueue for the window manager
+    {
+        cinux::gui::Event gui_ev{};
+        gui_ev.type_ = ev.pressed ? cinux::gui::EventType::KeyDown
+                                   : cinux::gui::EventType::KeyUp;
+        gui_ev.key.ascii    = ev.ascii;
+        gui_ev.key.scancode = ev.scancode;
+        gui_ev.key.pressed  = ev.pressed;
+        gui_ev.key.shift    = ev.shift;
+        gui_ev.key.ctrl     = ev.ctrl;
+        gui_ev.key.alt      = ev.alt;
+        cinux::drivers::Mouse::event_queue().enqueue(gui_ev);
+    }
+#endif
 
     // Signal End-Of-Interrupt for IRQ1
     PIC::send_eoi(1);

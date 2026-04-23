@@ -52,6 +52,21 @@ public:
     void init(Framebuffer& fb);
 
     /**
+     * @brief Initialise a standalone canvas without a hardware framebuffer
+     *
+     * Allocates a back buffer of the specified dimensions.  The front
+     * buffer is left as nullptr, so flip() is a no-op.  Useful for
+     * off-screen rendering (e.g. window content areas) that are later
+     * blitted onto a screen canvas.
+     *
+     * If a back buffer was previously allocated it is freed first.
+     *
+     * @param w  Canvas width in pixels
+     * @param h  Canvas height in pixels
+     */
+    void init(uint32_t w, uint32_t h);
+
+    /**
      * @brief Write a single pixel to the back buffer
      *
      * @param x      Column (0 = left)

@@ -105,6 +105,7 @@ if(CINUX_GUI)
     target_compile_definitions(big_kernel_common PUBLIC CINUX_GUI)
     target_sources(big_kernel_common PRIVATE
         drivers/canvas.cpp
+        drivers/mouse.cpp
     )
     add_subdirectory(gui)
 endif()
@@ -188,6 +189,10 @@ add_executable(big_kernel_test
     test/test_shell_write.cpp
     test/test_cwd_stat.cpp
     test/test_canvas.cpp
+    test/test_mouse_event.cpp
+    test/test_window.cpp
+    test/test_window_manager.cpp
+    test/test_gui_integration.cpp
 )
 
 target_sources(big_kernel_test PRIVATE $<TARGET_OBJECTS:big_kernel_common>)
