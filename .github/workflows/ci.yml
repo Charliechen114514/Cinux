@@ -6,12 +6,39 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Install clang-format
+        run: sudo apt-get install -y clang-format
+
+      - name: Format code
+        run: |
+          find kernel user test boot \
+            \( -name '*.cpp' -o -name '*.hpp' -o -name '*.c' -o -name '*.h' \) \
+            -exec clang-format -i {} +
+
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'style: auto-format with clang-format'
+
   host-tests:
+    needs: format
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Install GCC 15
         run: |
@@ -38,10 +65,13 @@ jobs:
         run: make test_host
 
   kernel-tests:
+    needs: format
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Install GCC 15
         run: |

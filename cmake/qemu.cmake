@@ -10,9 +10,10 @@ if(EXISTS "/dev/kvm")
     set(QEMU_ACCEL -accel kvm -cpu max)
 endif()
 
-# Reduce QEMU memory in CI to fit within runner RAM limits
+# Headless mode for CI (no GTK/display available)
 if(DEFINED ENV{CI})
     set(QEMU_MEMORY "1G")
+    set(QEMU_DISPLAY -vnc :0)
 else()
     set(QEMU_MEMORY "8G")
 endif()
@@ -24,6 +25,7 @@ set(QEMU_COMMON_FLAGS
     -debugcon file:debug.log
     -global isa-debugcon.iobase=0xe9
     ${QEMU_ACCEL}
+    ${QEMU_DISPLAY}
     -usb -device usb-tablet
 )
 
