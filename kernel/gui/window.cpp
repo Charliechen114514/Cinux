@@ -20,14 +20,7 @@ uint32_t Window::next_id_ = 1;
 // ============================================================
 
 Window::Window(const char* title, int32_t x, int32_t y, uint32_t w, uint32_t h)
-    : id_(next_id_++)
-    , x_(x)
-    , y_(y)
-    , w_(w)
-    , h_(h)
-    , visible_(true)
-    , focused_(false) {
-
+    : id_(next_id_++), x_(x), y_(y), w_(w), h_(h), visible_(true), focused_(false) {
     // Zero-fill and copy title
     for (uint32_t i = 0; i <= TITLE_MAX_LEN; i++) {
         title_[i] = '\0';
@@ -62,8 +55,7 @@ void Window::draw_title_bar(cinux::drivers::PSFFont& font) {
     // Draw the close button: red square in the top-right corner
     uint32_t cb_x = w_ - CLOSE_BUTTON_SIZE - 3;
     uint32_t cb_y = (TITLE_BAR_HEIGHT - CLOSE_BUTTON_SIZE) / 2;
-    canvas_.draw_rect(cb_x, cb_y, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE,
-                      COLOR_CLOSE_BUTTON);
+    canvas_.draw_rect(cb_x, cb_y, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, COLOR_CLOSE_BUTTON);
 }
 
 void Window::draw_content() {
@@ -123,17 +115,13 @@ bool Window::is_close_button_hit(int32_t mx, int32_t my) const {
     int32_t cb_x = x_ + static_cast<int32_t>(w_) - CLOSE_BUTTON_SIZE - 3;
     int32_t cb_y = y_ + static_cast<int32_t>((TITLE_BAR_HEIGHT - CLOSE_BUTTON_SIZE) / 2);
 
-    return mx >= cb_x
-        && mx < cb_x + static_cast<int32_t>(CLOSE_BUTTON_SIZE)
-        && my >= cb_y
-        && my < cb_y + static_cast<int32_t>(CLOSE_BUTTON_SIZE);
+    return mx >= cb_x && mx < cb_x + static_cast<int32_t>(CLOSE_BUTTON_SIZE) && my >= cb_y &&
+           my < cb_y + static_cast<int32_t>(CLOSE_BUTTON_SIZE);
 }
 
 bool Window::contains(int32_t mx, int32_t my) const {
-    return mx >= x_
-        && mx < x_ + static_cast<int32_t>(w_)
-        && my >= y_
-        && my < y_ + static_cast<int32_t>(total_height());
+    return mx >= x_ && mx < x_ + static_cast<int32_t>(w_) && my >= y_ &&
+           my < y_ + static_cast<int32_t>(total_height());
 }
 
 // ============================================================

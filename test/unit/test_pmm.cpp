@@ -7,17 +7,17 @@
  */
 
 #define TEST_FRAMEWORK_IMPL
-#include "test_framework.h"
+#include <stdint.h>
+#include <string.h>
 
 #include <atomic>
 #include <mutex>
-#include <stdint.h>
-#include <string.h>
 #include <thread>
 #include <unordered_set>
 #include <vector>
 
 #include "boot/boot_info.h"
+#include "test_framework.h"
 
 // ============================================================
 // Re-implement PMM constants and algorithms for host testing
@@ -33,19 +33,20 @@ struct Region {
     uint64_t length;
 };
 
-uint32_t parse_memory_map(const BootInfo& info, Region* regions,
-                          uint32_t max_regions) {
+uint32_t parse_memory_map(const BootInfo& info, Region* regions, uint32_t max_regions) {
     uint32_t count = 0;
 
     for (uint32_t i = 0; i < info.mmap_count && count < max_regions; i++) {
         const auto& e = info.mmap[i];
-        if (e.type != 1) continue;
+        if (e.type != 1)
+            continue;
 
         uint64_t base   = e.base;
         uint64_t length = e.length;
 
         if (base < LOW_MEM_BOUNDARY) {
-            if (base + length <= LOW_MEM_BOUNDARY) continue;
+            if (base + length <= LOW_MEM_BOUNDARY)
+                continue;
             length -= LOW_MEM_BOUNDARY - base;
             base = LOW_MEM_BOUNDARY;
         }
@@ -54,7 +55,8 @@ uint32_t parse_memory_map(const BootInfo& info, Region* regions,
         length -= (aligned - base);
         length &= ~(PAGE_SIZE - 1);
 
-        if (length < PAGE_SIZE) continue;
+        if (length < PAGE_SIZE)
+            continue;
         regions[count++] = {aligned, length};
     }
 
@@ -64,10 +66,9 @@ uint32_t parse_memory_map(const BootInfo& info, Region* regions,
 /// Standalone bitmap PMM that mirrors the kernel PMM's algorithm.
 class TestPMM {
 public:
-    explicit TestPMM(uint64_t max_pages)
-        : total_pages_(max_pages), free_pages_(0) {
+    explicit TestPMM(uint64_t max_pages) : total_pages_(max_pages), free_pages_(0) {
         bm_size_ = (max_pages + 7) / 8;
-        bm_ = new uint8_t[bm_size_];
+        bm_      = new uint8_t[bm_size_];
         memset(bm_, 0xFF, bm_size_);
     }
 
@@ -93,11 +94,11 @@ public:
 
     uint64_t alloc_page() {
         const auto* bm64 = reinterpret_cast<const uint64_t*>(bm_);
-        uint64_t qw = bm_size_ / sizeof(uint64_t);
+        uint64_t    qw   = bm_size_ / sizeof(uint64_t);
 
         for (uint64_t i = 0; i < qw; i++) {
             if (bm64[i] != ~0ULL) {
-                int bit = __builtin_ctzll(~bm64[i]);
+                int      bit = __builtin_ctzll(~bm64[i]);
                 uint64_t idx = i * 64 + static_cast<uint64_t>(bit);
                 if (idx < total_pages_) {
                     bm_[idx / 8] |= static_cast<uint8_t>(1U << (idx % 8));
@@ -124,22 +125,28 @@ public:
     }
 
     void free_page(uint64_t phys) {
-        if (phys == 0) return;
+        if (phys == 0)
+            return;
         uint64_t idx = phys / PAGE_SIZE;
-        if (idx >= total_pages_) return;
-        if (!(bm_[idx / 8] & (1U << (idx % 8)))) return;
+        if (idx >= total_pages_)
+            return;
+        if (!(bm_[idx / 8] & (1U << (idx % 8))))
+            return;
         bm_[idx / 8] &= static_cast<uint8_t>(~(1U << (idx % 8)));
         free_pages_++;
     }
 
     uint64_t alloc_pages(uint64_t count) {
-        if (count == 0) return 0;
-        if (count == 1) return alloc_page();
+        if (count == 0)
+            return 0;
+        if (count == 1)
+            return alloc_page();
 
         uint64_t run = 0, start = 0;
         for (uint64_t p = 0; p < total_pages_; p++) {
             if (!(bm_[p / 8] & (1U << (p % 8)))) {
-                if (run == 0) start = p;
+                if (run == 0)
+                    start = p;
                 run++;
                 if (run >= count) {
                     for (uint64_t i = start; i < start + count; i++)
@@ -177,11 +184,11 @@ private:
 // ============================================================
 
 TEST("parse_memory_map: filters non-usable types") {
-    BootInfo info = {};
+    BootInfo info   = {};
     info.mmap_count = 3;
-    info.mmap[0] = {0x100000, 0x100000, 1, 0};
-    info.mmap[1] = {0x200000, 0x100000, 2, 0};
-    info.mmap[2] = {0x300000, 0x100000, 3, 0};
+    info.mmap[0]    = {0x100000, 0x100000, 1, 0};
+    info.mmap[1]    = {0x200000, 0x100000, 2, 0};
+    info.mmap[2]    = {0x300000, 0x100000, 3, 0};
 
     Region regions[8];
     ASSERT_EQ(parse_memory_map(info, regions, 8), 1u);
@@ -190,19 +197,19 @@ TEST("parse_memory_map: filters non-usable types") {
 }
 
 TEST("parse_memory_map: filters regions entirely below 1MB") {
-    BootInfo info = {};
+    BootInfo info   = {};
     info.mmap_count = 1;
-    info.mmap[0] = {0x0, 0x100000, 1, 0};
+    info.mmap[0]    = {0x0, 0x100000, 1, 0};
 
     Region regions[8];
     ASSERT_EQ(parse_memory_map(info, regions, 8), 0u);
 }
 
 TEST("parse_memory_map: clips partial overlap with low 1MB") {
-    BootInfo info = {};
+    BootInfo info   = {};
     info.mmap_count = 1;
     // 0x80000..0x280000 crosses the 1MB boundary
-    info.mmap[0] = {0x80000, 0x200000, 1, 0};
+    info.mmap[0]    = {0x80000, 0x200000, 1, 0};
 
     Region regions[8];
     ASSERT_EQ(parse_memory_map(info, regions, 8), 1u);
@@ -211,9 +218,9 @@ TEST("parse_memory_map: clips partial overlap with low 1MB") {
 }
 
 TEST("parse_memory_map: aligns to 4KB boundaries") {
-    BootInfo info = {};
+    BootInfo info   = {};
     info.mmap_count = 1;
-    info.mmap[0] = {0x100123, 0x2000, 1, 0};
+    info.mmap[0]    = {0x100123, 0x2000, 1, 0};
 
     Region regions[8];
     ASSERT_EQ(parse_memory_map(info, regions, 8), 1u);
@@ -223,9 +230,9 @@ TEST("parse_memory_map: aligns to 4KB boundaries") {
 }
 
 TEST("parse_memory_map: skips too-small aligned regions") {
-    BootInfo info = {};
+    BootInfo info   = {};
     info.mmap_count = 1;
-    info.mmap[0] = {0x100001, 0xFFF, 1, 0};
+    info.mmap[0]    = {0x100001, 0xFFF, 1, 0};
 
     Region regions[8];
     ASSERT_EQ(parse_memory_map(info, regions, 8), 0u);
@@ -353,13 +360,9 @@ public:
         }
     }
 
-    void release() {
-        locked_.store(false, std::memory_order_release);
-    }
+    void release() { locked_.store(false, std::memory_order_release); }
 
-    [[nodiscard]] auto guard() {
-        return Guard(this);
-    }
+    [[nodiscard]] auto guard() { return Guard(this); }
 
 private:
     std::atomic<bool> locked_{false};
@@ -368,7 +371,7 @@ private:
     public:
         explicit Guard(HostSpinlock* lock) : lock_(lock) { lock_->acquire(); }
         ~Guard() { lock_->release(); }
-        Guard(const Guard&) = delete;
+        Guard(const Guard&)            = delete;
         Guard& operator=(const Guard&) = delete;
 
     private:
@@ -379,10 +382,9 @@ private:
 /// Thread-safe PMM wrapper using HostSpinlock.
 class LockedTestPMM {
 public:
-    explicit LockedTestPMM(uint64_t max_pages)
-        : total_pages_(max_pages), free_pages_(0) {
+    explicit LockedTestPMM(uint64_t max_pages) : total_pages_(max_pages), free_pages_(0) {
         bm_size_ = (max_pages + 7) / 8;
-        bm_ = new uint8_t[bm_size_];
+        bm_      = new uint8_t[bm_size_];
         memset(bm_, 0xFF, bm_size_);
     }
 
@@ -401,11 +403,11 @@ public:
         auto g = lock_.guard();
         (void)g;
         const auto* bm64 = reinterpret_cast<const uint64_t*>(bm_);
-        uint64_t qw = bm_size_ / sizeof(uint64_t);
+        uint64_t    qw   = bm_size_ / sizeof(uint64_t);
 
         for (uint64_t i = 0; i < qw; i++) {
             if (bm64[i] != ~0ULL) {
-                int bit = __builtin_ctzll(~bm64[i]);
+                int      bit = __builtin_ctzll(~bm64[i]);
                 uint64_t idx = i * 64 + static_cast<uint64_t>(bit);
                 if (idx < total_pages_) {
                     bm_[idx / 8] |= static_cast<uint8_t>(1U << (idx % 8));
@@ -434,10 +436,13 @@ public:
     void free_page(uint64_t phys) {
         auto g = lock_.guard();
         (void)g;
-        if (phys == 0) return;
+        if (phys == 0)
+            return;
         uint64_t idx = phys / PAGE_SIZE;
-        if (idx >= total_pages_) return;
-        if (!(bm_[idx / 8] & (1U << (idx % 8)))) return;
+        if (idx >= total_pages_)
+            return;
+        if (!(bm_[idx / 8] & (1U << (idx % 8))))
+            return;
         bm_[idx / 8] &= static_cast<uint8_t>(~(1U << (idx % 8)));
         free_pages_++;
     }
@@ -446,10 +451,10 @@ public:
 
 private:
     HostSpinlock lock_;
-    uint8_t* bm_;
-    uint64_t total_pages_;
-    uint64_t free_pages_;
-    uint64_t bm_size_;
+    uint8_t*     bm_;
+    uint64_t     total_pages_;
+    uint64_t     free_pages_;
+    uint64_t     bm_size_;
 };
 
 }  // anonymous namespace
@@ -459,16 +464,16 @@ private:
 // ============================================================
 
 TEST("concurrent: no double-alloc under contention") {
-    constexpr int NUM_THREADS = 4;
-    constexpr int ALLOCS_PER_THREAD = 500;
-    constexpr uint64_t TOTAL_PAGES = 4096;
+    constexpr int      NUM_THREADS       = 4;
+    constexpr int      ALLOCS_PER_THREAD = 500;
+    constexpr uint64_t TOTAL_PAGES       = 4096;
 
     LockedTestPMM pmm(TOTAL_PAGES);
     pmm.mark_free(1, TOTAL_PAGES - 1);
 
     std::unordered_set<uint64_t> all_allocated;
-    std::mutex set_mutex;
-    std::vector<std::thread> threads;
+    std::mutex                   set_mutex;
+    std::vector<std::thread>     threads;
 
     for (int t = 0; t < NUM_THREADS; t++) {
         threads.emplace_back([&]() {
@@ -489,15 +494,15 @@ TEST("concurrent: no double-alloc under contention") {
         });
     }
 
-    for (auto& th : threads) th.join();
+    for (auto& th : threads)
+        th.join();
 
-    ASSERT_EQ(all_allocated.size(),
-              static_cast<size_t>(NUM_THREADS * ALLOCS_PER_THREAD));
+    ASSERT_EQ(all_allocated.size(), static_cast<size_t>(NUM_THREADS * ALLOCS_PER_THREAD));
 }
 
 TEST("concurrent: alloc/free cycles preserve free count") {
-    constexpr int NUM_THREADS = 4;
-    constexpr int CYCLES = 200;
+    constexpr int      NUM_THREADS = 4;
+    constexpr int      CYCLES      = 200;
     constexpr uint64_t TOTAL_PAGES = 4096;
 
     LockedTestPMM pmm(TOTAL_PAGES);
@@ -515,7 +520,8 @@ TEST("concurrent: alloc/free cycles preserve free count") {
         });
     }
 
-    for (auto& th : threads) th.join();
+    for (auto& th : threads)
+        th.join();
 
     ASSERT_EQ(pmm.free_count(), initial_free);
 }

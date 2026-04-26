@@ -49,7 +49,7 @@ namespace cinux::lib {
 /// Callback type for kprintf output backends.
 /// @param c    Character to output
 /// @param ctx  Opaque context pointer supplied at registration time
-using OutputSink = void(*)(char c, void* ctx);
+using OutputSink = void (*)(char c, void* ctx);
 
 /// Maximum number of concurrently registered sinks
 static constexpr uint32_t KPRINTF_MAX_SINKS = 8;

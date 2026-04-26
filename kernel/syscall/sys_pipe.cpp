@@ -50,8 +50,7 @@ bool is_user_addr(uint64_t addr) {
 
 }  // anonymous namespace
 
-int64_t sys_pipe(uint64_t pipefd_virt,
-                 uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) {
+int64_t sys_pipe(uint64_t pipefd_virt, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) {
     // Step 1: Validate the user-space pointer to the int[2] array
     if (!is_user_addr(pipefd_virt)) {
         return -1;
@@ -65,18 +64,18 @@ int64_t sys_pipe(uint64_t pipefd_virt,
     auto* write_ops = new cinux::ipc::PipeWriteOps(pipe);
 
     // Step 4: Create two Inodes wrapping each end
-    cinux::fs::Inode* read_inode  = new cinux::fs::Inode();
-    read_inode->ops = read_ops;
-    read_inode->type = cinux::fs::InodeType::Regular;
+    cinux::fs::Inode* read_inode = new cinux::fs::Inode();
+    read_inode->ops              = read_ops;
+    read_inode->type             = cinux::fs::InodeType::Regular;
 
     cinux::fs::Inode* write_inode = new cinux::fs::Inode();
-    write_inode->ops = write_ops;
-    write_inode->type = cinux::fs::InodeType::Regular;
+    write_inode->ops              = write_ops;
+    write_inode->type             = cinux::fs::InodeType::Regular;
 
     // Step 5: Allocate two fd slots in the current task's FDTable
     auto& table = cinux::fs::current_fd_table();
 
-    int read_fd  = table.alloc(read_inode, cinux::fs::OpenFlags::RDONLY);
+    int read_fd = table.alloc(read_inode, cinux::fs::OpenFlags::RDONLY);
     if (read_fd < 0) {
         // Cleanup on failure
         delete write_inode;
@@ -101,8 +100,8 @@ int64_t sys_pipe(uint64_t pipefd_virt,
 
     // Step 6: Write the two fd numbers into user-space int[2]
     auto* pipefd = reinterpret_cast<int32_t*>(pipefd_virt);
-    pipefd[0] = read_fd;
-    pipefd[1] = write_fd;
+    pipefd[0]    = read_fd;
+    pipefd[1]    = write_fd;
 
     return 0;
 }

@@ -52,8 +52,8 @@ constexpr uint8_t SCR = 7;  ///< Scratch Register
 // Line Status Register Bits
 // ============================================================
 namespace SerialLSR {
-constexpr uint8_t RX_READY  = 0x01;  ///< Data available in RBR
-constexpr uint8_t TX_READY  = 0x20;  ///< THR empty, safe to write
+constexpr uint8_t RX_READY = 0x01;  ///< Data available in RBR
+constexpr uint8_t TX_READY = 0x20;  ///< THR empty, safe to write
 }  // namespace SerialLSR
 
 // ============================================================

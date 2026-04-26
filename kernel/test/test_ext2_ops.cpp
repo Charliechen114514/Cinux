@@ -22,14 +22,13 @@
  *   - Heap initialised (needed for new/delete)
  */
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "big_kernel_test.h"
-
-#include "kernel/drivers/pit/pit.hpp"
-#include "kernel/drivers/pci/pci.hpp"
 #include "kernel/drivers/ahci/ahci.hpp"
+#include "kernel/drivers/pci/pci.hpp"
+#include "kernel/drivers/pit/pit.hpp"
 #include "kernel/fs/ext2.hpp"
 
 using cinux::drivers::pci::PCI;
@@ -82,14 +81,16 @@ void teardown_ext2(AhciExt2Pair& pair) {
 static uint32_t g_name_seq = 0;
 
 void gen_name(char* buf, uint32_t buf_len, const char* prefix) {
-    uint32_t seed = static_cast<uint32_t>(
-        cinux::drivers::PIT::get_ticks() ^ (++g_name_seq));
+    uint32_t seed = static_cast<uint32_t>(cinux::drivers::PIT::get_ticks() ^ (++g_name_seq));
     seed ^= seed << 13;
     seed ^= seed >> 17;
     seed ^= seed << 5;
     uint32_t off = 0;
-    while (prefix[off] && off < buf_len - 9) { buf[off] = prefix[off]; ++off; }
-    buf[off++] = '_';
+    while (prefix[off] && off < buf_len - 9) {
+        buf[off] = prefix[off];
+        ++off;
+    }
+    buf[off++]       = '_';
     const char hex[] = "0123456789abcdef";
     for (int d = 6; d >= 0 && off < buf_len - 1; --d)
         buf[off++] = hex[(seed >> (d * 4)) & 0xf];
@@ -97,7 +98,10 @@ void gen_name(char* buf, uint32_t buf_len, const char* prefix) {
 }
 
 uint32_t name_len(const char* s) {
-    uint32_t n = 0; while (s[n]) ++n; return n;
+    uint32_t n = 0;
+    while (s[n])
+        ++n;
+    return n;
 }
 
 }  // anonymous namespace
@@ -117,7 +121,8 @@ void test_create_and_unlink_file() {
     TEST_ASSERT_NOT_NULL(pair.ext2);
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
-    char name[32]; gen_name(name, 32, "tf");
+    char name[32];
+    gen_name(name, 32, "tf");
 
     Inode* ino = pair.ext2->create(2, name, name_len(name));
     TEST_ASSERT_NOT_NULL(ino);
@@ -160,21 +165,22 @@ void test_write_then_read() {
     TEST_ASSERT_NOT_NULL(pair.ext2);
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
-    char name[32]; gen_name(name, 32, "wt");
+    char name[32];
+    gen_name(name, 32, "wt");
     Inode* ino = pair.ext2->create(2, name, name_len(name));
     TEST_ASSERT_NOT_NULL(ino);
     TEST_ASSERT_NOT_NULL(ino->ops);
 
     // Write data
     const char write_data[] = "Hello from ext2 write!";
-    uint32_t len = sizeof(write_data) - 1;
+    uint32_t   len          = sizeof(write_data) - 1;
 
     int64_t written = ino->ops->write(ino, 0, write_data, len);
     TEST_ASSERT_EQ(written, static_cast<int64_t>(len));
 
     // Read data back
-    char read_buf[64] = {};
-    int64_t read_back = ino->ops->read(ino, 0, read_buf, len);
+    char    read_buf[64] = {};
+    int64_t read_back    = ino->ops->read(ino, 0, read_buf, len);
     TEST_ASSERT_EQ(read_back, static_cast<int64_t>(len));
 
     // Verify data integrity
@@ -200,7 +206,8 @@ void test_write_cross_block() {
     TEST_ASSERT_NOT_NULL(pair.ext2);
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
-    char name[32]; gen_name(name, 32, "bf");
+    char name[32];
+    gen_name(name, 32, "bf");
     Inode* ino = pair.ext2->create(2, name, name_len(name));
     TEST_ASSERT_NOT_NULL(ino);
 
@@ -217,7 +224,7 @@ void test_write_cross_block() {
 
     // Read back
     uint8_t read_buf[20] = {};
-    int64_t read_back = ino->ops->read(ino, bs - 10, read_buf, 20);
+    int64_t read_back    = ino->ops->read(ino, bs - 10, read_buf, 20);
     TEST_ASSERT_EQ(read_back, 20);
 
     for (int i = 0; i < 20; ++i) {
@@ -246,7 +253,8 @@ void test_recreate_same_name() {
     TEST_ASSERT_NOT_NULL(pair.ext2);
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
-    char name[32]; gen_name(name, 32, "rc");
+    char name[32];
+    gen_name(name, 32, "rc");
 
     // Create first file
     Inode* file1 = pair.ext2->create(2, name, name_len(name));
@@ -271,8 +279,8 @@ void test_recreate_same_name() {
     // New inode should be fresh (size=0)
     TEST_ASSERT_EQ(file2->size, 0u);
 
-    cinux::lib::kprintf("[EXT2_OPS] Recreate same name: ino1=%lu -> ino2=%lu OK\n",
-                        ino1, file2->ino);
+    cinux::lib::kprintf("[EXT2_OPS] Recreate same name: ino1=%lu -> ino2=%lu OK\n", ino1,
+                        file2->ino);
 
     // Clean up
     pair.ext2->unlink(2, name, name_len(name));
@@ -296,7 +304,8 @@ void test_full_flow() {
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
     // 1. Create a file in root
-    char filename[32]; gen_name(filename, 32, "ft");
+    char filename[32];
+    gen_name(filename, 32, "ft");
     Inode* file = pair.ext2->create(2, filename, name_len(filename));
     TEST_ASSERT_NOT_NULL(file);
     TEST_ASSERT_EQ(file->type, cinux::fs::InodeType::Regular);
@@ -305,13 +314,13 @@ void test_full_flow() {
 
     // 2. Write data
     const char write_data[] = "Cinux ext2 full flow test data!";
-    uint32_t len = sizeof(write_data) - 1;
-    int64_t written = file->ops->write(file, 0, write_data, len);
+    uint32_t   len          = sizeof(write_data) - 1;
+    int64_t    written      = file->ops->write(file, 0, write_data, len);
     TEST_ASSERT_EQ(written, static_cast<int64_t>(len));
 
     // 3. Read data back
-    char read_buf[64] = {};
-    int64_t read_back = file->ops->read(file, 0, read_buf, len);
+    char    read_buf[64] = {};
+    int64_t read_back    = file->ops->read(file, 0, read_buf, len);
     TEST_ASSERT_EQ(read_back, static_cast<int64_t>(len));
 
     for (uint32_t i = 0; i < len; ++i) {

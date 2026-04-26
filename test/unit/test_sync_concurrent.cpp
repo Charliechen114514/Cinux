@@ -31,21 +31,13 @@ public:
         }
     }
 
-    void release() {
-        locked_.store(false, std::memory_order_release);
-    }
+    void release() { locked_.store(false, std::memory_order_release); }
 
-    [[nodiscard]] auto guard() {
-        return Guard(this);
-    }
+    [[nodiscard]] auto guard() { return Guard(this); }
 
-    [[nodiscard]] auto irq_guard() {
-        return IrqGuard(this);
-    }
+    [[nodiscard]] auto irq_guard() { return IrqGuard(this); }
 
-    bool is_locked() const {
-        return locked_.load(std::memory_order_acquire);
-    }
+    bool is_locked() const { return locked_.load(std::memory_order_acquire); }
 
 private:
     std::atomic<bool> locked_{false};
@@ -54,7 +46,7 @@ private:
     public:
         explicit Guard(Spinlock* lock) : lock_(lock) { lock_->acquire(); }
         ~Guard() { lock_->release(); }
-        Guard(const Guard&) = delete;
+        Guard(const Guard&)            = delete;
         Guard& operator=(const Guard&) = delete;
 
     private:
@@ -71,7 +63,7 @@ private:
             // Simulate: release spinlock + restore IF
             lock_->release();
         }
-        IrqGuard(const IrqGuard&) = delete;
+        IrqGuard(const IrqGuard&)            = delete;
         IrqGuard& operator=(const IrqGuard&) = delete;
 
     private:
@@ -85,21 +77,17 @@ private:
 
 class SimInterruptGuard {
 public:
-    SimInterruptGuard() : saved_(interrupts_enabled_) {
-        interrupts_enabled_ = false;
-    }
+    SimInterruptGuard() : saved_(interrupts_enabled_) { interrupts_enabled_ = false; }
 
-    ~SimInterruptGuard() {
-        interrupts_enabled_ = saved_;
-    }
+    ~SimInterruptGuard() { interrupts_enabled_ = saved_; }
 
-    SimInterruptGuard(const SimInterruptGuard&) = delete;
+    SimInterruptGuard(const SimInterruptGuard&)            = delete;
     SimInterruptGuard& operator=(const SimInterruptGuard&) = delete;
 
     static bool& interrupts_enabled() { return interrupts_enabled_; }
 
 private:
-    bool saved_;
+    bool               saved_;
     static inline bool interrupts_enabled_ = true;
 };
 
@@ -107,8 +95,7 @@ private:
 // Helper: spawn N threads, each running fn(iters), then join
 // ============================================================
 
-static void concurrent_stress(int num_threads, int iters,
-                              std::function<void(int)> fn) {
+static void concurrent_stress(int num_threads, int iters, std::function<void(int)> fn) {
     std::vector<std::thread> threads;
     threads.reserve(num_threads);
     for (int t = 0; t < num_threads; t++) {
@@ -125,9 +112,9 @@ static void concurrent_stress(int num_threads, int iters,
 
 // Spinlock protects a shared counter under genuine concurrency
 TEST("concurrent: spinlock atomic counter") {
-    constexpr int NUM_THREADS = 8;
-    constexpr int ITERS = 10000;
-    Spinlock lock;
+    constexpr int        NUM_THREADS = 8;
+    constexpr int        ITERS       = 10000;
+    Spinlock             lock;
     std::atomic<int64_t> counter{0};
 
     concurrent_stress(NUM_THREADS, ITERS, [&](int n) {
@@ -143,9 +130,9 @@ TEST("concurrent: spinlock atomic counter") {
 
 // Spinlock irq_guard also provides mutual exclusion
 TEST("concurrent: irq_guard mutual exclusion") {
-    constexpr int NUM_THREADS = 4;
-    constexpr int ITERS = 5000;
-    Spinlock lock;
+    constexpr int        NUM_THREADS = 4;
+    constexpr int        ITERS       = 5000;
+    Spinlock             lock;
     std::atomic<int64_t> counter{0};
 
     concurrent_stress(NUM_THREADS, ITERS, [&](int n) {
@@ -182,8 +169,8 @@ TEST("concurrent: nested interrupt guard") {
 // Multiple threads acquire/release in rapid succession
 TEST("concurrent: rapid spinlock cycling") {
     constexpr int NUM_THREADS = 8;
-    constexpr int ITERS = 50000;
-    Spinlock lock;
+    constexpr int ITERS       = 50000;
+    Spinlock      lock;
 
     concurrent_stress(NUM_THREADS, ITERS, [&](int n) {
         for (int i = 0; i < n; i++) {

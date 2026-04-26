@@ -20,14 +20,14 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstring>
+#    include <cstdint>
+#    include <cstring>
 
-#include "kernel/ipc/pipe.hpp"
-#include "kernel/ipc/pipe_ops.hpp"
-#include "kernel/fs/inode.hpp"
-#include "kernel/fs/file.hpp"
-#include "kernel/fs/vfs_mount.hpp"
+#    include "kernel/fs/file.hpp"
+#    include "kernel/fs/inode.hpp"
+#    include "kernel/fs/vfs_mount.hpp"
+#    include "kernel/ipc/pipe.hpp"
+#    include "kernel/ipc/pipe_ops.hpp"
 
 using namespace cinux::ipc;
 using namespace cinux::fs;
@@ -44,31 +44,31 @@ using namespace cinux::fs;
  * Automatically cleans up on destruction.
  */
 struct PipeRedirect {
-    Pipe* stdin_pipe;
-    Pipe* stdout_pipe;
-    Inode* stdin_inode;
-    Inode* stdout_inode;
-    PipeReadOps* stdin_ops;
+    Pipe*         stdin_pipe;
+    Pipe*         stdout_pipe;
+    Inode*        stdin_inode;
+    Inode*        stdout_inode;
+    PipeReadOps*  stdin_ops;
     PipeWriteOps* stdout_ops;
 
     PipeRedirect() {
         cinux::fs::vfs_mount_init();
 
-        stdin_pipe = new Pipe();
+        stdin_pipe  = new Pipe();
         stdout_pipe = new Pipe();
 
-        stdin_ops = new PipeReadOps(stdin_pipe);
+        stdin_ops  = new PipeReadOps(stdin_pipe);
         stdout_ops = new PipeWriteOps(stdout_pipe);
 
-        stdin_inode = new Inode();
-        stdin_inode->ops = stdin_ops;
+        stdin_inode       = new Inode();
+        stdin_inode->ops  = stdin_ops;
         stdin_inode->type = InodeType::Regular;
 
-        stdout_inode = new Inode();
-        stdout_inode->ops = stdout_ops;
+        stdout_inode       = new Inode();
+        stdout_inode->ops  = stdout_ops;
         stdout_inode->type = InodeType::Regular;
 
-        auto* stdin_file = new File(stdin_inode, 0, OpenFlags::RDONLY);
+        auto* stdin_file  = new File(stdin_inode, 0, OpenFlags::RDONLY);
         auto* stdout_file = new File(stdout_inode, 0, OpenFlags::WRONLY);
 
         g_global_fd_table().set(0, stdin_file);
@@ -91,7 +91,7 @@ struct PipeRedirect {
     }
 
 private:
-    File* stdin_file = nullptr;
+    File* stdin_file  = nullptr;
     File* stdout_file = nullptr;
 };
 
@@ -123,15 +123,15 @@ TEST("shell_redirect: write through stdout fd goes into pipe") {
     PipeRedirect setup;
 
     const char msg[] = "Hello from shell";
-    File* f1 = g_global_fd_table().get(1);
-    int64_t w = f1->inode->ops->write(f1->inode, f1->offset, msg, 16);
+    File*      f1    = g_global_fd_table().get(1);
+    int64_t    w     = f1->inode->ops->write(f1->inode, f1->offset, msg, 16);
     ASSERT_EQ(w, 16);
 
     // Verify data is in the stdout pipe
     ASSERT_EQ(setup.stdout_pipe->available(), 16u);
 
-    char buf[32] = {};
-    int64_t r = setup.stdout_pipe->try_read(buf, 32);
+    char    buf[32] = {};
+    int64_t r       = setup.stdout_pipe->try_read(buf, 32);
     ASSERT_EQ(r, 16);
     ASSERT_TRUE(memcmp(buf, "Hello from shell", 16) == 0);
 }
@@ -150,9 +150,9 @@ TEST("shell_redirect: read through stdin fd gets pipe data") {
     setup.stdin_pipe->close_writer();  // EOF so blocking read returns after draining
 
     // Read through fd 0
-    File* f0 = g_global_fd_table().get(0);
-    char buf[32] = {};
-    int64_t r = f0->inode->ops->read(f0->inode, f0->offset, buf, 32);
+    File*   f0      = g_global_fd_table().get(0);
+    char    buf[32] = {};
+    int64_t r       = f0->inode->ops->read(f0->inode, f0->offset, buf, 32);
     ASSERT_EQ(r, 11);
     ASSERT_TRUE(memcmp(buf, "echo test\n", 11) == 0);
 }
@@ -168,26 +168,26 @@ TEST("shell_redirect: full round-trip terminal to shell and back") {
 
     // Terminal on_key writes to stdin pipe
     const char input[] = "help\n";
-    int64_t w = setup.stdin_pipe->try_write(input, 5);
+    int64_t    w       = setup.stdin_pipe->try_write(input, 5);
     ASSERT_EQ(w, 5);
     setup.stdin_pipe->close_writer();  // EOF so blocking read returns after draining
 
     // Shell reads from stdin pipe (via fd 0 InodeOps)
-    File* f0 = g_global_fd_table().get(0);
-    char read_buf[32] = {};
-    int64_t r = f0->inode->ops->read(f0->inode, f0->offset, read_buf, 32);
+    File*   f0           = g_global_fd_table().get(0);
+    char    read_buf[32] = {};
+    int64_t r            = f0->inode->ops->read(f0->inode, f0->offset, read_buf, 32);
     ASSERT_EQ(r, 5);
     ASSERT_TRUE(memcmp(read_buf, "help\n", 5) == 0);
 
     // Shell writes response to stdout pipe (via fd 1 InodeOps)
     const char response[] = "Cinux shell - type 'help' for commands\n";
-    File* f1 = g_global_fd_table().get(1);
-    w = f1->inode->ops->write(f1->inode, f1->offset, response, 40);
+    File*      f1         = g_global_fd_table().get(1);
+    w                     = f1->inode->ops->write(f1->inode, f1->offset, response, 40);
     ASSERT_EQ(w, 40);
 
     // Terminal polls stdout pipe and reads response
     char out_buf[64] = {};
-    r = setup.stdout_pipe->try_read(out_buf, 64);
+    r                = setup.stdout_pipe->try_read(out_buf, 64);
     ASSERT_EQ(r, 40);
     ASSERT_TRUE(memcmp(out_buf, "Cinux shell - type 'help' for commands\n", 40) == 0);
 }
@@ -207,11 +207,12 @@ TEST("shell_redirect: multiple writes then poll read") {
     f1->inode->ops->write(f1->inode, 0, "hello\n", 6);
 
     // Terminal polls all output
-    char buf[64] = {};
-    int64_t total = 0;
+    char    buf[64] = {};
+    int64_t total   = 0;
     while (true) {
         int64_t r = setup.stdout_pipe->try_read(buf + total, sizeof(buf) - total);
-        if (r <= 0) break;
+        if (r <= 0)
+            break;
         total += r;
     }
     ASSERT_EQ(total, 24);
@@ -226,8 +227,8 @@ TEST("shell_redirect: multiple writes then poll read") {
 TEST("shell_redirect: poll empty stdout pipe returns 0") {
     PipeRedirect setup;
 
-    char buf[32] = {};
-    int64_t r = setup.stdout_pipe->try_read(buf, 32);
+    char    buf[32] = {};
+    int64_t r       = setup.stdout_pipe->try_read(buf, 32);
     ASSERT_EQ(r, 0);
 }
 
@@ -246,9 +247,9 @@ TEST("shell_redirect: try_write stdin then read via ops") {
     setup.stdin_pipe->close_writer();  // EOF so blocking read returns after draining
 
     // Shell reads all 3 bytes at once
-    File* f0 = g_global_fd_table().get(0);
-    char buf[16] = {};
-    int64_t r = f0->inode->ops->read(f0->inode, f0->offset, buf, 16);
+    File*   f0      = g_global_fd_table().get(0);
+    char    buf[16] = {};
+    int64_t r       = f0->inode->ops->read(f0->inode, f0->offset, buf, 16);
     ASSERT_EQ(r, 3);
     ASSERT_TRUE(memcmp(buf, "ls\n", 3) == 0);
 }
@@ -264,10 +265,10 @@ TEST("shell_redirect: cannot read from stdout fd") {
     // Write some data to stdout pipe first
     setup.stdout_pipe->try_write("data", 4);
 
-    File* f1 = g_global_fd_table().get(1);
+    File*   f1      = g_global_fd_table().get(1);
     // PipeWriteOps inherits read() from InodeOps which returns -1
-    char buf[16] = {};
-    int64_t r = f1->inode->ops->read(f1->inode, f1->offset, buf, 16);
+    char    buf[16] = {};
+    int64_t r       = f1->inode->ops->read(f1->inode, f1->offset, buf, 16);
     ASSERT_EQ(r, -1);
 }
 
@@ -275,8 +276,8 @@ TEST("shell_redirect: cannot read from stdout fd") {
 TEST("shell_redirect: cannot write to stdin fd") {
     PipeRedirect setup;
 
-    File* f0 = g_global_fd_table().get(0);
-    int64_t w = f0->inode->ops->write(f0->inode, f0->offset, "data", 4);
+    File*   f0 = g_global_fd_table().get(0);
+    int64_t w  = f0->inode->ops->write(f0->inode, f0->offset, "data", 4);
     ASSERT_EQ(w, -1);
 }
 

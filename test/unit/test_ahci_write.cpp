@@ -21,12 +21,12 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstring>
+#    include <cstdint>
+#    include <cstring>
 
 // Include kernel headers for constants and structures
-#include "drivers/ahci/ahci_config.hpp"
-#include "fs/ext2_types.hpp"
+#    include "drivers/ahci/ahci_config.hpp"
+#    include "fs/ext2_types.hpp"
 
 using namespace cinux::drivers::ahci;
 using namespace cinux::fs;
@@ -44,24 +44,22 @@ using namespace cinux::fs;
  *
  * Mirrors AHCI::build_cfis() but works on a plain buffer.
  */
-static void build_cfis(uint8_t* cfis_buf, bool write_cmd,
-                       uint64_t lba, uint16_t count) {
+static void build_cfis(uint8_t* cfis_buf, bool write_cmd, uint64_t lba, uint16_t count) {
     auto* fis = reinterpret_cast<RegH2DFIS*>(cfis_buf);
 
     fis->fis_type = FisType::REG_H2D;
     fis->flags    = 0x80;
-    fis->command  = write_cmd ? AtaCmd::WRITE_DMA_EXT
-                              : AtaCmd::READ_DMA_EXT;
+    fis->command  = write_cmd ? AtaCmd::WRITE_DMA_EXT : AtaCmd::READ_DMA_EXT;
     fis->feature  = 0;
 
-    fis->lba0 = static_cast<uint8_t>(lba & 0xFF);
-    fis->lba1 = static_cast<uint8_t>((lba >> 8) & 0xFF);
-    fis->lba2 = static_cast<uint8_t>((lba >> 16) & 0xFF);
+    fis->lba0   = static_cast<uint8_t>(lba & 0xFF);
+    fis->lba1   = static_cast<uint8_t>((lba >> 8) & 0xFF);
+    fis->lba2   = static_cast<uint8_t>((lba >> 16) & 0xFF);
     fis->device = 0x40;
 
-    fis->lba3 = static_cast<uint8_t>((lba >> 24) & 0xFF);
-    fis->lba4 = static_cast<uint8_t>((lba >> 32) & 0xFF);
-    fis->lba5 = static_cast<uint8_t>((lba >> 40) & 0xFF);
+    fis->lba3        = static_cast<uint8_t>((lba >> 24) & 0xFF);
+    fis->lba4        = static_cast<uint8_t>((lba >> 32) & 0xFF);
+    fis->lba5        = static_cast<uint8_t>((lba >> 40) & 0xFF);
     fis->feature_exp = 0;
 
     fis->count0 = static_cast<uint8_t>(count & 0xFF);
@@ -113,13 +111,13 @@ TEST("ahci_write: CFIS write command uses WRITE_DMA_EXT") {
  * @brief Verify CFIS read uses READ_DMA_EXT, write uses WRITE_DMA_EXT
  */
 TEST("ahci_write: CFIS read vs write command differentiation") {
-    uint8_t read_buf[64] = {};
+    uint8_t read_buf[64]  = {};
     uint8_t write_buf[64] = {};
 
     build_cfis(read_buf, false, 0, 1);
     build_cfis(write_buf, true, 0, 1);
 
-    auto* read_fis = reinterpret_cast<RegH2DFIS*>(read_buf);
+    auto* read_fis  = reinterpret_cast<RegH2DFIS*>(read_buf);
     auto* write_fis = reinterpret_cast<RegH2DFIS*>(write_buf);
 
     ASSERT_EQ(read_fis->command, AtaCmd::READ_DMA_EXT);
@@ -183,8 +181,8 @@ TEST("ahci_write: CFIS write LBA 100") {
  *   lba5 = 0x1A (bits 40-47)
  */
 TEST("ahci_write: CFIS write 48-bit LBA encoding") {
-    uint8_t buf[64] = {};
-    uint64_t lba = 0x1A2B3C4D5E6FULL;
+    uint8_t  buf[64] = {};
+    uint64_t lba     = 0x1A2B3C4D5E6FULL;
     build_cfis(buf, true, lba, 1);
 
     auto* fis = reinterpret_cast<RegH2DFIS*>(buf);
@@ -262,7 +260,7 @@ TEST("ahci_write: command header read has no write bit") {
  */
 TEST("ahci_write: CFL is 5 dwords in write header") {
     uint16_t flags = compute_cmd_header_flags(true);
-    uint8_t cfl = flags & 0x1F;
+    uint8_t  cfl   = flags & 0x1F;
     ASSERT_EQ(cfl, 5u);
 }
 
@@ -271,7 +269,7 @@ TEST("ahci_write: CFL is 5 dwords in write header") {
  */
 TEST("ahci_write: write header combines CFL and WRITE") {
     uint16_t flags = compute_cmd_header_flags(true);
-    uint8_t cfl = flags & 0x1F;
+    uint8_t  cfl   = flags & 0x1F;
     ASSERT_EQ(cfl, 5u);
     ASSERT_TRUE(flags & CmdHdrFlags::WRITE);
     // WRITE bit is bit 6, CFL is bits 0-4
@@ -296,7 +294,7 @@ TEST("ahci_write: write header combines CFL and WRITE") {
  * @brief Verify PRDT byte count for writing 1 sector
  */
 TEST("ahci_write: PRDT byte count for 1 sector write") {
-    uint16_t count = 1;
+    uint16_t count      = 1;
     uint32_t byte_count = static_cast<uint32_t>(count) * SECTOR_SIZE - 1;
     ASSERT_EQ(byte_count, 511u);
 }
@@ -305,7 +303,7 @@ TEST("ahci_write: PRDT byte count for 1 sector write") {
  * @brief Verify PRDT byte count for writing 2 sectors (1K ext2 block)
  */
 TEST("ahci_write: PRDT byte count for 2 sector write") {
-    uint16_t count = 2;
+    uint16_t count      = 2;
     uint32_t byte_count = static_cast<uint32_t>(count) * SECTOR_SIZE - 1;
     ASSERT_EQ(byte_count, 1023u);
 }
@@ -314,7 +312,7 @@ TEST("ahci_write: PRDT byte count for 2 sector write") {
  * @brief Verify PRDT byte count for writing 4 sectors (2K ext2 block)
  */
 TEST("ahci_write: PRDT byte count for 4 sector write") {
-    uint16_t count = 4;
+    uint16_t count      = 4;
     uint32_t byte_count = static_cast<uint32_t>(count) * SECTOR_SIZE - 1;
     ASSERT_EQ(byte_count, 2047u);
 }
@@ -323,7 +321,7 @@ TEST("ahci_write: PRDT byte count for 4 sector write") {
  * @brief Verify PRDT byte count for writing 8 sectors (4K ext2 block)
  */
 TEST("ahci_write: PRDT byte count for 8 sector write") {
-    uint16_t count = 8;
+    uint16_t count      = 8;
     uint32_t byte_count = static_cast<uint32_t>(count) * SECTOR_SIZE - 1;
     ASSERT_EQ(byte_count, 4095u);
 }
@@ -332,9 +330,9 @@ TEST("ahci_write: PRDT byte count for 8 sector write") {
  * @brief Verify PRDT byte count 22-bit mask for write
  */
 TEST("ahci_write: PRDT byte count masked to 22 bits") {
-    uint16_t count = 1;
+    uint16_t count      = 1;
     uint32_t byte_count = static_cast<uint32_t>(count) * SECTOR_SIZE - 1;
-    uint32_t masked = byte_count & 0x3FFFFF;
+    uint32_t masked     = byte_count & 0x3FFFFF;
     ASSERT_EQ(masked, 511u);
 }
 
@@ -405,8 +403,8 @@ TEST("ahci_write: ext2 block 100 -> LBA 800 (bs=4096)") {
  */
 TEST("ahci_write: large block number LBA (bs=1024)") {
     uint32_t sectors_per_block = 1024 / EXT2_SECTOR_SIZE;
-    uint32_t block_num = 0x00100000u;
-    uint64_t lba = block_to_lba(block_num, sectors_per_block);
+    uint32_t block_num         = 0x00100000u;
+    uint64_t lba               = block_to_lba(block_num, sectors_per_block);
     ASSERT_EQ(lba, 0x00200000ull);
 }
 
@@ -417,8 +415,8 @@ TEST("ahci_write: large block number LBA (bs=1024)") {
  */
 TEST("ahci_write: max uint32_t block number LBA (bs=4096)") {
     uint32_t sectors_per_block = 4096 / EXT2_SECTOR_SIZE;
-    uint32_t block_num = 0xFFFFFFFFu;
-    uint64_t lba = block_to_lba(block_num, sectors_per_block);
+    uint32_t block_num         = 0xFFFFFFFFu;
+    uint64_t lba               = block_to_lba(block_num, sectors_per_block);
     ASSERT_EQ(lba, 0x7FFFFFFF8ull);
 }
 
@@ -452,10 +450,10 @@ TEST("ahci_write: block 0 LBA and sector count") {
  * target the same LBA with the same sector count.
  */
 TEST("ahci_write: read and write target same LBA for same block") {
-    uint32_t block_num = 42;
+    uint32_t block_num         = 42;
     uint32_t sectors_per_block = 1024 / EXT2_SECTOR_SIZE;
 
-    uint64_t read_lba = block_to_lba(block_num, sectors_per_block);
+    uint64_t read_lba  = block_to_lba(block_num, sectors_per_block);
     uint64_t write_lba = block_to_lba(block_num, sectors_per_block);
 
     ASSERT_EQ(read_lba, write_lba);
@@ -468,18 +466,18 @@ TEST("ahci_write: read and write target same LBA for same block") {
  * Both should have the same LBA and count, differing only in command.
  */
 TEST("ahci_write: CFIS read-then-write same block") {
-    uint32_t block_num = 10;
+    uint32_t block_num         = 10;
     uint32_t sectors_per_block = 2;  // 1024-byte blocks
-    uint64_t lba = block_to_lba(block_num, sectors_per_block);
-    uint16_t count = static_cast<uint16_t>(sectors_per_block);
+    uint64_t lba               = block_to_lba(block_num, sectors_per_block);
+    uint16_t count             = static_cast<uint16_t>(sectors_per_block);
 
-    uint8_t read_buf[64] = {};
+    uint8_t read_buf[64]  = {};
     uint8_t write_buf[64] = {};
 
     build_cfis(read_buf, false, lba, count);
     build_cfis(write_buf, true, lba, count);
 
-    auto* read_fis = reinterpret_cast<RegH2DFIS*>(read_buf);
+    auto* read_fis  = reinterpret_cast<RegH2DFIS*>(read_buf);
     auto* write_fis = reinterpret_cast<RegH2DFIS*>(write_buf);
 
     // LBA fields should be identical
@@ -510,13 +508,13 @@ TEST("ahci_write: CFIS read-then-write same block") {
  * For bs>=2048: superblock is in block 0 (at byte offset 1024 within block 0)
  */
 TEST("ahci_write: superblock block number for bs=1024") {
-    uint32_t bs = 1024;
+    uint32_t bs       = 1024;
     uint32_t sb_block = static_cast<uint32_t>(EXT2_SUPERBLOCK_OFFSET / bs);
     ASSERT_EQ(sb_block, 1u);
 }
 
 TEST("ahci_write: superblock block number for bs=4096") {
-    uint32_t bs = 4096;
+    uint32_t bs       = 4096;
     uint32_t sb_block = static_cast<uint32_t>(EXT2_SUPERBLOCK_OFFSET / bs);
     ASSERT_EQ(sb_block, 0u);
 }
@@ -525,7 +523,7 @@ TEST("ahci_write: superblock block number for bs=4096") {
  * @brief Verify BGDT block number for bs=1024 (starts at block 2)
  */
 TEST("ahci_write: BGDT block for bs=1024") {
-    uint32_t bs = 1024;
+    uint32_t bs         = 1024;
     uint32_t bgdt_block = (bs == 1024) ? 2 : 1;
     ASSERT_EQ(bgdt_block, 2u);
 }
@@ -534,7 +532,7 @@ TEST("ahci_write: BGDT block for bs=1024") {
  * @brief Verify BGDT block number for bs=4096 (starts at block 1)
  */
 TEST("ahci_write: BGDT block for bs=4096") {
-    uint32_t bs = 4096;
+    uint32_t bs         = 4096;
     uint32_t bgdt_block = (bs == 1024) ? 2 : 1;
     ASSERT_EQ(bgdt_block, 1u);
 }
@@ -575,8 +573,8 @@ TEST("ahci_write: PRDT entry fields for write") {
     HBAPrdtEntry prd{};
     std::memset(&prd, 0, sizeof(prd));
 
-    uint64_t buf_phys = 0x12345000ULL;
-    uint16_t count = 2;  // 2 sectors = 1024 bytes
+    uint64_t buf_phys   = 0x12345000ULL;
+    uint16_t count      = 2;  // 2 sectors = 1024 bytes
     uint32_t byte_count = static_cast<uint32_t>(count) * SECTOR_SIZE - 1;
 
     prd.dba  = static_cast<uint32_t>(buf_phys & 0xFFFFFFFF);

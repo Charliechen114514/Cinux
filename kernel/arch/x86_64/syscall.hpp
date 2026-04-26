@@ -25,12 +25,12 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "kernel/syscall/syscall_nums.hpp"
 
 namespace cinux::arch {
 
-using SyscallFn = int64_t(*)(uint64_t, uint64_t, uint64_t,
-                             uint64_t, uint64_t, uint64_t);
+using SyscallFn = int64_t (*)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 
 /**
  * @brief Initialise the SYSCALL entry point and dispatch table
@@ -94,8 +94,7 @@ void syscall_entry();
  * @param a6    Sixth argument (R9)
  * @return Return value for the user program (placed in RAX)
  */
-int64_t syscall_dispatch(uint64_t nr,
-                         uint64_t a1, uint64_t a2, uint64_t a3,
-                         uint64_t a4, uint64_t a5, uint64_t a6);
+int64_t syscall_dispatch(uint64_t nr, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4,
+                         uint64_t a5, uint64_t a6);
 
 }  // extern "C"

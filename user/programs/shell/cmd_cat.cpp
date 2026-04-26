@@ -6,9 +6,9 @@
  * Usage: cat <path>
  */
 
-#include "shell.hpp"
 #include "libc/string.hpp"
 #include "libc/syscall.h"
+#include "shell.hpp"
 
 using cinux::user::strlen;
 
@@ -27,7 +27,7 @@ void cmd_cat(int argc, char** argv) {
     }
 
     const char* path = argv[1];
-    int64_t fd = sys_open(path, 0);
+    int64_t     fd   = sys_open(path, 0);
     if (fd < 0) {
         write_str("cat: cannot open '");
         write_str(path);
@@ -37,7 +37,7 @@ void cmd_cat(int argc, char** argv) {
 
     // Read and output in chunks
     constexpr size_t BUF_SIZE = 256;
-    char buf[BUF_SIZE];
+    char             buf[BUF_SIZE];
 
     while (true) {
         int64_t n = sys_read(static_cast<int>(fd), buf, BUF_SIZE);

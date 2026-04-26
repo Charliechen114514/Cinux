@@ -26,12 +26,12 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstring>
+#    include <cstdint>
+#    include <cstring>
 
-#include "kernel/ipc/pipe.hpp"
-#include "kernel/ipc/pipe_ops.hpp"
-#include "kernel/fs/inode.hpp"
+#    include "kernel/fs/inode.hpp"
+#    include "kernel/ipc/pipe.hpp"
+#    include "kernel/ipc/pipe_ops.hpp"
 
 using namespace cinux::ipc;
 using namespace cinux::fs;
@@ -53,11 +53,11 @@ TEST("pipe: basic write and read") {
     Pipe pipe = make_pipe();
 
     const char msg[] = "Hello";
-    int64_t w = pipe.write(msg, 5);
+    int64_t    w     = pipe.write(msg, 5);
     ASSERT_EQ(w, 5);
 
-    char buf[8] = {};
-    int64_t r = pipe.read(buf, 5);
+    char    buf[8] = {};
+    int64_t r      = pipe.read(buf, 5);
     ASSERT_EQ(r, 5);
     ASSERT_TRUE(memcmp(buf, "Hello", 5) == 0);
 }
@@ -119,8 +119,8 @@ TEST("pipe: read returns 0 after close_writer with empty buffer") {
     Pipe pipe = make_pipe();
 
     pipe.close_writer();
-    char buf[8] = {};
-    int64_t r = pipe.read(buf, 5);
+    char    buf[8] = {};
+    int64_t r      = pipe.read(buf, 5);
     ASSERT_EQ(r, 0);
 }
 
@@ -242,14 +242,12 @@ TEST("pipe: fill buffer to capacity and drain") {
         src[i] = static_cast<char>(i);
     }
 
-    ASSERT_EQ(pipe.write(src, PIPE_BUFFER_SIZE),
-              static_cast<int64_t>(PIPE_BUFFER_SIZE));
+    ASSERT_EQ(pipe.write(src, PIPE_BUFFER_SIZE), static_cast<int64_t>(PIPE_BUFFER_SIZE));
     ASSERT_TRUE(pipe.is_full());
     ASSERT_EQ(pipe.available(), PIPE_BUFFER_SIZE);
 
     char dst[PIPE_BUFFER_SIZE];
-    ASSERT_EQ(pipe.read(dst, PIPE_BUFFER_SIZE),
-              static_cast<int64_t>(PIPE_BUFFER_SIZE));
+    ASSERT_EQ(pipe.read(dst, PIPE_BUFFER_SIZE), static_cast<int64_t>(PIPE_BUFFER_SIZE));
     ASSERT_TRUE(memcmp(src, dst, PIPE_BUFFER_SIZE) == 0);
     ASSERT_TRUE(pipe.is_empty());
 }
@@ -296,8 +294,8 @@ TEST("pipe: partial read after close_writer returns available then EOF") {
     pipe.write("AB", 2);
     pipe.close_writer();
 
-    char buf[10] = {};
-    int64_t r = pipe.read(buf, 8);
+    char    buf[10] = {};
+    int64_t r       = pipe.read(buf, 8);
     ASSERT_EQ(r, 2);
     ASSERT_TRUE(memcmp(buf, "AB", 2) == 0);
 
@@ -317,15 +315,15 @@ TEST("pipe_ops: PipeReadOps read delegates to pipe") {
     pipe.close_writer();
 
     PipeReadOps read_ops(&pipe);
-    char buf[8] = {};
-    int64_t r = read_ops.read(nullptr, 0, buf, 8);
+    char        buf[8] = {};
+    int64_t     r      = read_ops.read(nullptr, 0, buf, 8);
     ASSERT_EQ(r, 3);
     ASSERT_TRUE(memcmp(buf, "XYZ", 3) == 0);
 }
 
 // PipeReadOps::write always returns -1 (read-only end).
 TEST("pipe_ops: PipeReadOps write returns -1") {
-    Pipe pipe = make_pipe();
+    Pipe        pipe = make_pipe();
     PipeReadOps read_ops(&pipe);
 
     int64_t w = read_ops.write(nullptr, 0, "data", 4);
@@ -337,7 +335,7 @@ TEST("pipe_ops: PipeWriteOps write delegates to pipe") {
     Pipe pipe = make_pipe();
 
     PipeWriteOps write_ops(&pipe);
-    int64_t w = write_ops.write(nullptr, 0, "HI", 2);
+    int64_t      w = write_ops.write(nullptr, 0, "HI", 2);
     ASSERT_EQ(w, 2);
 
     char buf[8] = {};
@@ -348,31 +346,31 @@ TEST("pipe_ops: PipeWriteOps write delegates to pipe") {
 // PipeWriteOps with nullptr pipe returns -1.
 TEST("pipe_ops: PipeWriteOps nullptr pipe returns -1") {
     PipeWriteOps write_ops(nullptr);
-    int64_t w = write_ops.write(nullptr, 0, "HI", 2);
+    int64_t      w = write_ops.write(nullptr, 0, "HI", 2);
     ASSERT_EQ(w, -1);
 }
 
 // PipeReadOps with nullptr pipe returns -1.
 TEST("pipe_ops: PipeReadOps nullptr pipe returns -1") {
     PipeReadOps read_ops(nullptr);
-    char buf[8] = {};
-    int64_t r = read_ops.read(nullptr, 0, buf, 8);
+    char        buf[8] = {};
+    int64_t     r      = read_ops.read(nullptr, 0, buf, 8);
     ASSERT_EQ(r, -1);
 }
 
 // PipeWriteOps with nullptr buf returns -1.
 TEST("pipe_ops: PipeWriteOps nullptr buf returns -1") {
-    Pipe pipe = make_pipe();
+    Pipe         pipe = make_pipe();
     PipeWriteOps write_ops(&pipe);
-    int64_t w = write_ops.write(nullptr, 0, nullptr, 4);
+    int64_t      w = write_ops.write(nullptr, 0, nullptr, 4);
     ASSERT_EQ(w, -1);
 }
 
 // PipeReadOps with nullptr buf returns -1.
 TEST("pipe_ops: PipeReadOps nullptr buf returns -1") {
-    Pipe pipe = make_pipe();
+    Pipe        pipe = make_pipe();
     PipeReadOps read_ops(&pipe);
-    int64_t r = read_ops.read(nullptr, 0, nullptr, 4);
+    int64_t     r = read_ops.read(nullptr, 0, nullptr, 4);
     ASSERT_EQ(r, -1);
 }
 
@@ -403,8 +401,8 @@ TEST("pipe: double close_writer is safe") {
 TEST("pipe: try_read on empty pipe returns 0") {
     Pipe pipe = make_pipe();
 
-    char buf[8] = {};
-    int64_t r = pipe.try_read(buf, 8);
+    char    buf[8] = {};
+    int64_t r      = pipe.try_read(buf, 8);
     ASSERT_EQ(r, 0);
 }
 
@@ -413,11 +411,11 @@ TEST("pipe: try_write then try_read") {
     Pipe pipe = make_pipe();
 
     const char msg[] = "Hello";
-    int64_t w = pipe.try_write(msg, 5);
+    int64_t    w     = pipe.try_write(msg, 5);
     ASSERT_EQ(w, 5);
 
-    char buf[8] = {};
-    int64_t r = pipe.try_read(buf, 8);
+    char    buf[8] = {};
+    int64_t r      = pipe.try_read(buf, 8);
     ASSERT_EQ(r, 5);
     ASSERT_TRUE(memcmp(buf, "Hello", 5) == 0);
 }
@@ -428,8 +426,8 @@ TEST("pipe: try_read partial read") {
 
     ASSERT_EQ(pipe.try_write("ABC", 3), 3);
 
-    char buf[8] = {};
-    int64_t r = pipe.try_read(buf, 8);
+    char    buf[8] = {};
+    int64_t r      = pipe.try_read(buf, 8);
     ASSERT_EQ(r, 3);
     ASSERT_TRUE(memcmp(buf, "ABC", 3) == 0);
 }
@@ -442,8 +440,7 @@ TEST("pipe: try_write on full pipe returns 0") {
     for (uint32_t i = 0; i < PIPE_BUFFER_SIZE; i++) {
         src[i] = static_cast<char>(i);
     }
-    ASSERT_EQ(pipe.try_write(src, PIPE_BUFFER_SIZE),
-              static_cast<int64_t>(PIPE_BUFFER_SIZE));
+    ASSERT_EQ(pipe.try_write(src, PIPE_BUFFER_SIZE), static_cast<int64_t>(PIPE_BUFFER_SIZE));
     ASSERT_TRUE(pipe.is_full());
 
     // try_write on full buffer returns 0
@@ -496,8 +493,8 @@ TEST("pipe: try_read after close_writer returns data then 0") {
     pipe.try_write("XY", 2);
     pipe.close_writer();
 
-    char buf[8] = {};
-    int64_t r = pipe.try_read(buf, 8);
+    char    buf[8] = {};
+    int64_t r      = pipe.try_read(buf, 8);
     ASSERT_EQ(r, 2);
     ASSERT_TRUE(memcmp(buf, "XY", 2) == 0);
 

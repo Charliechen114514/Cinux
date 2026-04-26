@@ -11,6 +11,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "kernel/arch/x86_64/syscall.hpp"
 
 namespace cinux::syscall {
@@ -20,7 +21,6 @@ namespace cinux::syscall {
  *
  * @return Child PID to the parent, 0 to the child, or -1 on error
  */
-int64_t sys_fork(uint64_t, uint64_t, uint64_t,
-                 uint64_t, uint64_t, uint64_t);
+int64_t sys_fork(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 
 }  // namespace cinux::syscall

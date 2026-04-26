@@ -20,7 +20,7 @@ namespace cinux::drivers {
 // ============================================================
 
 Serial::Serial(uint16_t port) : base_port_(port) {
-	// Caller calls init() explicitly after construction.
+    // Caller calls init() explicitly after construction.
 }
 
 // ============================================================
@@ -28,12 +28,12 @@ Serial::Serial(uint16_t port) : base_port_(port) {
 // ============================================================
 
 void Serial::init(uint16_t /*port*/, uint32_t /*baud*/) {
-	// Disable interrupts, set 8N1, enable FIFO, set MCR, verify LSR
-	io_outb(base_port_ + SerialReg::IER, 0x00);
-	io_outb(base_port_ + SerialReg::LCR, 0x03);
-	io_outb(base_port_ + SerialReg::FCR, 0xC7);
-	io_outb(base_port_ + SerialReg::MCR, 0x03);
-	io_inb(base_port_ + SerialReg::LSR);
+    // Disable interrupts, set 8N1, enable FIFO, set MCR, verify LSR
+    io_outb(base_port_ + SerialReg::IER, 0x00);
+    io_outb(base_port_ + SerialReg::LCR, 0x03);
+    io_outb(base_port_ + SerialReg::FCR, 0xC7);
+    io_outb(base_port_ + SerialReg::MCR, 0x03);
+    io_inb(base_port_ + SerialReg::LSR);
 }
 
 // ============================================================
@@ -41,7 +41,7 @@ void Serial::init(uint16_t /*port*/, uint32_t /*baud*/) {
 // ============================================================
 
 bool Serial::is_tx_ready() const {
-	return (io_inb(base_port_ + SerialReg::LSR) & SerialLSR::TX_READY) != 0;
+    return (io_inb(base_port_ + SerialReg::LSR) & SerialLSR::TX_READY) != 0;
 }
 
 // ============================================================
@@ -49,7 +49,7 @@ bool Serial::is_tx_ready() const {
 // ============================================================
 
 bool Serial::is_ready() const {
-	return is_tx_ready();
+    return is_tx_ready();
 }
 
 // ============================================================
@@ -57,11 +57,11 @@ bool Serial::is_ready() const {
 // ============================================================
 
 void Serial::putc(char c) {
-	while (!is_tx_ready()) {
-		__asm__ volatile("pause");
-	}
+    while (!is_tx_ready()) {
+        __asm__ volatile("pause");
+    }
 
-	io_outb(base_port_ + SerialReg::THR, static_cast<uint8_t>(c));
+    io_outb(base_port_ + SerialReg::THR, static_cast<uint8_t>(c));
 }
 
 // ============================================================
@@ -69,17 +69,17 @@ void Serial::putc(char c) {
 // ============================================================
 
 void Serial::puts(const char* s) {
-	if (s == nullptr) {
-		return;
-	}
+    if (s == nullptr) {
+        return;
+    }
 
-	while (*s != '\0') {
-		if (*s == '\n') {
-			putc('\r');
-		}
-		putc(*s);
-		s++;
-	}
+    while (*s != '\0') {
+        if (*s == '\n') {
+            putc('\r');
+        }
+        putc(*s);
+        s++;
+    }
 }
 
 }  // namespace cinux::drivers

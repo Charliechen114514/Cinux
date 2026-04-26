@@ -14,13 +14,12 @@
  *   - VMM initialised (g_vmm.init called)
  */
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "big_kernel_test.h"
-
-#include "kernel/drivers/pci/pci.hpp"
 #include "kernel/drivers/ahci/ahci.hpp"
+#include "kernel/drivers/pci/pci.hpp"
 #include "kernel/mm/pmm.hpp"
 #include "kernel/mm/vmm.hpp"
 
@@ -42,7 +41,7 @@ void test_find_ahci() {
     pci.init();
 
     PCIDevice ahci_dev{};
-    bool found = pci.find_ahci(ahci_dev);
+    bool      found = pci.find_ahci(ahci_dev);
 
     TEST_ASSERT_TRUE(found);
     TEST_ASSERT_EQ(ahci_dev.class_code, 0x01u);
@@ -63,7 +62,7 @@ void test_ahci_init_maps_bar5() {
     pci.init();
 
     PCIDevice ahci_dev{};
-    bool found = pci.find_ahci(ahci_dev);
+    bool      found = pci.find_ahci(ahci_dev);
     TEST_ASSERT_TRUE(found);
 
     AHCI ahci;
@@ -85,7 +84,7 @@ void test_read_sector0_mbr_signature() {
     pci.init();
 
     PCIDevice ahci_dev{};
-    bool found = pci.find_ahci(ahci_dev);
+    bool      found = pci.find_ahci(ahci_dev);
     TEST_ASSERT_TRUE(found);
 
     AHCI ahci;
@@ -97,9 +96,9 @@ void test_read_sector0_mbr_signature() {
     TEST_ASSERT_NE(buf_phys, 0u);
 
     // Map the buffer into kernel virtual space so we can inspect it
-    constexpr uint64_t BUF_VIRT = 0xFFFFFFFF80200000ULL;
+    constexpr uint64_t BUF_VIRT  = 0xFFFFFFFF80200000ULL;
     constexpr uint64_t map_flags = 0x03;  // present + writable
-    bool mapped = g_vmm.map(BUF_VIRT, buf_phys, map_flags);
+    bool               mapped    = g_vmm.map(BUF_VIRT, buf_phys, map_flags);
     TEST_ASSERT_TRUE(mapped);
 
     // Zero the buffer before reading

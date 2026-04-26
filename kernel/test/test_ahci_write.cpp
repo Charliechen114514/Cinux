@@ -16,13 +16,12 @@
  *   - VMM initialised (needed for DMA buffer mapping)
  */
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "big_kernel_test.h"
-
-#include "kernel/drivers/pci/pci.hpp"
 #include "kernel/drivers/ahci/ahci.hpp"
+#include "kernel/drivers/pci/pci.hpp"
 #include "kernel/fs/ext2.hpp"
 #include "kernel/mm/pmm.hpp"
 #include "kernel/mm/vmm.hpp"
@@ -91,7 +90,7 @@ DmaBuffer alloc_dma_buffer() {
         return buf;
     }
 
-    constexpr uint64_t BUF_VIRT = 0xFFFFFFFF80300000ULL;
+    constexpr uint64_t BUF_VIRT  = 0xFFFFFFFF80300000ULL;
     constexpr uint64_t map_flags = 0x03;  // present + writable
     if (!g_vmm.map(BUF_VIRT, buf.phys, map_flags)) {
         g_pmm.free_page(buf.phys);
@@ -413,8 +412,8 @@ void test_ext2_write_block_roundtrip() {
     bool ok = pair.ext2->read_block(test_block);
     TEST_ASSERT_TRUE(ok);
 
-    auto* dma = reinterpret_cast<uint8_t*>(pair.ext2->dma_buf_virt());
-    uint32_t bs = pair.ext2->block_size();
+    auto*    dma = reinterpret_cast<uint8_t*>(pair.ext2->dma_buf_virt());
+    uint32_t bs  = pair.ext2->block_size();
 
     // Save original
     uint8_t* original = new uint8_t[bs];
@@ -469,8 +468,8 @@ void test_ext2_write_block_zero() {
     bool ok = pair.ext2->read_block(0);
     TEST_ASSERT_TRUE(ok);
 
-    auto* dma = reinterpret_cast<uint8_t*>(pair.ext2->dma_buf_virt());
-    uint32_t bs = pair.ext2->block_size();
+    auto*    dma = reinterpret_cast<uint8_t*>(pair.ext2->dma_buf_virt());
+    uint32_t bs  = pair.ext2->block_size();
 
     // Save original
     uint8_t* original = new uint8_t[bs];
@@ -526,8 +525,8 @@ void test_ext2_write_block_persistence() {
     bool ok = pair.ext2->read_block(test_block);
     TEST_ASSERT_TRUE(ok);
 
-    auto* dma = reinterpret_cast<uint8_t*>(pair.ext2->dma_buf_virt());
-    uint32_t bs = pair.ext2->block_size();
+    auto*    dma = reinterpret_cast<uint8_t*>(pair.ext2->dma_buf_virt());
+    uint32_t bs  = pair.ext2->block_size();
 
     uint8_t* original = new uint8_t[bs];
     TEST_ASSERT_NOT_NULL(original);

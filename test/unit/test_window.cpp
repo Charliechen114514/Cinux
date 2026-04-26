@@ -14,9 +14,9 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstring>
-#include <vector>
+#    include <cstdint>
+#    include <cstring>
+#    include <vector>
 
 // ============================================================
 // Mock PSFFont (mimics kernel/drivers/video/font.hpp)
@@ -34,17 +34,18 @@ public:
     }
 
     const uint8_t* glyph(uint8_t c) const {
-        if (glyphs_[c].empty()) return nullptr;
+        if (glyphs_[c].empty())
+            return nullptr;
         return glyphs_[c].data();
     }
 
-    uint32_t width()  const { return width_; }
+    uint32_t width() const { return width_; }
     uint32_t height() const { return height_; }
 
 private:
     std::vector<uint8_t> glyphs_[256];
-    uint32_t width_  = 0;
-    uint32_t height_ = 0;
+    uint32_t             width_  = 0;
+    uint32_t             height_ = 0;
 };
 
 // ============================================================
@@ -56,15 +57,17 @@ public:
     MockCanvas() = default;
 
     void init(uint32_t w, uint32_t h) {
-        if (!back_buf_.empty()) back_buf_.clear();
-        width_     = w;
-        height_    = h;
-        pitch_     = w * 4;
+        if (!back_buf_.empty())
+            back_buf_.clear();
+        width_  = w;
+        height_ = h;
+        pitch_  = w * 4;
         back_buf_.resize(static_cast<size_t>(w) * h, 0);
     }
 
     void draw_pixel(uint32_t x, uint32_t y, uint32_t color) {
-        if (x >= width_ || y >= height_) return;
+        if (x >= width_ || y >= height_)
+            return;
         back_buf_[y * width_ + x] = color;
     }
 
@@ -76,46 +79,51 @@ public:
         }
     }
 
-    void blit(int32_t dst_x, int32_t dst_y, MockCanvas& src,
-              uint32_t sx, uint32_t sy, uint32_t w, uint32_t h) {
+    void blit(int32_t dst_x, int32_t dst_y, MockCanvas& src, uint32_t sx, uint32_t sy, uint32_t w,
+              uint32_t h) {
         for (uint32_t row = 0; row < h; row++) {
             uint32_t src_row = sy + row;
-            int32_t dst_row = dst_y + static_cast<int32_t>(row);
-            if (dst_row < 0) continue;
-            if (src_row >= src.height_ || dst_row >= static_cast<int32_t>(height_)) break;
+            int32_t  dst_row = dst_y + static_cast<int32_t>(row);
+            if (dst_row < 0)
+                continue;
+            if (src_row >= src.height_ || dst_row >= static_cast<int32_t>(height_))
+                break;
 
-            int32_t col_skip = 0;
-            int32_t eff_dst_x = dst_x;
-            uint32_t eff_sx = sx;
+            int32_t  col_skip  = 0;
+            int32_t  eff_dst_x = dst_x;
+            uint32_t eff_sx    = sx;
             if (eff_dst_x < 0) {
-                col_skip = -eff_dst_x;
+                col_skip  = -eff_dst_x;
                 eff_dst_x = 0;
                 eff_sx += static_cast<uint32_t>(col_skip);
             }
 
             uint32_t dst_col_start = static_cast<uint32_t>(eff_dst_x);
-            uint32_t col_count = w - static_cast<uint32_t>(col_skip);
+            uint32_t col_count     = w - static_cast<uint32_t>(col_skip);
 
             for (uint32_t i = 0; i < col_count; i++) {
                 uint32_t src_col = eff_sx + i;
                 uint32_t dst_col = dst_col_start + i;
-                if (src_col >= src.width_ || dst_col >= width_) break;
+                if (src_col >= src.width_ || dst_col >= width_)
+                    break;
                 back_buf_[dst_row * width_ + dst_col] =
                     src.back_buf_[src_row * src.width_ + src_col];
             }
         }
     }
 
-    void draw_text(uint32_t x, uint32_t y, const char* str, uint32_t color,
-                   MockPSFFont& font) {
-        if (str == nullptr) return;
+    void draw_text(uint32_t x, uint32_t y, const char* str, uint32_t color, MockPSFFont& font) {
+        if (str == nullptr)
+            return;
         uint32_t gw = font.width();
         uint32_t gh = font.height();
-        if (gw == 0 || gh == 0) return;
+        if (gw == 0 || gh == 0)
+            return;
         uint32_t cx = x;
         for (uint32_t i = 0; str[i] != '\0'; i++) {
             const uint8_t* g = font.glyph(static_cast<uint8_t>(str[i]));
-            if (g == nullptr) continue;
+            if (g == nullptr)
+                continue;
             for (uint32_t row = 0; row < gh; row++) {
                 uint8_t bits = g[row];
                 for (uint32_t col = 0; col < gw; col++) {
@@ -128,19 +136,20 @@ public:
         }
     }
 
-    uint32_t width()  const { return width_; }
+    uint32_t width() const { return width_; }
     uint32_t height() const { return height_; }
 
     uint32_t pixel(uint32_t x, uint32_t y) const {
-        if (x >= width_ || y >= height_) return 0xDEAD;
+        if (x >= width_ || y >= height_)
+            return 0xDEAD;
         return back_buf_[y * width_ + x];
     }
 
 private:
     std::vector<uint32_t> back_buf_;
-    uint32_t width_  = 0;
-    uint32_t height_ = 0;
-    uint32_t pitch_  = 0;
+    uint32_t              width_  = 0;
+    uint32_t              height_ = 0;
+    uint32_t              pitch_  = 0;
 };
 
 // ============================================================
@@ -149,11 +158,11 @@ private:
 
 class MockWindow {
 public:
-    static constexpr uint32_t TITLE_BAR_HEIGHT = 20;
+    static constexpr uint32_t TITLE_BAR_HEIGHT  = 20;
     static constexpr uint32_t CLOSE_BUTTON_SIZE = 14;
-    static constexpr uint32_t TITLE_MAX_LEN    = 63;
-    static constexpr uint32_t DEFAULT_WIDTH    = 320;
-    static constexpr uint32_t DEFAULT_HEIGHT   = 240;
+    static constexpr uint32_t TITLE_MAX_LEN     = 63;
+    static constexpr uint32_t DEFAULT_WIDTH     = 320;
+    static constexpr uint32_t DEFAULT_HEIGHT    = 240;
 
     static constexpr uint32_t COLOR_TITLE_BG     = 0x00336699;
     static constexpr uint32_t COLOR_TITLE_TEXT   = 0x00FFFFFF;
@@ -163,13 +172,11 @@ public:
 
     static uint32_t next_id_;
 
-    MockWindow(const char* title = "Untitled",
-               int32_t x = 0, int32_t y = 0,
-               uint32_t w = DEFAULT_WIDTH,
-               uint32_t h = DEFAULT_HEIGHT)
-        : id_(next_id_++), x_(x), y_(y), w_(w), h_(h),
-          visible_(true), focused_(false) {
-        for (uint32_t i = 0; i <= TITLE_MAX_LEN; i++) title_[i] = '\0';
+    MockWindow(const char* title = "Untitled", int32_t x = 0, int32_t y = 0,
+               uint32_t w = DEFAULT_WIDTH, uint32_t h = DEFAULT_HEIGHT)
+        : id_(next_id_++), x_(x), y_(y), w_(w), h_(h), visible_(true), focused_(false) {
+        for (uint32_t i = 0; i <= TITLE_MAX_LEN; i++)
+            title_[i] = '\0';
         if (title != nullptr) {
             uint32_t i = 0;
             while (i < TITLE_MAX_LEN && title[i] != '\0') {
@@ -187,23 +194,29 @@ public:
         canvas_.draw_text(4, text_y, title_, COLOR_TITLE_TEXT, font);
         uint32_t cb_x = w_ - CLOSE_BUTTON_SIZE - 3;
         uint32_t cb_y = (TITLE_BAR_HEIGHT - CLOSE_BUTTON_SIZE) / 2;
-        canvas_.draw_rect(cb_x, cb_y, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE,
-                          COLOR_CLOSE_BUTTON);
+        canvas_.draw_rect(cb_x, cb_y, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, COLOR_CLOSE_BUTTON);
     }
 
-    void draw_content() {
-        canvas_.draw_rect(0, TITLE_BAR_HEIGHT, w_, h_, COLOR_CONTENT_BG);
-    }
+    void draw_content() { canvas_.draw_rect(0, TITLE_BAR_HEIGHT, w_, h_, COLOR_CONTENT_BG); }
 
     void blit_to(MockCanvas& dst) {
-        if (!visible_) return;
+        if (!visible_)
+            return;
         dst.blit(x_, y_, canvas_, 0, 0, w_, total_height());
     }
 
-    void set_position(int32_t x, int32_t y) { x_ = x; y_ = y; }
-    void resize(uint32_t w, uint32_t h) { w_ = w; h_ = h; allocate_canvas(); }
+    void set_position(int32_t x, int32_t y) {
+        x_ = x;
+        y_ = y;
+    }
+    void resize(uint32_t w, uint32_t h) {
+        w_ = w;
+        h_ = h;
+        allocate_canvas();
+    }
     void set_title(const char* title) {
-        for (uint32_t i = 0; i <= TITLE_MAX_LEN; i++) title_[i] = '\0';
+        for (uint32_t i = 0; i <= TITLE_MAX_LEN; i++)
+            title_[i] = '\0';
         if (title != nullptr) {
             uint32_t i = 0;
             while (i < TITLE_MAX_LEN && title[i] != '\0') {
@@ -216,26 +229,24 @@ public:
     bool is_close_button_hit(int32_t mx, int32_t my) const {
         int32_t cb_x = x_ + static_cast<int32_t>(w_) - CLOSE_BUTTON_SIZE - 3;
         int32_t cb_y = y_ + static_cast<int32_t>((TITLE_BAR_HEIGHT - CLOSE_BUTTON_SIZE) / 2);
-        return mx >= cb_x && mx < cb_x + static_cast<int32_t>(CLOSE_BUTTON_SIZE)
-            && my >= cb_y && my < cb_y + static_cast<int32_t>(CLOSE_BUTTON_SIZE);
+        return mx >= cb_x && mx < cb_x + static_cast<int32_t>(CLOSE_BUTTON_SIZE) && my >= cb_y &&
+               my < cb_y + static_cast<int32_t>(CLOSE_BUTTON_SIZE);
     }
 
     bool contains(int32_t mx, int32_t my) const {
-        return mx >= x_
-            && mx < x_ + static_cast<int32_t>(w_)
-            && my >= y_
-            && my < y_ + static_cast<int32_t>(total_height());
+        return mx >= x_ && mx < x_ + static_cast<int32_t>(w_) && my >= y_ &&
+               my < y_ + static_cast<int32_t>(total_height());
     }
 
-    uint32_t id() const { return id_; }
-    int32_t  x() const { return x_; }
-    int32_t  y() const { return y_; }
-    uint32_t width() const { return w_; }
-    uint32_t height() const { return h_; }
-    bool     visible() const { return visible_; }
-    bool     focused() const { return focused_; }
+    uint32_t    id() const { return id_; }
+    int32_t     x() const { return x_; }
+    int32_t     y() const { return y_; }
+    uint32_t    width() const { return w_; }
+    uint32_t    height() const { return h_; }
+    bool        visible() const { return visible_; }
+    bool        focused() const { return focused_; }
     const char* title() const { return title_; }
-    uint32_t total_height() const { return h_ + TITLE_BAR_HEIGHT; }
+    uint32_t    total_height() const { return h_ + TITLE_BAR_HEIGHT; }
 
     void set_visible(bool v) { visible_ = v; }
     void set_focused(bool f) { focused_ = f; }
@@ -250,15 +261,15 @@ private:
         canvas_.init(w_, total_h);
     }
 
-    uint32_t id_;
-    int32_t  x_;
-    int32_t  y_;
-    uint32_t w_;
-    uint32_t h_;
-    char     title_[TITLE_MAX_LEN + 1];
+    uint32_t   id_;
+    int32_t    x_;
+    int32_t    y_;
+    uint32_t   w_;
+    uint32_t   h_;
+    char       title_[TITLE_MAX_LEN + 1];
     MockCanvas canvas_;
-    bool     visible_;
-    bool     focused_;
+    bool       visible_;
+    bool       focused_;
 };
 
 uint32_t MockWindow::next_id_ = 1;
@@ -356,7 +367,8 @@ TEST("window: title truncated to TITLE_MAX_LEN") {
     MockWindow::reset_id();
     // TITLE_MAX_LEN = 63, so a 70-char title should be truncated to 63 chars
     char long_title[70];
-    for (int i = 0; i < 69; i++) long_title[i] = 'X';
+    for (int i = 0; i < 69; i++)
+        long_title[i] = 'X';
     long_title[69] = '\0';
 
     MockWindow w(long_title, 0, 0, 100, 100);
@@ -412,7 +424,8 @@ TEST("window: set_title truncates long title") {
     MockWindow w("Short");
 
     char long_title[70];
-    for (int i = 0; i < 69; i++) long_title[i] = 'Y';
+    for (int i = 0; i < 69; i++)
+        long_title[i] = 'Y';
     long_title[69] = '\0';
     w.set_title(long_title);
     ASSERT_EQ(strlen(w.title()), 63u);
@@ -503,9 +516,9 @@ TEST("window: close button hit with non-zero position") {
     // cb_x = 50 + 200 - 14 - 3 = 233
     // cb_y = 80 + (20 - 14) / 2 = 83
     ASSERT_TRUE(w.is_close_button_hit(233, 83));
-    ASSERT_TRUE(w.is_close_button_hit(246, 96));  // bottom-right corner
-    ASSERT_FALSE(w.is_close_button_hit(232, 83)); // one pixel left of button
-    ASSERT_FALSE(w.is_close_button_hit(233, 82)); // one pixel above button
+    ASSERT_TRUE(w.is_close_button_hit(246, 96));   // bottom-right corner
+    ASSERT_FALSE(w.is_close_button_hit(232, 83));  // one pixel left of button
+    ASSERT_FALSE(w.is_close_button_hit(233, 82));  // one pixel above button
 }
 
 // ============================================================
@@ -563,7 +576,7 @@ TEST("window: contains includes title bar area") {
 
 TEST("window: draw_title_bar fills title bar with steel blue") {
     MockWindow::reset_id();
-    MockWindow w("Test", 0, 0, 100, 50);
+    MockWindow  w("Test", 0, 0, 100, 50);
     MockPSFFont font = make_test_font();
 
     w.draw_title_bar(font);
@@ -577,7 +590,7 @@ TEST("window: draw_title_bar fills title bar with steel blue") {
 
 TEST("window: draw_title_bar draws border at bottom of title bar") {
     MockWindow::reset_id();
-    MockWindow w("Test", 0, 0, 100, 50);
+    MockWindow  w("Test", 0, 0, 100, 50);
     MockPSFFont font = make_test_font();
 
     w.draw_title_bar(font);
@@ -591,7 +604,7 @@ TEST("window: draw_title_bar draws border at bottom of title bar") {
 
 TEST("window: draw_title_bar draws close button in red") {
     MockWindow::reset_id();
-    MockWindow w("Test", 0, 0, 100, 50);
+    MockWindow  w("Test", 0, 0, 100, 50);
     MockPSFFont font = make_test_font();
 
     w.draw_title_bar(font);
@@ -605,7 +618,7 @@ TEST("window: draw_title_bar draws close button in red") {
 
 TEST("window: draw_title_bar does not draw in content area") {
     MockWindow::reset_id();
-    MockWindow w("Test", 0, 0, 100, 50);
+    MockWindow  w("Test", 0, 0, 100, 50);
     MockPSFFont font = make_test_font();
 
     w.draw_title_bar(font);
@@ -651,7 +664,7 @@ TEST("window: draw_content does not overwrite title bar") {
 
 TEST("window: blit_to copies window to destination canvas") {
     MockWindow::reset_id();
-    MockWindow w("Test", 10, 10, 50, 30);
+    MockWindow  w("Test", 10, 10, 50, 30);
     MockPSFFont font = make_test_font();
 
     w.draw_title_bar(font);
@@ -670,7 +683,7 @@ TEST("window: blit_to copies window to destination canvas") {
 
 TEST("window: blit_to does nothing when invisible") {
     MockWindow::reset_id();
-    MockWindow w("Test", 0, 0, 50, 30);
+    MockWindow  w("Test", 0, 0, 50, 30);
     MockPSFFont font = make_test_font();
 
     w.draw_title_bar(font);
@@ -688,7 +701,7 @@ TEST("window: blit_to does nothing when invisible") {
 
 TEST("window: blit_to places window at correct screen position") {
     MockWindow::reset_id();
-    MockWindow w("Test", 50, 60, 40, 20);
+    MockWindow  w("Test", 50, 60, 40, 20);
     MockPSFFont font = make_test_font();
 
     w.draw_content();

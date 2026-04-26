@@ -18,15 +18,14 @@
  *   - Scheduler initialised
  */
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "big_kernel_test.h"
-
-#include "kernel/proc/sync.hpp"
+#include "kernel/proc/per_cpu.hpp"
 #include "kernel/proc/process.hpp"
 #include "kernel/proc/scheduler.hpp"
-#include "kernel/proc/per_cpu.hpp"
+#include "kernel/proc/sync.hpp"
 
 using cinux::proc::Spinlock;
 using cinux::proc::Mutex;
@@ -54,7 +53,7 @@ void test_basic_save_restore() {
     {
         InterruptGuard guard;
         // IF should be cleared (interrupts disabled)
-        uint64_t flags_during;
+        uint64_t       flags_during;
         __asm__ volatile("pushfq; popq %0" : "=rm"(flags_during));
         TEST_ASSERT_FALSE((flags_during & 0x200) != 0);
     }
@@ -75,14 +74,14 @@ void test_nested_guard() {
     {
         InterruptGuard outer;
         // IF cleared
-        uint64_t f1;
+        uint64_t       f1;
         __asm__ volatile("pushfq; popq %0" : "=rm"(f1));
         TEST_ASSERT_FALSE((f1 & 0x200) != 0);
 
         {
             InterruptGuard inner;
             // IF still cleared (nesting correctly saves disabled state)
-            uint64_t f2;
+            uint64_t       f2;
             __asm__ volatile("pushfq; popq %0" : "=rm"(f2));
             TEST_ASSERT_FALSE((f2 & 0x200) != 0);
         }
@@ -163,7 +162,7 @@ void test_preserves_if_when_disabled() {
     {
         InterruptGuard guard;
         // IF should still be 0
-        uint64_t f;
+        uint64_t       f;
         __asm__ volatile("pushfq; popq %0" : "=rm"(f));
         TEST_ASSERT_FALSE((f & 0x200) != 0);
     }
@@ -186,25 +185,19 @@ void test_preserves_if_when_disabled() {
 namespace test_concurrent_spinlock {
 
 static volatile int shared_counter = 0;
-static Spinlock test_lock;
+static Spinlock     test_lock;
 
 void test_three_tasks_mutual_exclusion() {
     Scheduler::init();
     shared_counter = 0;
 
     // Simulate 3 tasks cooperatively accessing shared state
-    Task* t1 = TaskBuilder()
-        .set_entry(test_interrupt_guard::dummy_entry)
-        .set_name("lock_t1")
-        .build();
-    Task* t2 = TaskBuilder()
-        .set_entry(test_interrupt_guard::dummy_entry)
-        .set_name("lock_t2")
-        .build();
-    Task* t3 = TaskBuilder()
-        .set_entry(test_interrupt_guard::dummy_entry)
-        .set_name("lock_t3")
-        .build();
+    Task* t1 =
+        TaskBuilder().set_entry(test_interrupt_guard::dummy_entry).set_name("lock_t1").build();
+    Task* t2 =
+        TaskBuilder().set_entry(test_interrupt_guard::dummy_entry).set_name("lock_t2").build();
+    Task* t3 =
+        TaskBuilder().set_entry(test_interrupt_guard::dummy_entry).set_name("lock_t3").build();
     TEST_ASSERT_NOT_NULL(t1);
     TEST_ASSERT_NOT_NULL(t2);
     TEST_ASSERT_NOT_NULL(t3);
@@ -240,14 +233,10 @@ void test_irq_guard_three_tasks() {
     Scheduler::init();
     shared_counter = 0;
 
-    Task* t1 = TaskBuilder()
-        .set_entry(test_interrupt_guard::dummy_entry)
-        .set_name("irq_t1")
-        .build();
-    Task* t2 = TaskBuilder()
-        .set_entry(test_interrupt_guard::dummy_entry)
-        .set_name("irq_t2")
-        .build();
+    Task* t1 =
+        TaskBuilder().set_entry(test_interrupt_guard::dummy_entry).set_name("irq_t1").build();
+    Task* t2 =
+        TaskBuilder().set_entry(test_interrupt_guard::dummy_entry).set_name("irq_t2").build();
     TEST_ASSERT_NOT_NULL(t1);
     TEST_ASSERT_NOT_NULL(t2);
 
@@ -287,10 +276,8 @@ void test_concurrent_add_remove() {
         name[0] = 'c';
         name[1] = static_cast<char>('0' + i);
         name[2] = '\0';
-        tasks[i] = TaskBuilder()
-            .set_entry(test_interrupt_guard::dummy_entry)
-            .set_name(name)
-            .build();
+        tasks[i] =
+            TaskBuilder().set_entry(test_interrupt_guard::dummy_entry).set_name(name).build();
         TEST_ASSERT_NOT_NULL(tasks[i]);
     }
 
@@ -298,27 +285,20 @@ void test_concurrent_add_remove() {
     Scheduler::add_task(tasks[1]);
     Scheduler::add_task(tasks[2]);
 
-    TEST_ASSERT_EQ(static_cast<int>(tasks[0]->state),
-                   static_cast<int>(TaskState::Ready));
-    TEST_ASSERT_EQ(static_cast<int>(tasks[1]->state),
-                   static_cast<int>(TaskState::Ready));
-    TEST_ASSERT_EQ(static_cast<int>(tasks[2]->state),
-                   static_cast<int>(TaskState::Ready));
+    TEST_ASSERT_EQ(static_cast<int>(tasks[0]->state), static_cast<int>(TaskState::Ready));
+    TEST_ASSERT_EQ(static_cast<int>(tasks[1]->state), static_cast<int>(TaskState::Ready));
+    TEST_ASSERT_EQ(static_cast<int>(tasks[2]->state), static_cast<int>(TaskState::Ready));
 
     Scheduler::remove_task(tasks[1]);
-    TEST_ASSERT_EQ(static_cast<int>(tasks[1]->state),
-                   static_cast<int>(TaskState::Dead));
+    TEST_ASSERT_EQ(static_cast<int>(tasks[1]->state), static_cast<int>(TaskState::Dead));
 
     Scheduler::add_task(tasks[3]);
     Scheduler::add_task(tasks[4]);
     Scheduler::add_task(tasks[5]);
 
-    TEST_ASSERT_EQ(static_cast<int>(tasks[3]->state),
-                   static_cast<int>(TaskState::Ready));
-    TEST_ASSERT_EQ(static_cast<int>(tasks[4]->state),
-                   static_cast<int>(TaskState::Ready));
-    TEST_ASSERT_EQ(static_cast<int>(tasks[5]->state),
-                   static_cast<int>(TaskState::Ready));
+    TEST_ASSERT_EQ(static_cast<int>(tasks[3]->state), static_cast<int>(TaskState::Ready));
+    TEST_ASSERT_EQ(static_cast<int>(tasks[4]->state), static_cast<int>(TaskState::Ready));
+    TEST_ASSERT_EQ(static_cast<int>(tasks[5]->state), static_cast<int>(TaskState::Ready));
 
     Scheduler::remove_task(tasks[0]);
     Scheduler::remove_task(tasks[2]);
@@ -327,22 +307,15 @@ void test_concurrent_add_remove() {
     Scheduler::remove_task(tasks[5]);
 
     for (int i = 0; i < 6; i++) {
-        TEST_ASSERT_EQ(static_cast<int>(tasks[i]->state),
-                       static_cast<int>(TaskState::Dead));
+        TEST_ASSERT_EQ(static_cast<int>(tasks[i]->state), static_cast<int>(TaskState::Dead));
     }
 }
 
 void test_concurrent_block_unblock() {
     Scheduler::init();
 
-    Task* t1 = TaskBuilder()
-        .set_entry(test_interrupt_guard::dummy_entry)
-        .set_name("cb_1")
-        .build();
-    Task* t2 = TaskBuilder()
-        .set_entry(test_interrupt_guard::dummy_entry)
-        .set_name("cb_2")
-        .build();
+    Task* t1 = TaskBuilder().set_entry(test_interrupt_guard::dummy_entry).set_name("cb_1").build();
+    Task* t2 = TaskBuilder().set_entry(test_interrupt_guard::dummy_entry).set_name("cb_2").build();
     TEST_ASSERT_NOT_NULL(t1);
     TEST_ASSERT_NOT_NULL(t2);
 
@@ -350,20 +323,16 @@ void test_concurrent_block_unblock() {
     Scheduler::add_task(t2);
 
     Scheduler::block(t1, "test");
-    TEST_ASSERT_EQ(static_cast<int>(t1->state),
-                   static_cast<int>(TaskState::Blocked));
+    TEST_ASSERT_EQ(static_cast<int>(t1->state), static_cast<int>(TaskState::Blocked));
 
     Scheduler::block(t2, "test");
-    TEST_ASSERT_EQ(static_cast<int>(t2->state),
-                   static_cast<int>(TaskState::Blocked));
+    TEST_ASSERT_EQ(static_cast<int>(t2->state), static_cast<int>(TaskState::Blocked));
 
     Scheduler::unblock(t1);
-    TEST_ASSERT_EQ(static_cast<int>(t1->state),
-                   static_cast<int>(TaskState::Ready));
+    TEST_ASSERT_EQ(static_cast<int>(t1->state), static_cast<int>(TaskState::Ready));
 
     Scheduler::unblock(t2);
-    TEST_ASSERT_EQ(static_cast<int>(t2->state),
-                   static_cast<int>(TaskState::Ready));
+    TEST_ASSERT_EQ(static_cast<int>(t2->state), static_cast<int>(TaskState::Ready));
 
     Scheduler::remove_task(t1);
     Scheduler::remove_task(t2);

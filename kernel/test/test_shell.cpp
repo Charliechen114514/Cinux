@@ -27,8 +27,8 @@
 #include <stdint.h>
 
 #include "big_kernel_test.h"
-#include "kernel/syscall/syscall_nums.hpp"
 #include "kernel/syscall/sys_write.hpp"
+#include "kernel/syscall/syscall_nums.hpp"
 
 using cinux::syscall::SyscallNr;
 using cinux::syscall::sys_write;
@@ -84,7 +84,7 @@ int k_strcmp(const char* a, const char* b) {
 
 // Freestanding memset/memcpy/memcmp for kernel test context
 void* k_memset(void* dest, int c, size_t n) {
-    auto* d = static_cast<uint8_t*>(dest);
+    auto*         d = static_cast<uint8_t*>(dest);
     const uint8_t v = static_cast<uint8_t>(c);
     for (size_t i = 0; i < n; ++i) {
         d[i] = v;
@@ -93,7 +93,7 @@ void* k_memset(void* dest, int c, size_t n) {
 }
 
 void* k_memcpy(void* dest, const void* src, size_t n) {
-    auto* d = static_cast<uint8_t*>(dest);
+    auto*       d = static_cast<uint8_t*>(dest);
     const auto* s = static_cast<const uint8_t*>(src);
     for (size_t i = 0; i < n; ++i) {
         d[i] = s[i];
@@ -157,16 +157,16 @@ void test_strlen_with_spaces() {
 namespace test_tokenizer {
 
 void test_single_word() {
-    char line[] = "hello";
-    char* argv[MAX_TOKENS];
+    char   line[] = "hello";
+    char*  argv[MAX_TOKENS];
     size_t argc = tokenize(line, argv, MAX_TOKENS);
     TEST_ASSERT_EQ(argc, 1ULL);
     TEST_ASSERT_TRUE(k_strcmp(argv[0], "hello") == 0);
 }
 
 void test_two_words() {
-    char line[] = "echo hello";
-    char* argv[MAX_TOKENS];
+    char   line[] = "echo hello";
+    char*  argv[MAX_TOKENS];
     size_t argc = tokenize(line, argv, MAX_TOKENS);
     TEST_ASSERT_EQ(argc, 2ULL);
     TEST_ASSERT_TRUE(k_strcmp(argv[0], "echo") == 0);
@@ -174,8 +174,8 @@ void test_two_words() {
 }
 
 void test_multiple_spaces() {
-    char line[] = "echo   hello   world";
-    char* argv[MAX_TOKENS];
+    char   line[] = "echo   hello   world";
+    char*  argv[MAX_TOKENS];
     size_t argc = tokenize(line, argv, MAX_TOKENS);
     TEST_ASSERT_EQ(argc, 3ULL);
     TEST_ASSERT_TRUE(k_strcmp(argv[0], "echo") == 0);
@@ -184,8 +184,8 @@ void test_multiple_spaces() {
 }
 
 void test_leading_trailing_whitespace() {
-    char line[] = "   echo hello   ";
-    char* argv[MAX_TOKENS];
+    char   line[] = "   echo hello   ";
+    char*  argv[MAX_TOKENS];
     size_t argc = tokenize(line, argv, MAX_TOKENS);
     TEST_ASSERT_EQ(argc, 2ULL);
     TEST_ASSERT_TRUE(k_strcmp(argv[0], "echo") == 0);
@@ -193,22 +193,22 @@ void test_leading_trailing_whitespace() {
 }
 
 void test_empty_string() {
-    char line[] = "";
-    char* argv[MAX_TOKENS];
+    char   line[] = "";
+    char*  argv[MAX_TOKENS];
     size_t argc = tokenize(line, argv, MAX_TOKENS);
     TEST_ASSERT_EQ(argc, 0ULL);
 }
 
 void test_only_whitespace() {
-    char line[] = "   \t  ";
-    char* argv[MAX_TOKENS];
+    char   line[] = "   \t  ";
+    char*  argv[MAX_TOKENS];
     size_t argc = tokenize(line, argv, MAX_TOKENS);
     TEST_ASSERT_EQ(argc, 0ULL);
 }
 
 void test_tab_separated() {
-    char line[] = "echo\thello\tworld";
-    char* argv[MAX_TOKENS];
+    char   line[] = "echo\thello\tworld";
+    char*  argv[MAX_TOKENS];
     size_t argc = tokenize(line, argv, MAX_TOKENS);
     TEST_ASSERT_EQ(argc, 3ULL);
     TEST_ASSERT_TRUE(k_strcmp(argv[0], "echo") == 0);
@@ -217,8 +217,8 @@ void test_tab_separated() {
 }
 
 void test_max_tokens_limit() {
-    char line[] = "a b c d e f g h i j k l m n o p q";
-    char* argv[4];
+    char   line[] = "a b c d e f g h i j k l m n o p q";
+    char*  argv[4];
     size_t argc = tokenize(line, argv, 4);
     TEST_ASSERT_EQ(argc, 4ULL);
     TEST_ASSERT_TRUE(k_strcmp(argv[0], "a") == 0);
@@ -290,7 +290,7 @@ void cmd_test2(int argc, char** argv) {
 
 void test_dispatch_finds_registered_command() {
     CmdEntry cmds[] = {
-        {"test",  cmd_test},
+        {"test", cmd_test},
         {"test2", cmd_test2},
         {nullptr, nullptr},
     };
@@ -335,8 +335,8 @@ void test_dispatch_unknown_not_found() {
 
 void test_dispatch_table_entry_count() {
     CmdEntry cmds[] = {
-        {"echo",  cmd_test},
-        {"help",  cmd_test2},
+        {"echo", cmd_test},
+        {"help", cmd_test2},
         {"clear", cmd_test},
         {nullptr, nullptr},
     };
@@ -366,15 +366,15 @@ void test_memset_fill() {
 
 void test_memset_zero_length() {
     uint8_t buf[4] = {1, 2, 3, 4};
-    size_t zero = 0;
+    size_t  zero   = 0;
     k_memset(buf, 0xFF, zero);
     TEST_ASSERT_EQ(buf[0], 1);
     TEST_ASSERT_EQ(buf[1], 2);
 }
 
 void test_memcpy_round_trip() {
-    const uint8_t src[] = {1, 2, 3, 4, 5};
-    uint8_t dst[5] = {};
+    const uint8_t src[]  = {1, 2, 3, 4, 5};
+    uint8_t       dst[5] = {};
     k_memcpy(dst, src, sizeof(src));
     for (size_t i = 0; i < sizeof(src); ++i) {
         TEST_ASSERT_EQ(dst[i], src[i]);

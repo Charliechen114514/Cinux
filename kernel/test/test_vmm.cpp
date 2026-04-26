@@ -17,7 +17,6 @@
 #include <stdint.h>
 
 #include "big_kernel_test.h"
-
 #include "kernel/arch/x86_64/paging.hpp"
 #include "kernel/arch/x86_64/paging_config.hpp"
 #include "kernel/mm/pmm.hpp"
@@ -72,7 +71,7 @@ namespace test_vmm_offset {
 
 void test_translate_offset() {
     uint64_t virt_base = 0x20010000ULL;
-    uint64_t phys = g_pmm.alloc_page();
+    uint64_t phys      = g_pmm.alloc_page();
     TEST_ASSERT_NE(phys, 0u);
 
     bool ok = g_vmm.map(virt_base, phys, FLAG_PRESENT | FLAG_WRITABLE);
@@ -160,7 +159,7 @@ void test_two_pages() {
 namespace test_vmm_remap {
 
 void test_remap() {
-    uint64_t virt = 0x20050000ULL;
+    uint64_t virt  = 0x20050000ULL;
     uint64_t phys1 = g_pmm.alloc_page();
     uint64_t phys2 = g_pmm.alloc_page();
     TEST_ASSERT_NE(phys1, 0u);
@@ -230,7 +229,7 @@ void test_demand_page() {
     uint64_t test_addr = 0x40000000ULL;  // 1 GB
 
     volatile uint64_t* ptr = reinterpret_cast<volatile uint64_t*>(test_addr);
-    *ptr = 0xCAFEBABEDEADC0DEULL;
+    *ptr                   = 0xCAFEBABEDEADC0DEULL;
 
     TEST_ASSERT_EQ(*ptr, 0xCAFEBABEDEADC0DEULL);
 }

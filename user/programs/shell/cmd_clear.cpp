@@ -6,8 +6,8 @@
  * screen and move the cursor to the home position.
  */
 
-#include "shell.hpp"
 #include "libc/syscall.h"
+#include "shell.hpp"
 
 void cmd_clear(int /*argc*/, char** /*argv*/) {
     // 7 bytes: ESC[2J (clear screen) + ESC[H (cursor home)

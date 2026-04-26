@@ -22,7 +22,7 @@ bool resolve_user_path(uint64_t path_virt, char* out) {
     }
 
     cinux::proc::Task* current = cinux::proc::Scheduler::current();
-    const char* cwd = (current != nullptr) ? current->cwd : "/";
+    const char*        cwd     = (current != nullptr) ? current->cwd : "/";
 
     return cinux::fs::path_resolve(cwd, path, out);
 }

@@ -6,9 +6,9 @@
  * Usage: pwd
  */
 
-#include "shell.hpp"
 #include "libc/string.hpp"
 #include "libc/syscall.h"
+#include "shell.hpp"
 
 using cinux::user::strlen;
 
@@ -21,7 +21,7 @@ void write_str(const char* s) {
 }  // anonymous namespace
 
 void cmd_pwd(int, char**) {
-    char buf[256];
+    char    buf[256];
     int64_t ret = sys_getcwd(buf, sizeof(buf));
     if (ret < 0) {
         write_str("pwd: failed to get cwd\n");

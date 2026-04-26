@@ -44,8 +44,7 @@ public:
      * @param pml4   Optional PML4 physical address; nullptr = use kernel PML4
      * @return true on success, false if PMM allocation failed
      */
-    bool map(uint64_t virt, uint64_t phys, uint64_t flags,
-             uint64_t* pml4 = nullptr);
+    bool map(uint64_t virt, uint64_t phys, uint64_t flags, uint64_t* pml4 = nullptr);
 
     /**
      * @brief Map a single 2 MB huge page
@@ -59,8 +58,7 @@ public:
      * @param pml4   Optional PML4 physical address; nullptr = use kernel PML4
      * @return true on success, false if PMM allocation failed
      */
-    bool map_2mb(uint64_t virt, uint64_t phys, uint64_t flags,
-                 uint64_t* pml4 = nullptr);
+    bool map_2mb(uint64_t virt, uint64_t phys, uint64_t flags, uint64_t* pml4 = nullptr);
 
     /**
      * @brief Unmap a single 4 KB virtual page
@@ -113,14 +111,13 @@ public:
      * @param pml4   Optional PML4 physical address; nullptr = use kernel PML4
      * @return true on success
      */
-    bool map_nolock(uint64_t virt, uint64_t phys, uint64_t flags,
-                    uint64_t* pml4 = nullptr);
+    bool map_nolock(uint64_t virt, uint64_t phys, uint64_t flags, uint64_t* pml4 = nullptr);
 
     /** Get the saved kernel PML4 physical address. */
     uint64_t kernel_pml4() const;
 
 private:
-    uint64_t kernel_pml4_{};
+    uint64_t              kernel_pml4_{};
     cinux::proc::Spinlock lock_;
 };
 

@@ -8,6 +8,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "kernel/arch/x86_64/syscall.hpp"
 
 namespace cinux::syscall {
@@ -17,7 +18,6 @@ namespace cinux::syscall {
  *
  * @return The PPID of the current task, or -1 if no task is running
  */
-int64_t sys_getppid(uint64_t, uint64_t, uint64_t,
-                    uint64_t, uint64_t, uint64_t);
+int64_t sys_getppid(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 
 }  // namespace cinux::syscall

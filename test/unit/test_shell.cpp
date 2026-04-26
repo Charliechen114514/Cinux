@@ -27,9 +27,9 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
+#    include <cstddef>
+#    include <cstdint>
+#    include <cstring>
 
 // ============================================================
 // Include the real string utility implementation
@@ -60,7 +60,7 @@ int strcmp(const char* a, const char* b) {
 }
 
 void* memset(void* dest, int c, size_t n) {
-    auto* d = static_cast<uint8_t*>(dest);
+    auto*         d = static_cast<uint8_t*>(dest);
     const uint8_t v = static_cast<uint8_t>(c);
     for (size_t i = 0; i < n; ++i) {
         d[i] = v;
@@ -69,7 +69,7 @@ void* memset(void* dest, int c, size_t n) {
 }
 
 void* memcpy(void* dest, const void* src, size_t n) {
-    auto* d = static_cast<uint8_t*>(dest);
+    auto*       d = static_cast<uint8_t*>(dest);
     const auto* s = static_cast<const uint8_t*>(src);
     for (size_t i = 0; i < n; ++i) {
         d[i] = s[i];
@@ -98,8 +98,8 @@ namespace mock {
 
 // Capture buffer for sys_write output
 constexpr size_t CAPTURE_SIZE = 8192;
-char write_capture[CAPTURE_SIZE];
-size_t write_capture_len = 0;
+char             write_capture[CAPTURE_SIZE];
+size_t           write_capture_len = 0;
 
 void reset_capture() {
     std::memset(write_capture, 0, sizeof(write_capture));
@@ -125,7 +125,7 @@ int64_t sys_write(int fd, const void* buf, size_t count) {
 }
 
 // Simulated input buffer for sys_read mock
-char read_buffer[1024];
+char   read_buffer[1024];
 size_t read_pos = 0;
 size_t read_len = 0;
 
@@ -136,8 +136,8 @@ void set_read_input(const char* input) {
     }
     std::memcpy(read_buffer, input, slen);
     read_buffer[slen] = '\0';
-    read_pos = 0;
-    read_len = slen;
+    read_pos          = 0;
+    read_len          = slen;
 }
 
 // Mock sys_read: returns one character at a time from read_buffer
@@ -149,7 +149,7 @@ int64_t sys_read(int /*fd*/, void* buf, size_t count) {
         return 0;
     }
     auto* out = static_cast<char*>(buf);
-    *out = read_buffer[read_pos++];
+    *out      = read_buffer[read_pos++];
     return 1;
 }
 
@@ -163,7 +163,7 @@ int64_t sys_read(int /*fd*/, void* buf, size_t count) {
 namespace shell_test {
 
 // Mirror of constants from main.cpp
-constexpr size_t MAX_LINE = 256;
+constexpr size_t MAX_LINE   = 256;
 constexpr size_t MAX_TOKENS = 16;
 
 // Mirror of CmdEntry from shell.hpp
@@ -206,7 +206,7 @@ size_t read_line(char* buf, size_t cap) {
     size_t pos = 0;
 
     while (pos < cap - 1) {
-        char c = 0;
+        char    c = 0;
         int64_t n = mock::sys_read(0, &c, 1);
         if (n <= 0) {
             continue;
@@ -359,7 +359,7 @@ TEST("shell_memset: fill with zero") {
 
 TEST("shell_memset: returns original pointer") {
     uint8_t buf[8];
-    void* result = cinux::user::memset(buf, 0, sizeof(buf));
+    void*   result = cinux::user::memset(buf, 0, sizeof(buf));
     ASSERT_TRUE(result == buf);
 }
 
@@ -374,8 +374,8 @@ TEST("shell_memset: single byte fill") {
 // ============================================================
 
 TEST("shell_memcpy: copies bytes correctly") {
-    const uint8_t src[] = {1, 2, 3, 4, 5};
-    uint8_t dst[5] = {};
+    const uint8_t src[]  = {1, 2, 3, 4, 5};
+    uint8_t       dst[5] = {};
     cinux::user::memcpy(dst, src, sizeof(src));
     for (size_t i = 0; i < sizeof(src); ++i) {
         ASSERT_EQ(dst[i], src[i]);
@@ -393,12 +393,12 @@ TEST("shell_memcpy: zero length does nothing") {
 TEST("shell_memcpy: returns destination pointer") {
     uint8_t dst[4];
     uint8_t src[4] = {};
-    void* result = cinux::user::memcpy(dst, src, sizeof(src));
+    void*   result = cinux::user::memcpy(dst, src, sizeof(src));
     ASSERT_TRUE(result == dst);
 }
 
 TEST("shell_memcpy: copies string data") {
-    char dst[16];
+    char        dst[16];
     const char* src = "hello world";
     cinux::user::memcpy(dst, src, 12);
     ASSERT_EQ(std::memcmp(dst, src, 12), 0);
@@ -443,16 +443,16 @@ TEST("shell_memcmp: partial comparison equal prefix") {
 // ============================================================
 
 TEST("shell_tokenize: single word") {
-    char line[] = "hello";
-    char* argv[shell_test::MAX_TOKENS];
+    char   line[] = "hello";
+    char*  argv[shell_test::MAX_TOKENS];
     size_t argc = shell_test::tokenize(line, argv, shell_test::MAX_TOKENS);
     ASSERT_EQ(argc, 1ULL);
     ASSERT_TRUE(std::strcmp(argv[0], "hello") == 0);
 }
 
 TEST("shell_tokenize: two words separated by space") {
-    char line[] = "echo hello";
-    char* argv[shell_test::MAX_TOKENS];
+    char   line[] = "echo hello";
+    char*  argv[shell_test::MAX_TOKENS];
     size_t argc = shell_test::tokenize(line, argv, shell_test::MAX_TOKENS);
     ASSERT_EQ(argc, 2ULL);
     ASSERT_TRUE(std::strcmp(argv[0], "echo") == 0);
@@ -460,8 +460,8 @@ TEST("shell_tokenize: two words separated by space") {
 }
 
 TEST("shell_tokenize: multiple spaces between words") {
-    char line[] = "echo   hello   world";
-    char* argv[shell_test::MAX_TOKENS];
+    char   line[] = "echo   hello   world";
+    char*  argv[shell_test::MAX_TOKENS];
     size_t argc = shell_test::tokenize(line, argv, shell_test::MAX_TOKENS);
     ASSERT_EQ(argc, 3ULL);
     ASSERT_TRUE(std::strcmp(argv[0], "echo") == 0);
@@ -470,37 +470,37 @@ TEST("shell_tokenize: multiple spaces between words") {
 }
 
 TEST("shell_tokenize: leading whitespace is skipped") {
-    char line[] = "   echo hello";
-    char* argv[shell_test::MAX_TOKENS];
+    char   line[] = "   echo hello";
+    char*  argv[shell_test::MAX_TOKENS];
     size_t argc = shell_test::tokenize(line, argv, shell_test::MAX_TOKENS);
     ASSERT_EQ(argc, 2ULL);
     ASSERT_TRUE(std::strcmp(argv[0], "echo") == 0);
 }
 
 TEST("shell_tokenize: trailing whitespace produces no extra token") {
-    char line[] = "echo hello   ";
-    char* argv[shell_test::MAX_TOKENS];
+    char   line[] = "echo hello   ";
+    char*  argv[shell_test::MAX_TOKENS];
     size_t argc = shell_test::tokenize(line, argv, shell_test::MAX_TOKENS);
     ASSERT_EQ(argc, 2ULL);
 }
 
 TEST("shell_tokenize: empty string produces zero tokens") {
-    char line[] = "";
-    char* argv[shell_test::MAX_TOKENS];
+    char   line[] = "";
+    char*  argv[shell_test::MAX_TOKENS];
     size_t argc = shell_test::tokenize(line, argv, shell_test::MAX_TOKENS);
     ASSERT_EQ(argc, 0ULL);
 }
 
 TEST("shell_tokenize: only whitespace produces zero tokens") {
-    char line[] = "   \t  \t  ";
-    char* argv[shell_test::MAX_TOKENS];
+    char   line[] = "   \t  \t  ";
+    char*  argv[shell_test::MAX_TOKENS];
     size_t argc = shell_test::tokenize(line, argv, shell_test::MAX_TOKENS);
     ASSERT_EQ(argc, 0ULL);
 }
 
 TEST("shell_tokenize: tab separation") {
-    char line[] = "echo\thello";
-    char* argv[shell_test::MAX_TOKENS];
+    char   line[] = "echo\thello";
+    char*  argv[shell_test::MAX_TOKENS];
     size_t argc = shell_test::tokenize(line, argv, shell_test::MAX_TOKENS);
     ASSERT_EQ(argc, 2ULL);
     ASSERT_TRUE(std::strcmp(argv[0], "echo") == 0);
@@ -508,8 +508,8 @@ TEST("shell_tokenize: tab separation") {
 }
 
 TEST("shell_tokenize: mixed spaces and tabs") {
-    char line[] = " \t echo \t hello \t world \t ";
-    char* argv[shell_test::MAX_TOKENS];
+    char   line[] = " \t echo \t hello \t world \t ";
+    char*  argv[shell_test::MAX_TOKENS];
     size_t argc = shell_test::tokenize(line, argv, shell_test::MAX_TOKENS);
     ASSERT_EQ(argc, 3ULL);
     ASSERT_TRUE(std::strcmp(argv[0], "echo") == 0);
@@ -518,8 +518,8 @@ TEST("shell_tokenize: mixed spaces and tabs") {
 }
 
 TEST("shell_tokenize: max tokens limit respected") {
-    char line[] = "a b c d e f g h i j k l m n o p q";
-    char* argv[4];  // Only allow 4 tokens
+    char   line[] = "a b c d e f g h i j k l m n o p q";
+    char*  argv[4];  // Only allow 4 tokens
     size_t argc = shell_test::tokenize(line, argv, 4);
     ASSERT_EQ(argc, 4ULL);
     ASSERT_TRUE(std::strcmp(argv[0], "a") == 0);
@@ -529,8 +529,8 @@ TEST("shell_tokenize: max tokens limit respected") {
 }
 
 TEST("shell_tokenize: single character tokens") {
-    char line[] = "a b c";
-    char* argv[shell_test::MAX_TOKENS];
+    char   line[] = "a b c";
+    char*  argv[shell_test::MAX_TOKENS];
     size_t argc = shell_test::tokenize(line, argv, shell_test::MAX_TOKENS);
     ASSERT_EQ(argc, 3ULL);
     ASSERT_TRUE(std::strcmp(argv[0], "a") == 0);
@@ -544,14 +544,14 @@ TEST("shell_tokenize: single character tokens") {
 
 TEST("shell_dispatch: lookup echo command") {
     shell_test::CmdEntry builtin_cmds[] = {
-        {"echo",  shell_test::cmd_echo},
-        {"help",  shell_test::cmd_help},
+        {"echo", shell_test::cmd_echo},
+        {"help", shell_test::cmd_help},
         {"clear", shell_test::cmd_clear},
         {nullptr, nullptr},
     };
 
     const char* query = "echo";
-    bool found = false;
+    bool        found = false;
     for (int i = 0; builtin_cmds[i].name != nullptr; ++i) {
         if (cinux::user::strcmp(query, builtin_cmds[i].name) == 0) {
             found = true;
@@ -563,14 +563,14 @@ TEST("shell_dispatch: lookup echo command") {
 
 TEST("shell_dispatch: lookup help command") {
     shell_test::CmdEntry builtin_cmds[] = {
-        {"echo",  shell_test::cmd_echo},
-        {"help",  shell_test::cmd_help},
+        {"echo", shell_test::cmd_echo},
+        {"help", shell_test::cmd_help},
         {"clear", shell_test::cmd_clear},
         {nullptr, nullptr},
     };
 
     const char* query = "help";
-    bool found = false;
+    bool        found = false;
     for (int i = 0; builtin_cmds[i].name != nullptr; ++i) {
         if (cinux::user::strcmp(query, builtin_cmds[i].name) == 0) {
             found = true;
@@ -582,14 +582,14 @@ TEST("shell_dispatch: lookup help command") {
 
 TEST("shell_dispatch: lookup clear command") {
     shell_test::CmdEntry builtin_cmds[] = {
-        {"echo",  shell_test::cmd_echo},
-        {"help",  shell_test::cmd_help},
+        {"echo", shell_test::cmd_echo},
+        {"help", shell_test::cmd_help},
         {"clear", shell_test::cmd_clear},
         {nullptr, nullptr},
     };
 
     const char* query = "clear";
-    bool found = false;
+    bool        found = false;
     for (int i = 0; builtin_cmds[i].name != nullptr; ++i) {
         if (cinux::user::strcmp(query, builtin_cmds[i].name) == 0) {
             found = true;
@@ -601,14 +601,14 @@ TEST("shell_dispatch: lookup clear command") {
 
 TEST("shell_dispatch: unknown command not found") {
     shell_test::CmdEntry builtin_cmds[] = {
-        {"echo",  shell_test::cmd_echo},
-        {"help",  shell_test::cmd_help},
+        {"echo", shell_test::cmd_echo},
+        {"help", shell_test::cmd_help},
         {"clear", shell_test::cmd_clear},
         {nullptr, nullptr},
     };
 
     const char* query = "foobar";
-    bool found = false;
+    bool        found = false;
     for (int i = 0; builtin_cmds[i].name != nullptr; ++i) {
         if (cinux::user::strcmp(query, builtin_cmds[i].name) == 0) {
             found = true;
@@ -620,8 +620,8 @@ TEST("shell_dispatch: unknown command not found") {
 
 TEST("shell_dispatch: sentinel-terminated iteration stops at nullptr") {
     shell_test::CmdEntry builtin_cmds[] = {
-        {"echo",  shell_test::cmd_echo},
-        {"help",  shell_test::cmd_help},
+        {"echo", shell_test::cmd_echo},
+        {"help", shell_test::cmd_help},
         {"clear", shell_test::cmd_clear},
         {nullptr, nullptr},
     };
@@ -647,12 +647,8 @@ TEST("shell_cmd_echo: single argument") {
 
 TEST("shell_cmd_echo: multiple arguments") {
     mock::reset_capture();
-    char* argv[] = {
-        const_cast<char*>("echo"),
-        const_cast<char*>("hello"),
-        const_cast<char*>("world"),
-        const_cast<char*>("foo")
-    };
+    char* argv[] = {const_cast<char*>("echo"), const_cast<char*>("hello"),
+                    const_cast<char*>("world"), const_cast<char*>("foo")};
     shell_test::cmd_echo(4, argv);
     // Should output "hello world foo\n"
     ASSERT_TRUE(std::strcmp(mock::write_capture, "hello world foo\n") == 0);
@@ -668,11 +664,7 @@ TEST("shell_cmd_echo: no arguments produces just newline") {
 
 TEST("shell_cmd_echo: two arguments produces correct spacing") {
     mock::reset_capture();
-    char* argv[] = {
-        const_cast<char*>("echo"),
-        const_cast<char*>("a"),
-        const_cast<char*>("b")
-    };
+    char* argv[] = {const_cast<char*>("echo"), const_cast<char*>("a"), const_cast<char*>("b")};
     shell_test::cmd_echo(3, argv);
     ASSERT_TRUE(std::strcmp(mock::write_capture, "a b\n") == 0);
 }
@@ -753,7 +745,10 @@ TEST("shell_read_line: backspace erases previous character") {
 
     // Type "ab" then backspace, then "c" then Enter
     // "ab\x7F" = "ab" then backspace deletes "b", then "c\n"
-    mock::set_read_input("ab" "\x7F" "c\n");
+    mock::set_read_input(
+        "ab"
+        "\x7F"
+        "c\n");
     size_t len = shell_test::read_line(buf, sizeof(buf));
 
     ASSERT_EQ(len, 2ULL);
@@ -766,7 +761,10 @@ TEST("shell_read_line: multiple backspaces") {
     char buf[shell_test::MAX_LINE];
 
     // Type "abc" then two backspaces, then "d\n"
-    mock::set_read_input("abc" "\x7F\x7F" "d\n");
+    mock::set_read_input(
+        "abc"
+        "\x7F\x7F"
+        "d\n");
     size_t len = shell_test::read_line(buf, sizeof(buf));
 
     ASSERT_EQ(len, 2ULL);
@@ -805,7 +803,7 @@ TEST("shell_read_line: backspace as \\b character") {
 TEST("shell_pipeline: echo hello world") {
     mock::reset_capture();
 
-    char line[shell_test::MAX_LINE];
+    char  line[shell_test::MAX_LINE];
     char* argv[shell_test::MAX_TOKENS];
 
     // Simulate the full shell pipeline for "echo hello world"
@@ -814,8 +812,8 @@ TEST("shell_pipeline: echo hello world") {
     ASSERT_EQ(argc, 3ULL);
 
     shell_test::CmdEntry builtin_cmds[] = {
-        {"echo",  shell_test::cmd_echo},
-        {"help",  shell_test::cmd_help},
+        {"echo", shell_test::cmd_echo},
+        {"help", shell_test::cmd_help},
         {"clear", shell_test::cmd_clear},
         {nullptr, nullptr},
     };
@@ -835,7 +833,7 @@ TEST("shell_pipeline: echo hello world") {
 TEST("shell_pipeline: help command produces expected output") {
     mock::reset_capture();
 
-    char line[shell_test::MAX_LINE];
+    char  line[shell_test::MAX_LINE];
     char* argv[shell_test::MAX_TOKENS];
 
     std::strcpy(line, "help");
@@ -843,8 +841,8 @@ TEST("shell_pipeline: help command produces expected output") {
     ASSERT_EQ(argc, 1ULL);
 
     shell_test::CmdEntry builtin_cmds[] = {
-        {"echo",  shell_test::cmd_echo},
-        {"help",  shell_test::cmd_help},
+        {"echo", shell_test::cmd_echo},
+        {"help", shell_test::cmd_help},
         {"clear", shell_test::cmd_clear},
         {nullptr, nullptr},
     };
@@ -865,7 +863,7 @@ TEST("shell_pipeline: help command produces expected output") {
 TEST("shell_pipeline: clear command produces ANSI escape") {
     mock::reset_capture();
 
-    char line[shell_test::MAX_LINE];
+    char  line[shell_test::MAX_LINE];
     char* argv[shell_test::MAX_TOKENS];
 
     std::strcpy(line, "clear");
@@ -873,8 +871,8 @@ TEST("shell_pipeline: clear command produces ANSI escape") {
     ASSERT_EQ(argc, 1ULL);
 
     shell_test::CmdEntry builtin_cmds[] = {
-        {"echo",  shell_test::cmd_echo},
-        {"help",  shell_test::cmd_help},
+        {"echo", shell_test::cmd_echo},
+        {"help", shell_test::cmd_help},
         {"clear", shell_test::cmd_clear},
         {nullptr, nullptr},
     };
@@ -894,7 +892,7 @@ TEST("shell_pipeline: clear command produces ANSI escape") {
 TEST("shell_pipeline: unknown command not found in table") {
     mock::reset_capture();
 
-    char line[shell_test::MAX_LINE];
+    char  line[shell_test::MAX_LINE];
     char* argv[shell_test::MAX_TOKENS];
 
     std::strcpy(line, "unknown_cmd");
@@ -902,8 +900,8 @@ TEST("shell_pipeline: unknown command not found in table") {
     ASSERT_EQ(argc, 1ULL);
 
     shell_test::CmdEntry builtin_cmds[] = {
-        {"echo",  shell_test::cmd_echo},
-        {"help",  shell_test::cmd_help},
+        {"echo", shell_test::cmd_echo},
+        {"help", shell_test::cmd_help},
         {"clear", shell_test::cmd_clear},
         {nullptr, nullptr},
     };
@@ -925,7 +923,7 @@ TEST("shell_pipeline: unknown command not found in table") {
 
 TEST("shell_cmd_entry: struct has name and handler fields") {
     shell_test::CmdEntry entry;
-    entry.name = "test";
+    entry.name    = "test";
     entry.handler = nullptr;
     ASSERT_TRUE(std::strcmp(entry.name, "test") == 0);
     ASSERT_NULL(entry.handler);
@@ -935,7 +933,7 @@ TEST("shell_cmd_entry: handler can be called through pointer") {
     mock::reset_capture();
 
     shell_test::CmdEntry entry;
-    entry.name = "echo";
+    entry.name    = "echo";
     entry.handler = shell_test::cmd_echo;
 
     char* argv[] = {const_cast<char*>("echo"), const_cast<char*>("test")};

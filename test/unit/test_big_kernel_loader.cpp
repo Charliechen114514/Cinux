@@ -20,14 +20,14 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
+#    include <cstddef>
+#    include <cstdint>
+#    include <cstring>
 
 // Include headers for constants and types
-#include "mini/big_kernel_loader.hpp"
-#include "mini/driver/ata.hpp"
-#include "mini/elf_loader.hpp"
+#    include "mini/big_kernel_loader.hpp"
+#    include "mini/driver/ata.hpp"
+#    include "mini/elf_loader.hpp"
 
 using namespace cinux::mini::loader;
 using namespace cinux::mini::driver::ata;
@@ -92,13 +92,13 @@ TEST("loader: big kernel byte offset on disk") {
 
 TEST("loader: big kernel after mini kernel on disk") {
     uint64_t mini_kernel_start_lba = 16;
-    uint64_t mini_kernel_sectors = 832;  // ~416KB / 512
-    uint64_t mini_kernel_end_lba = mini_kernel_start_lba + mini_kernel_sectors;
+    uint64_t mini_kernel_sectors   = 832;  // ~416KB / 512
+    uint64_t mini_kernel_end_lba   = mini_kernel_start_lba + mini_kernel_sectors;
     ASSERT_GE(BIG_KERNEL_LBA, mini_kernel_end_lba);
 }
 
 TEST("loader: disk sector allocation") {
-    uint64_t mini_kernel_start = 16;
+    uint64_t mini_kernel_start   = 16;
     uint64_t mini_kernel_sectors = BIG_KERNEL_LBA - mini_kernel_start;
     ASSERT_EQ(mini_kernel_sectors, 832ULL);
     ASSERT_EQ(mini_kernel_sectors * ATA_SECTOR_SIZE, 425984ULL);  // 416KB
@@ -124,8 +124,8 @@ TEST("loader: ELF magic rejects non-ELF") {
     ASSERT_NE(not_elf2[1], 'E');
 
     uint8_t not_elf3[4] = {0x00, 0x00, 0x00, 0x00};
-    ASSERT_FALSE(not_elf3[0] == 0x7F && not_elf3[1] == 'E' &&
-                 not_elf3[2] == 'L' && not_elf3[3] == 'F');
+    ASSERT_FALSE(not_elf3[0] == 0x7F && not_elf3[1] == 'E' && not_elf3[2] == 'L' &&
+                 not_elf3[3] == 'F');
 }
 
 TEST("loader: non-ELF staging buffer detected") {
@@ -133,8 +133,7 @@ TEST("loader: non-ELF staging buffer detected") {
     memset(fake_buffer, 0xFF, sizeof(fake_buffer));
 
     const auto* magic = fake_buffer;
-    bool is_elf = (magic[0] == 0x7F && magic[1] == 'E' &&
-                   magic[2] == 'L' && magic[3] == 'F');
+    bool is_elf       = (magic[0] == 0x7F && magic[1] == 'E' && magic[2] == 'L' && magic[3] == 'F');
     ASSERT_FALSE(is_elf);
 }
 
@@ -147,8 +146,7 @@ TEST("loader: valid ELF passes staging check") {
     fake_buffer[3] = 'F';
 
     const auto* magic = fake_buffer;
-    bool is_elf = (magic[0] == 0x7F && magic[1] == 'E' &&
-                   magic[2] == 'L' && magic[3] == 'F');
+    bool is_elf       = (magic[0] == 0x7F && magic[1] == 'E' && magic[2] == 'L' && magic[3] == 'F');
     ASSERT_TRUE(is_elf);
 }
 
@@ -170,14 +168,14 @@ TEST("loader: big kernel LBA within LBA28 range") {
 
 TEST("loader: higher-half base constant") {
     constexpr uint64_t HIGHER_HALF_BASE = 0xFFFFFFFF80000000ULL;
-    uint64_t virtual_entry = 0xFFFFFFFF80100000ULL;
-    uint64_t physical_entry = virtual_entry - HIGHER_HALF_BASE;
+    uint64_t           virtual_entry    = 0xFFFFFFFF80100000ULL;
+    uint64_t           physical_entry   = virtual_entry - HIGHER_HALF_BASE;
     ASSERT_EQ(physical_entry, 0x100000ULL);
 }
 
 TEST("loader: lower-half entry used as-is") {
     constexpr uint64_t HIGHER_HALF_BASE = 0xFFFFFFFF80000000ULL;
-    uint64_t virtual_entry = 0x1000ULL;
+    uint64_t           virtual_entry    = 0x1000ULL;
     ASSERT_LT(virtual_entry, HIGHER_HALF_BASE);
     uint64_t physical = virtual_entry;
     ASSERT_EQ(physical, 0x1000ULL);

@@ -14,8 +14,7 @@
 
 namespace cinux::syscall {
 
-int64_t sys_fork(uint64_t, uint64_t, uint64_t,
-                 uint64_t, uint64_t, uint64_t) {
+int64_t sys_fork(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) {
     int child_pid = cinux::proc::fork(cinux::proc::g_pid_alloc);
     return static_cast<int64_t>(child_pid);
 }

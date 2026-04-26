@@ -41,17 +41,17 @@ constexpr uint16_t SLAVE_DATA  = 0xA1;  ///< Slave PIC data (mask / ICW2-4)
 // ============================================================
 
 namespace PicICW {
-constexpr uint8_t ICW1_ICW4     = 0x01;  ///< ICW4 needed
-constexpr uint8_t ICW1_SINGLE   = 0x02;  ///< Single (cascade) mode
-constexpr uint8_t ICW1_INTERVAL4 = 0x04; ///< Call address interval 4 (8086)
-constexpr uint8_t ICW1_LEVEL     = 0x08; ///< Level triggered (edge) mode
-constexpr uint8_t ICW1_INIT      = 0x10; ///< Initialization
+constexpr uint8_t ICW1_ICW4      = 0x01;  ///< ICW4 needed
+constexpr uint8_t ICW1_SINGLE    = 0x02;  ///< Single (cascade) mode
+constexpr uint8_t ICW1_INTERVAL4 = 0x04;  ///< Call address interval 4 (8086)
+constexpr uint8_t ICW1_LEVEL     = 0x08;  ///< Level triggered (edge) mode
+constexpr uint8_t ICW1_INIT      = 0x10;  ///< Initialization
 
-constexpr uint8_t ICW4_8086      = 0x01; ///< 8086/88 (MCS-80/85) mode
-constexpr uint8_t ICW4_AUTO_EOI  = 0x02; ///< Auto End-Of-Interrupt
-constexpr uint8_t ICW4_BUF_MASTER = 0x04;///< Buffered mode master
-constexpr uint8_t ICW4_BUF_SLAVE  = 0x00;///< Buffered mode slave
-constexpr uint8_t ICW4_SFNM      = 0x10; ///< Special Fully Nested Mode
+constexpr uint8_t ICW4_8086       = 0x01;  ///< 8086/88 (MCS-80/85) mode
+constexpr uint8_t ICW4_AUTO_EOI   = 0x02;  ///< Auto End-Of-Interrupt
+constexpr uint8_t ICW4_BUF_MASTER = 0x04;  ///< Buffered mode master
+constexpr uint8_t ICW4_BUF_SLAVE  = 0x00;  ///< Buffered mode slave
+constexpr uint8_t ICW4_SFNM       = 0x10;  ///< Special Fully Nested Mode
 }  // namespace PicICW
 
 // ============================================================
@@ -86,8 +86,7 @@ public:
      * @note Must be called before any IRQ unmask / EOI operations.
      * @note Uses io_wait() between I/O writes for ISA timing.
      */
-    static void init(uint8_t master_offset = 0x20,
-                     uint8_t slave_offset = 0x28);
+    static void init(uint8_t master_offset = 0x20, uint8_t slave_offset = 0x28);
 
     /**
      * @brief Send End-Of-Interrupt to the PIC(s)

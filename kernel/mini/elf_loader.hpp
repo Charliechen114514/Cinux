@@ -27,8 +27,8 @@
 
 #pragma once
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 namespace cinux::mini::elf_loader {
 
@@ -78,20 +78,20 @@ constexpr uint32_t PF_R = 4;
  * architecture, and provides offsets to the program and section headers.
  */
 struct Elf64_Ehdr {
-    uint8_t  e_ident[16];    ///< ELF identification bytes (magic, class, data, etc.)
-    uint16_t e_type;         ///< Object file type (ET_EXEC for executable)
-    uint16_t e_machine;      ///< Target architecture (EM_X86_64)
-    uint32_t e_version;      ///< Object file version (EV_CURRENT = 1)
-    uint64_t e_entry;        ///< Virtual entry point address
-    uint64_t e_phoff;        ///< Program header table file offset
-    uint64_t e_shoff;        ///< Section header table file offset
-    uint32_t e_flags;        ///< Processor-specific flags
-    uint16_t e_ehsize;       ///< ELF header size (64 bytes)
-    uint16_t e_phentsize;    ///< Program header entry size (56 bytes)
-    uint16_t e_phnum;        ///< Number of program header entries
-    uint16_t e_shentsize;    ///< Section header entry size
-    uint16_t e_shnum;        ///< Number of section header entries
-    uint16_t e_shstrndx;     ///< Section name string table index
+    uint8_t  e_ident[16];  ///< ELF identification bytes (magic, class, data, etc.)
+    uint16_t e_type;       ///< Object file type (ET_EXEC for executable)
+    uint16_t e_machine;    ///< Target architecture (EM_X86_64)
+    uint32_t e_version;    ///< Object file version (EV_CURRENT = 1)
+    uint64_t e_entry;      ///< Virtual entry point address
+    uint64_t e_phoff;      ///< Program header table file offset
+    uint64_t e_shoff;      ///< Section header table file offset
+    uint32_t e_flags;      ///< Processor-specific flags
+    uint16_t e_ehsize;     ///< ELF header size (64 bytes)
+    uint16_t e_phentsize;  ///< Program header entry size (56 bytes)
+    uint16_t e_phnum;      ///< Number of program header entries
+    uint16_t e_shentsize;  ///< Section header entry size
+    uint16_t e_shnum;      ///< Number of section header entries
+    uint16_t e_shstrndx;   ///< Section name string table index
 } __attribute__((packed));
 
 /**
@@ -101,14 +101,14 @@ struct Elf64_Ehdr {
  * PT_LOAD segments contain code or data that must be loaded into memory.
  */
 struct Elf64_Phdr {
-    uint32_t p_type;     ///< Segment type (PT_LOAD = 1 for loadable)
-    uint32_t p_flags;    ///< Segment flags (PF_R | PF_W | PF_X)
-    uint64_t p_offset;   ///< Segment file offset (start of segment data in the ELF file)
-    uint64_t p_vaddr;    ///< Segment virtual address (target load address)
-    uint64_t p_paddr;    ///< Segment physical address (often same as vaddr)
-    uint64_t p_filesz;   ///< Segment size in the file (bytes to copy)
-    uint64_t p_memsz;    ///< Segment size in memory (filesz + BSS zero-fill)
-    uint64_t p_align;    ///< Segment alignment (usually 0x1000 = 4KB)
+    uint32_t p_type;    ///< Segment type (PT_LOAD = 1 for loadable)
+    uint32_t p_flags;   ///< Segment flags (PF_R | PF_W | PF_X)
+    uint64_t p_offset;  ///< Segment file offset (start of segment data in the ELF file)
+    uint64_t p_vaddr;   ///< Segment virtual address (target load address)
+    uint64_t p_paddr;   ///< Segment physical address (often same as vaddr)
+    uint64_t p_filesz;  ///< Segment size in the file (bytes to copy)
+    uint64_t p_memsz;   ///< Segment size in memory (filesz + BSS zero-fill)
+    uint64_t p_align;   ///< Segment alignment (usually 0x1000 = 4KB)
 } __attribute__((packed));
 
 // ============================================================

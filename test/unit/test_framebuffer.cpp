@@ -11,7 +11,7 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
+#    include <cstdint>
 
 // Mirror the framebuffer index formula: offset = y * (pitch / 4) + x
 static uint32_t pixel_index(uint32_t x, uint32_t y, uint32_t pitch) {
@@ -46,9 +46,9 @@ TEST("framebuffer: fill_rect pixel count") {
 }
 
 TEST("framebuffer: scroll_up byte offset") {
-    uint32_t pitch = 4096;
+    uint32_t pitch  = 4096;
     uint32_t height = 768;
-    uint32_t lines = 16;
+    uint32_t lines  = 16;
     // source offset = pitch * lines = 4096 * 16 = 65536
     ASSERT_EQ(pitch * lines, 65536u);
     // move_bytes = (height - lines) * pitch = 752 * 4096
@@ -57,7 +57,7 @@ TEST("framebuffer: scroll_up byte offset") {
 
 TEST("framebuffer: scroll_up with lines >= height clears all") {
     uint32_t height = 768;
-    uint32_t lines = 768;
+    uint32_t lines  = 768;
     // lines >= height triggers clear() path
     ASSERT_TRUE(lines >= height);
 }

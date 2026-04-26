@@ -12,33 +12,44 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
+#    include <cstdint>
 
 // Mirror console cursor state
 struct CursorState {
-    uint32_t col = 0;
-    uint32_t row = 0;
-    uint32_t cols = 0;
-    uint32_t rows = 0;
-    bool scrolled = false;
+    uint32_t col      = 0;
+    uint32_t row      = 0;
+    uint32_t cols     = 0;
+    uint32_t rows     = 0;
+    bool     scrolled = false;
 
     void reset(uint32_t c, uint32_t r) {
-        col = 0; row = 0;
-        cols = c; rows = r;
+        col      = 0;
+        row      = 0;
+        cols     = c;
+        rows     = r;
         scrolled = false;
     }
 
     void putc(char ch) {
         scrolled = false;
         switch (ch) {
-        case '\n': newline(); break;
-        case '\r': col = 0; break;
+        case '\n':
+            newline();
+            break;
+        case '\r':
+            col = 0;
+            break;
         case '\b':
-            if (col > 0) { col--; }
-            else if (row > 0) { row--; col = cols - 1; }
+            if (col > 0) {
+                col--;
+            } else if (row > 0) {
+                row--;
+                col = cols - 1;
+            }
             break;
         default:
-            if (col >= cols) newline();
+            if (col >= cols)
+                newline();
             col++;
             break;
         }

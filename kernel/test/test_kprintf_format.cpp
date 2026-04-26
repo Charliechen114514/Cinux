@@ -10,7 +10,6 @@
  */
 
 #include "big_kernel_test.h"
-
 #include "kernel/lib/kprintf.hpp"
 
 using cinux::lib::kprintf;
@@ -23,9 +22,9 @@ namespace {
 
 constexpr int CAP_BUF_SIZE = 128;
 
-char   g_cap_buf[CAP_BUF_SIZE];
-int    g_cap_len = 0;
-bool   g_cap_active = false;
+char g_cap_buf[CAP_BUF_SIZE];
+int  g_cap_len    = 0;
+bool g_cap_active = false;
 
 void capture_sink(char c, void* /*ctx*/) {
     if (g_cap_active && g_cap_len < CAP_BUF_SIZE - 1) {
@@ -35,9 +34,8 @@ void capture_sink(char c, void* /*ctx*/) {
 
 /// Capture kprintf output into g_cap_buf, return as C-string.
 /// Usage: const char* out = capture("format", args...);
-__attribute__((format(printf, 1, 2)))
-const char* capture(const char* fmt, ...) {
-    g_cap_len = 0;
+__attribute__((format(printf, 1, 2))) const char* capture(const char* fmt, ...) {
+    g_cap_len    = 0;
     g_cap_buf[0] = '\0';
     g_cap_active = true;
 
@@ -46,16 +44,18 @@ const char* capture(const char* fmt, ...) {
     cinux::lib::kvprintf(fmt, ap);
     va_end(ap);
 
-    g_cap_active = false;
+    g_cap_active         = false;
     g_cap_buf[g_cap_len] = '\0';
     return g_cap_buf;
 }
 
 /// Compare captured output with expected string.
 bool cap_eq(const char* expected) {
-    for (int i = 0; ; i++) {
-        if (g_cap_buf[i] != expected[i]) return false;
-        if (expected[i] == '\0') return true;
+    for (int i = 0;; i++) {
+        if (g_cap_buf[i] != expected[i])
+            return false;
+        if (expected[i] == '\0')
+            return true;
     }
 }
 

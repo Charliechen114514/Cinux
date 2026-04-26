@@ -17,8 +17,8 @@
 
 #pragma once
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "kernel/fs/inode.hpp"
 #include "kernel/proc/sync.hpp"
@@ -58,12 +58,11 @@ static constexpr int FD_NONE = -1;
  * independent offsets.
  */
 struct File {
-    File(Inode* in, uint64_t off, OpenFlags fl)
-        : inode(in), offset(off), flags(fl) {}
+    File(Inode* in, uint64_t off, OpenFlags fl) : inode(in), offset(off), flags(fl) {}
 
-    Inode*    inode;    ///< Pointer to the underlying inode (non-null when in use)
-    uint64_t  offset;   ///< Current read/write offset in bytes
-    OpenFlags flags;    ///< Access mode (RDONLY, WRONLY, RDWR)
+    Inode*    inode;   ///< Pointer to the underlying inode (non-null when in use)
+    uint64_t  offset;  ///< Current read/write offset in bytes
+    OpenFlags flags;   ///< Access mode (RDONLY, WRONLY, RDWR)
 
     mutable cinux::proc::Spinlock offset_lock_;
 };
@@ -137,7 +136,7 @@ public:
 
 private:
     /// Fixed-size array of File pointers (nullptr = unused slot)
-    File* fds_[FD_TABLE_SIZE];
+    File*                         fds_[FD_TABLE_SIZE];
     mutable cinux::proc::Spinlock lock_;
 };
 

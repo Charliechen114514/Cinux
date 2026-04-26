@@ -19,11 +19,11 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstring>
-#include <string>
-#include <vector>
-#include <memory>
+#    include <cstdint>
+#    include <cstring>
+#    include <memory>
+#    include <string>
+#    include <vector>
 
 // ============================================================
 // Mock Spinlock (for Pipe which requires cinux::proc::Spinlock)
@@ -49,15 +49,18 @@ class Pipe {
 public:
     Pipe() : reader_open_(true), writer_open_(true) {}
 
-    Pipe(const Pipe&) = delete;
+    Pipe(const Pipe&)            = delete;
     Pipe& operator=(const Pipe&) = delete;
 
     int64_t try_write(const char* data, uint64_t count) {
-        if (!reader_open_) return -1;
-        if (count == 0) return 0;
+        if (!reader_open_)
+            return -1;
+        if (count == 0)
+            return 0;
         uint64_t written = 0;
         for (uint64_t i = 0; i < count; i++) {
-            if (buf_.size() >= 4096) break;
+            if (buf_.size() >= 4096)
+                break;
             buf_.push_back(data[i]);
             written++;
         }
@@ -79,15 +82,15 @@ public:
     void close_reader() { reader_open_ = false; }
     void close_writer() { writer_open_ = false; }
 
-    bool reader_alive() const { return reader_open_; }
-    bool writer_alive() const { return writer_open_; }
-    bool is_empty() const { return buf_.empty(); }
+    bool     reader_alive() const { return reader_open_; }
+    bool     writer_alive() const { return writer_open_; }
+    bool     is_empty() const { return buf_.empty(); }
     uint32_t available() const { return static_cast<uint32_t>(buf_.size()); }
 
 private:
     std::vector<char> buf_;
-    bool reader_open_;
-    bool writer_open_;
+    bool              reader_open_;
+    bool              writer_open_;
 };
 
 }  // namespace cinux::ipc
@@ -99,10 +102,10 @@ private:
 namespace cinux::proc {
 
 enum class WaitpidResult : int {
-    Ok = 0,
+    Ok         = 0,
     NoChildren = -1,
-    NotFound = -2,
-    NotExited = -3
+    NotFound   = -2,
+    NotExited  = -3
 };
 
 }  // namespace cinux::proc
@@ -142,14 +145,14 @@ public:
     static constexpr uint32_t ROWS = 25;
 
     Terminal(uint32_t x, uint32_t y, const char* title = "Cinux Terminal")
-        : x_(x), y_(y), shell_pid_(0), stdin_pipe_(nullptr), stdout_pipe_(nullptr)
-    {
+        : x_(x), y_(y), shell_pid_(0), stdin_pipe_(nullptr), stdout_pipe_(nullptr) {
         for (uint32_t r = 0; r < ROWS; r++)
             for (uint32_t c = 0; c < COLS; c++)
                 screen_[r][c] = TerminalCell{};
         if (title) {
             size_t len = strlen(title);
-            if (len > 63) len = 63;
+            if (len > 63)
+                len = 63;
             memcpy(title_, title, len);
             title_[len] = '\0';
         }
@@ -174,30 +177,29 @@ public:
         }
     }
 
-    Terminal(const Terminal&) = delete;
+    Terminal(const Terminal&)            = delete;
     Terminal& operator=(const Terminal&) = delete;
 
-    bool is_terminal() const { return true; }
+    bool        is_terminal() const { return true; }
     const char* title() const { return title_; }
 
     void set_stdin_pipe(cinux::ipc::Pipe* pipe) { stdin_pipe_ = pipe; }
     void set_stdout_pipe(cinux::ipc::Pipe* pipe) { stdout_pipe_ = pipe; }
     void set_shell_pid(int pid) { shell_pid_ = pid; }
-    int shell_pid() const { return shell_pid_; }
+    int  shell_pid() const { return shell_pid_; }
 
     cinux::ipc::Pipe* stdin_pipe() const { return stdin_pipe_; }
     cinux::ipc::Pipe* stdout_pipe() const { return stdout_pipe_; }
 
-    const TerminalCell& cell(uint32_t row, uint32_t col) const {
-        return screen_[row][col];
-    }
+    const TerminalCell& cell(uint32_t row, uint32_t col) const { return screen_[row][col]; }
 
     uint32_t cursor_x() const { return cursor_x_; }
     uint32_t cursor_y() const { return cursor_y_; }
 
     // Write a character into the screen buffer
     void process_char(char ch) {
-        if (static_cast<uint8_t>(ch) < 0x20 || static_cast<uint8_t>(ch) > 0x7E) return;
+        if (static_cast<uint8_t>(ch) < 0x20 || static_cast<uint8_t>(ch) > 0x7E)
+            return;
         screen_[cursor_y_][cursor_x_].ch = ch;
         cursor_x_++;
         if (cursor_x_ >= COLS) {
@@ -230,18 +232,23 @@ public:
     void write(const char* str, uint64_t len) {
         for (uint64_t i = 0; i < len; i++) {
             char ch = str[i];
-            if (ch == '\n') newline();
-            else if (ch == '\r') cursor_x_ = 0;
-            else process_char(ch);
+            if (ch == '\n')
+                newline();
+            else if (ch == '\r')
+                cursor_x_ = 0;
+            else
+                process_char(ch);
         }
     }
 
     void poll_output() {
-        if (stdout_pipe_ == nullptr) return;
+        if (stdout_pipe_ == nullptr)
+            return;
         char buf[256];
         while (true) {
             int64_t n = stdout_pipe_->try_read(buf, sizeof(buf));
-            if (n <= 0) break;
+            if (n <= 0)
+                break;
             write(buf, static_cast<uint64_t>(n));
         }
     }
@@ -255,13 +262,13 @@ public:
     }
 
 private:
-    TerminalCell screen_[ROWS][COLS];
-    uint32_t cursor_x_ = 0;
-    uint32_t cursor_y_ = 0;
-    uint32_t x_;
-    uint32_t y_;
-    char title_[64] = {};
-    int shell_pid_;
+    TerminalCell      screen_[ROWS][COLS];
+    uint32_t          cursor_x_ = 0;
+    uint32_t          cursor_y_ = 0;
+    uint32_t          x_;
+    uint32_t          y_;
+    char              title_[64] = {};
+    int               shell_pid_;
     cinux::ipc::Pipe* stdin_pipe_;
     cinux::ipc::Pipe* stdout_pipe_;
 };
@@ -281,7 +288,8 @@ public:
     WindowManager() : count_(0) {}
 
     uint32_t add_window(Terminal* win) {
-        if (count_ >= MAX_WINDOWS) return 0;
+        if (count_ >= MAX_WINDOWS)
+            return 0;
         windows_[count_] = win;
         return ++count_;
     }
@@ -289,12 +297,14 @@ public:
     uint32_t window_count() const { return count_; }
 
     Terminal* window_at(uint32_t index) const {
-        if (index >= count_) return nullptr;
+        if (index >= count_)
+            return nullptr;
         return windows_[index];
     }
 
     void destroy(uint32_t index) {
-        if (index == 0 || index > count_) return;
+        if (index == 0 || index > count_)
+            return;
         uint32_t i = index - 1;
         delete windows_[i];
         // Shift down
@@ -312,7 +322,7 @@ public:
 
 private:
     Terminal* windows_[MAX_WINDOWS] = {};
-    uint32_t count_;
+    uint32_t  count_;
 };
 
 }  // namespace cinux::gui
@@ -327,7 +337,7 @@ static std::string make_shell_title(uint32_t counter) {
         title += '0';
     } else {
         std::string digits;
-        uint32_t num = counter;
+        uint32_t    num = counter;
         while (num > 0) {
             digits += ('0' + static_cast<char>(num % 10));
             num /= 10;
@@ -382,7 +392,7 @@ TEST("multi_terminal: destructor closes both pipes") {
         term.set_stdout_pipe(&stdout_pipe);
     }
     ASSERT_FALSE(stdin_pipe.writer_alive());
-    ASSERT_TRUE(stdin_pipe.reader_alive());   // shell side
+    ASSERT_TRUE(stdin_pipe.reader_alive());  // shell side
     ASSERT_FALSE(stdout_pipe.reader_alive());
     ASSERT_TRUE(stdout_pipe.writer_alive());  // shell side
 }
@@ -493,9 +503,12 @@ TEST("multi_terminal: three terminals concurrent poll_output") {
     cinux::gui::Terminal t2(0, 0);
     cinux::gui::Terminal t3(0, 0);
 
-    t1.set_stdin_pipe(&stdin1);  t1.set_stdout_pipe(&stdout1);
-    t2.set_stdin_pipe(&stdin2);  t2.set_stdout_pipe(&stdout2);
-    t3.set_stdin_pipe(&stdin3);  t3.set_stdout_pipe(&stdout3);
+    t1.set_stdin_pipe(&stdin1);
+    t1.set_stdout_pipe(&stdout1);
+    t2.set_stdin_pipe(&stdin2);
+    t2.set_stdout_pipe(&stdout2);
+    t3.set_stdin_pipe(&stdin3);
+    t3.set_stdout_pipe(&stdout3);
 
     // Feed different data to each
     stdout1.try_write("AAA", 3);
@@ -573,7 +586,7 @@ TEST("multi_terminal: WM window_count and window_at for terminals") {
 TEST("multi_terminal: WM destroy terminal closes its pipes") {
     cinux::gui::WindowManager wm;
 
-    auto* stdin_pipe = new cinux::ipc::Pipe();
+    auto* stdin_pipe  = new cinux::ipc::Pipe();
     auto* stdout_pipe = new cinux::ipc::Pipe();
 
     auto* term = new cinux::gui::Terminal(0, 0, "Shell #1");
@@ -603,9 +616,9 @@ TEST("multi_terminal: WM window_at returns nullptr for out-of-range") {
 
 TEST("multi_terminal: WM add_window returns sequential IDs") {
     cinux::gui::WindowManager wm;
-    uint32_t id1 = wm.add_window(new cinux::gui::Terminal(0, 0, "A"));
-    uint32_t id2 = wm.add_window(new cinux::gui::Terminal(0, 0, "B"));
-    uint32_t id3 = wm.add_window(new cinux::gui::Terminal(0, 0, "C"));
+    uint32_t                  id1 = wm.add_window(new cinux::gui::Terminal(0, 0, "A"));
+    uint32_t                  id2 = wm.add_window(new cinux::gui::Terminal(0, 0, "B"));
+    uint32_t                  id3 = wm.add_window(new cinux::gui::Terminal(0, 0, "C"));
 
     ASSERT_EQ(id1, 1u);
     ASSERT_EQ(id2, 2u);
@@ -625,9 +638,12 @@ TEST("multi_terminal: simulate tick callback iterating multiple terminals") {
     auto* t2 = new cinux::gui::Terminal(0, 0, "Shell #2");
     auto* t3 = new cinux::gui::Terminal(0, 0, "Shell #3");
 
-    t1->set_stdin_pipe(&s1); t1->set_stdout_pipe(&o1);
-    t2->set_stdin_pipe(&s2); t2->set_stdout_pipe(&o2);
-    t3->set_stdin_pipe(&s3); t3->set_stdout_pipe(&o3);
+    t1->set_stdin_pipe(&s1);
+    t1->set_stdout_pipe(&o1);
+    t2->set_stdin_pipe(&s2);
+    t2->set_stdout_pipe(&o2);
+    t3->set_stdin_pipe(&s3);
+    t3->set_stdout_pipe(&o3);
 
     wm.add_window(t1);
     wm.add_window(t2);
@@ -666,8 +682,8 @@ TEST("multi_terminal: shell reads EOF from stdin after terminal destroyed") {
     }
     // Terminal destroyed: writer closed, buffer empty
     // Shell should get 0 (EOF) on read
-    char buf[16] = {};
-    int64_t r = stdin_pipe.try_read(buf, 16);
+    char    buf[16] = {};
+    int64_t r       = stdin_pipe.try_read(buf, 16);
     ASSERT_EQ(r, 0);
 }
 
@@ -680,12 +696,12 @@ TEST("multi_terminal: shell write fails after terminal destroyed") {
     // Terminal destroyed: reader closed
     // Shell write should return -1
     const char msg[] = "test";
-    int64_t w = stdout_pipe.try_write(msg, 4);
+    int64_t    w     = stdout_pipe.try_write(msg, 4);
     ASSERT_EQ(w, -1);
 }
 
 TEST("multi_terminal: terminal can still poll after partial stdout write") {
-    cinux::ipc::Pipe stdout_pipe;
+    cinux::ipc::Pipe     stdout_pipe;
     cinux::gui::Terminal term(0, 0);
     term.set_stdout_pipe(&stdout_pipe);
 

@@ -7,7 +7,7 @@ namespace cinux::proc {
 struct Task;
 
 struct PerCPU {
-    Task* current;
+    Task*    current;
     uint64_t kernel_stack;
     uint64_t gs_page_vaddr;
 

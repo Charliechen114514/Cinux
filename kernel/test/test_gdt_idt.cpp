@@ -100,18 +100,16 @@ namespace test_idt_policy {
 
 /// Verify make_idt_attr produces correct type_attr for #BP (user trap gate)
 void test_bp_gate_is_user_trap() {
-    uint8_t attr = cinux::arch::make_idt_attr(
-        cinux::arch::IDTPrivilege::User,
-        cinux::arch::IDTGateType::Trap);
+    uint8_t attr =
+        cinux::arch::make_idt_attr(cinux::arch::IDTPrivilege::User, cinux::arch::IDTGateType::Trap);
     // Present(0x80) | DPL3(0x60) | Trap(0x0F) = 0xEF
     TEST_ASSERT_EQ(attr, 0xEFu);
 }
 
 /// Verify make_idt_attr produces correct type_attr for fatal exceptions
 void test_fatal_gate_is_kernel_interrupt() {
-    uint8_t attr = cinux::arch::make_idt_attr(
-        cinux::arch::IDTPrivilege::Kernel,
-        cinux::arch::IDTGateType::Interrupt);
+    uint8_t attr = cinux::arch::make_idt_attr(cinux::arch::IDTPrivilege::Kernel,
+                                              cinux::arch::IDTGateType::Interrupt);
     // Present(0x80) | DPL0(0x00) | Interrupt(0x0E) = 0x8E
     TEST_ASSERT_EQ(attr, 0x8Eu);
 }

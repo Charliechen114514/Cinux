@@ -8,9 +8,10 @@
  */
 
 #include "kernel/arch/x86_64/idt.hpp"
-#include "kernel/arch/x86_64/gdt.hpp"
 
 #include <stdint.h>
+
+#include "kernel/arch/x86_64/gdt.hpp"
 
 namespace cinux::arch {
 
@@ -62,8 +63,8 @@ void handle_pf(InterruptFrame*);
 // IDT Implementation
 // ============================================================
 
-void IDT::set_handler(ExceptionVector vector, Stub stub,
-                      uint16_t selector, uint8_t type_attr, uint8_t ist) {
+void IDT::set_handler(ExceptionVector vector, Stub stub, uint16_t selector, uint8_t type_attr,
+                      uint8_t ist) {
     const auto vec  = static_cast<uint8_t>(vector);
     const auto addr = reinterpret_cast<uint64_t>(stub);
 
@@ -86,32 +87,31 @@ void IDT::init() {
     // IST 1 is used for #DF (Double Fault) to get a dedicated stack.
     struct Route {
         ExceptionVector vector;
-        Stub stub;
-        IDTPrivilege priv;
-        IDTGateType gate;
-        uint8_t ist;
+        Stub            stub;
+        IDTPrivilege    priv;
+        IDTGateType     gate;
+        uint8_t         ist;
     };
 
     const Route routes[] = {
-        {ExceptionVector::DE,  isr_de_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
-        {ExceptionVector::DB,  isr_db_stub,  IDTPrivilege::Kernel, IDTGateType::Trap,      0},
+        {ExceptionVector::DE, isr_de_stub, IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::DB, isr_db_stub, IDTPrivilege::Kernel, IDTGateType::Trap, 0},
         {ExceptionVector::NMI, isr_nmi_stub, IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
-        {ExceptionVector::BP,  isr_bp_stub,  IDTPrivilege::User,   IDTGateType::Trap,      0},
-        {ExceptionVector::OF,  isr_of_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
-        {ExceptionVector::BR,  isr_br_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
-        {ExceptionVector::UD,  isr_ud_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
-        {ExceptionVector::NM,  isr_nm_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
-        {ExceptionVector::DF,  isr_df_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 1},
-        {ExceptionVector::TS,  isr_ts_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
-        {ExceptionVector::NP,  isr_np_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
-        {ExceptionVector::SS,  isr_ss_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
-        {ExceptionVector::GP,  isr_gp_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
-        {ExceptionVector::PF,  isr_pf_stub,  IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::BP, isr_bp_stub, IDTPrivilege::User, IDTGateType::Trap, 0},
+        {ExceptionVector::OF, isr_of_stub, IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::BR, isr_br_stub, IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::UD, isr_ud_stub, IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::NM, isr_nm_stub, IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::DF, isr_df_stub, IDTPrivilege::Kernel, IDTGateType::Interrupt, 1},
+        {ExceptionVector::TS, isr_ts_stub, IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::NP, isr_np_stub, IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::SS, isr_ss_stub, IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::GP, isr_gp_stub, IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
+        {ExceptionVector::PF, isr_pf_stub, IDTPrivilege::Kernel, IDTGateType::Interrupt, 0},
     };
 
     for (const auto& r : routes) {
-        set_handler(r.vector, r.stub, GDT_KERNEL_CODE,
-                    make_idt_attr(r.priv, r.gate), r.ist);
+        set_handler(r.vector, r.stub, GDT_KERNEL_CODE, make_idt_attr(r.priv, r.gate), r.ist);
     }
 
     // Load IDTR
@@ -122,8 +122,7 @@ void IDT::init() {
 }
 
 void IDT::load() {
-    __asm__ volatile("lidt %[idtr]\n\t"
-                     : : [idtr] "m"(idtr_) : "memory");
+    __asm__ volatile("lidt %[idtr]\n\t" : : [idtr] "m"(idtr_) : "memory");
 }
 
 }  // namespace cinux::arch

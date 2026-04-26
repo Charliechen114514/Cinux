@@ -7,9 +7,10 @@
  */
 
 #include "printf.hpp"
-#include "syscall.h"
 
 #include <cstdarg>
+
+#include "syscall.h"
 
 namespace cinux::user {
 
@@ -46,9 +47,9 @@ void putuint_buf(char* buf, size_t& pos, uint64_t val, int base, bool upper) {
         return;
     }
     char tmp[20];
-    int i = 0;
+    int  i = 0;
     while (val > 0) {
-        int d = static_cast<int>(val % base);
+        int d    = static_cast<int>(val % base);
         tmp[i++] = (d < 10) ? ('0' + d) : ((upper ? 'A' : 'a') + d - 10);
         val /= base;
     }
@@ -71,7 +72,7 @@ int printf(const char* fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
 
-    char buf[PRINTF_BUF_SIZE];
+    char   buf[PRINTF_BUF_SIZE];
     size_t pos = 0;
 
     while (*fmt) {
@@ -82,7 +83,11 @@ int printf(const char* fmt, ...) {
         ++fmt;  // skip '%'
 
         // Parse length modifier
-        enum class Len { None, L, LL };
+        enum class Len {
+            None,
+            L,
+            LL
+        };
         Len len = Len::None;
         if (*fmt == 'l') {
             ++fmt;
@@ -120,8 +125,8 @@ int printf(const char* fmt, ...) {
         case 'x':
         case 'X': {
             uint64_t v;
-            int base = (spec == 'u') ? 10 : 16;
-            bool upper = (spec == 'X');
+            int      base  = (spec == 'u') ? 10 : 16;
+            bool     upper = (spec == 'X');
             if (len == Len::LL) {
                 v = va_arg(ap, uint64_t);
             } else {

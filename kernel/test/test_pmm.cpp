@@ -15,7 +15,6 @@
 #include <stdint.h>
 
 #include "big_kernel_test.h"
-
 #include "kernel/mm/pmm.hpp"
 
 using cinux::mm::g_pmm;
@@ -64,7 +63,7 @@ void test_bulk_alloc_free() {
     uint64_t initial_free = g_pmm.free_page_count();
 
     constexpr int N = 16;
-    uint64_t pages[N];
+    uint64_t      pages[N];
     for (int i = 0; i < N; i++) {
         pages[i] = g_pmm.alloc_page();
         TEST_ASSERT_NE(pages[i], 0u);
@@ -136,7 +135,7 @@ void test_concurrent_alloc_free_no_leak() {
     uint64_t initial_free = g_pmm.free_page_count();
 
     constexpr int N = 8;
-    uint64_t pages[N];
+    uint64_t      pages[N];
     for (int i = 0; i < N; i++) {
         pages[i] = g_pmm.alloc_page();
         TEST_ASSERT_NE(pages[i], 0u);

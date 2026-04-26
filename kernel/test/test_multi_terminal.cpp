@@ -26,17 +26,17 @@
 
 #ifdef CINUX_GUI
 
-#include "boot/boot_info.h"
-#include "kernel/drivers/canvas.hpp"
-#include "kernel/drivers/video/font.hpp"
-#include "kernel/drivers/video/framebuffer.hpp"
-#include "kernel/gui/terminal.hpp"
-#include "kernel/gui/window_manager.hpp"
-#include "kernel/ipc/pipe.hpp"
-#include "kernel/ipc/pipe_ops.hpp"
-#include "kernel/fs/file.hpp"
-#include "kernel/fs/inode.hpp"
-#include "kernel/fs/vfs_mount.hpp"
+#    include "boot/boot_info.h"
+#    include "kernel/drivers/canvas.hpp"
+#    include "kernel/drivers/video/font.hpp"
+#    include "kernel/drivers/video/framebuffer.hpp"
+#    include "kernel/fs/file.hpp"
+#    include "kernel/fs/inode.hpp"
+#    include "kernel/fs/vfs_mount.hpp"
+#    include "kernel/gui/terminal.hpp"
+#    include "kernel/gui/window_manager.hpp"
+#    include "kernel/ipc/pipe.hpp"
+#    include "kernel/ipc/pipe_ops.hpp"
 
 using cinux::gui::Terminal;
 using cinux::gui::WindowManager;
@@ -54,8 +54,10 @@ using cinux::fs::OpenFlags;
 
 /// Verify two terminals have independent stdin and stdout pipes
 void test_multi_term_two_terminals_independent_pipes() {
-    auto* stdin1 = new Pipe(); auto* stdin2 = new Pipe();
-    auto* stdout1 = new Pipe(); auto* stdout2 = new Pipe();
+    auto* stdin1  = new Pipe();
+    auto* stdin2  = new Pipe();
+    auto* stdout1 = new Pipe();
+    auto* stdout2 = new Pipe();
 
     // Allocate Terminals on the heap -- each Terminal has an 80x25
     // screen buffer (~18 KB) which far exceeds the boot stack.
@@ -80,22 +82,31 @@ void test_multi_term_two_terminals_independent_pipes() {
 
     delete t1;
     delete t2;
-    delete stdin1; delete stdin2;
-    delete stdout1; delete stdout2;
+    delete stdin1;
+    delete stdin2;
+    delete stdout1;
+    delete stdout2;
 }
 
 /// Verify three terminals with concurrent poll_output
 void test_multi_term_three_terminals_concurrent_poll() {
-    auto* s1 = new Pipe(); auto* s2 = new Pipe(); auto* s3 = new Pipe();
-    auto* o1 = new Pipe(); auto* o2 = new Pipe(); auto* o3 = new Pipe();
+    auto* s1 = new Pipe();
+    auto* s2 = new Pipe();
+    auto* s3 = new Pipe();
+    auto* o1 = new Pipe();
+    auto* o2 = new Pipe();
+    auto* o3 = new Pipe();
 
     auto* t1 = new Terminal(0, 0, "Shell #1");
     auto* t2 = new Terminal(0, 0, "Shell #2");
     auto* t3 = new Terminal(0, 0, "Shell #3");
 
-    t1->set_stdin_pipe(s1);  t1->set_stdout_pipe(o1);
-    t2->set_stdin_pipe(s2);  t2->set_stdout_pipe(o2);
-    t3->set_stdin_pipe(s3);  t3->set_stdout_pipe(o3);
+    t1->set_stdin_pipe(s1);
+    t1->set_stdout_pipe(o1);
+    t2->set_stdin_pipe(s2);
+    t2->set_stdout_pipe(o2);
+    t3->set_stdin_pipe(s3);
+    t3->set_stdout_pipe(o3);
 
     // Feed different data to each
     o1->try_write("AAA", 3);
@@ -119,9 +130,15 @@ void test_multi_term_three_terminals_concurrent_poll() {
     TEST_ASSERT_EQ(t3->cell(0, 1).ch, 'C');
     TEST_ASSERT_EQ(t3->cell(0, 2).ch, 'C');
 
-    delete t1; delete t2; delete t3;
-    delete s1; delete s2; delete s3;
-    delete o1; delete o2; delete o3;
+    delete t1;
+    delete t2;
+    delete t3;
+    delete s1;
+    delete s2;
+    delete s3;
+    delete o1;
+    delete o2;
+    delete o3;
 }
 
 // ============================================================
@@ -130,7 +147,7 @@ void test_multi_term_three_terminals_concurrent_poll() {
 
 /// Verify destructor closes stdin pipe writer and stdout pipe reader
 void test_multi_term_destructor_closes_both_pipes() {
-    auto* stdin_pipe = new Pipe();
+    auto* stdin_pipe  = new Pipe();
     auto* stdout_pipe = new Pipe();
 
     {
@@ -147,9 +164,9 @@ void test_multi_term_destructor_closes_both_pipes() {
     }
     // After destruction
     TEST_ASSERT_FALSE(stdin_pipe->writer_alive());   // Terminal closed writer
-    TEST_ASSERT_TRUE(stdin_pipe->reader_alive());     // Shell side still open
-    TEST_ASSERT_FALSE(stdout_pipe->reader_alive());   // Terminal closed reader
-    TEST_ASSERT_TRUE(stdout_pipe->writer_alive());    // Shell side still open
+    TEST_ASSERT_TRUE(stdin_pipe->reader_alive());    // Shell side still open
+    TEST_ASSERT_FALSE(stdout_pipe->reader_alive());  // Terminal closed reader
+    TEST_ASSERT_TRUE(stdout_pipe->writer_alive());   // Shell side still open
 
     delete stdin_pipe;
     delete stdout_pipe;
@@ -202,8 +219,8 @@ void test_multi_term_eof_after_destruction() {
         delete term;
     }
     // Terminal destroyed: writer closed, buffer empty
-    char buf[16] = {};
-    int64_t r = stdin_pipe->try_read(buf, 16);
+    char    buf[16] = {};
+    int64_t r       = stdin_pipe->try_read(buf, 16);
     TEST_ASSERT_EQ(r, 0);  // EOF
     delete stdin_pipe;
 }
@@ -217,7 +234,7 @@ void test_multi_term_shell_write_fails_after_destruction() {
         delete term;
     }
     const char msg[] = "test";
-    int64_t w = stdout_pipe->try_write(msg, 4);
+    int64_t    w     = stdout_pipe->try_write(msg, 4);
     TEST_ASSERT_EQ(w, -1);  // Reader closed
     delete stdout_pipe;
 }
@@ -242,12 +259,12 @@ void test_multi_term_terminal_height_400() {
 
 /// Verify WM add_window, window_count, window_at for multiple terminals
 void test_multi_term_wm_add_and_iterate_terminals() {
-    auto* fb = new cinux::drivers::Framebuffer();
-    auto* font = new cinux::drivers::PSFFont();
+    auto* fb     = new cinux::drivers::Framebuffer();
+    auto* font   = new cinux::drivers::PSFFont();
     auto* screen = new cinux::drivers::Canvas();
 
     static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
-    auto* bi = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
+    auto*                      bi             = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
     fb->init(*bi);
     font->init();
     fb->clear(0);
@@ -297,12 +314,12 @@ void test_multi_term_wm_window_at_out_of_range() {
 
 /// Verify WM destroy closes terminal pipes and reaps shell child
 void test_multi_term_wm_destroy_closes_pipes() {
-    auto* fb = new cinux::drivers::Framebuffer();
-    auto* font = new cinux::drivers::PSFFont();
+    auto* fb     = new cinux::drivers::Framebuffer();
+    auto* font   = new cinux::drivers::PSFFont();
     auto* screen = new cinux::drivers::Canvas();
 
     static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
-    auto* bi = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
+    auto*                      bi             = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
     fb->init(*bi);
     font->init();
     fb->clear(0);
@@ -311,7 +328,7 @@ void test_multi_term_wm_destroy_closes_pipes() {
     auto* wm = new WindowManager();
     wm->init(screen, font);
 
-    auto* stdin_pipe = new Pipe();
+    auto* stdin_pipe  = new Pipe();
     auto* stdout_pipe = new Pipe();
 
     auto* term = new Terminal(0, 0, "DestroyTest");
@@ -346,12 +363,12 @@ void test_multi_term_wm_destroy_closes_pipes() {
 
 /// Simulate the gui_tick_callback loop from gui_init.cpp
 void test_multi_term_tick_callback_simulation() {
-    auto* fb = new cinux::drivers::Framebuffer();
-    auto* font = new cinux::drivers::PSFFont();
+    auto* fb     = new cinux::drivers::Framebuffer();
+    auto* font   = new cinux::drivers::PSFFont();
     auto* screen = new cinux::drivers::Canvas();
 
     static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
-    auto* bi = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
+    auto*                      bi             = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
     fb->init(*bi);
     font->init();
     fb->clear(0);
@@ -361,8 +378,10 @@ void test_multi_term_tick_callback_simulation() {
     wm->init(screen, font);
 
     // Create two terminals with pipes
-    auto* s1 = new Pipe(); auto* s2 = new Pipe();
-    auto* o1 = new Pipe(); auto* o2 = new Pipe();
+    auto* s1 = new Pipe();
+    auto* s2 = new Pipe();
+    auto* o1 = new Pipe();
+    auto* o2 = new Pipe();
 
     auto* t1 = new Terminal(0, 0, "Shell #1");
     auto* t2 = new Terminal(100, 100, "Shell #2");
@@ -399,8 +418,10 @@ void test_multi_term_tick_callback_simulation() {
     TEST_ASSERT_EQ(t2->cell(0, 4).ch, '2');
 
     delete wm;
-    delete s1; delete s2;
-    delete o1; delete o2;
+    delete s1;
+    delete s2;
+    delete o1;
+    delete o2;
     delete screen;
     delete font;
     delete fb;
@@ -413,7 +434,7 @@ void test_multi_term_tick_callback_simulation() {
 /// Verify terminal correctly accumulates data across multiple polls
 void test_multi_term_partial_poll_multiple_rounds() {
     auto* stdout_pipe = new Pipe();
-    auto* term = new Terminal(0, 0, "PartialTest");
+    auto* term        = new Terminal(0, 0, "PartialTest");
     term->set_stdout_pipe(stdout_pipe);
 
     // First batch
@@ -440,8 +461,10 @@ void test_multi_term_partial_poll_multiple_rounds() {
 
 /// Verify destroying one terminal leaves other terminals functional
 void test_multi_term_destroy_one_affects_not_other() {
-    auto* s1 = new Pipe(); auto* s2 = new Pipe();
-    auto* o1 = new Pipe(); auto* o2 = new Pipe();
+    auto* s1 = new Pipe();
+    auto* s2 = new Pipe();
+    auto* o1 = new Pipe();
+    auto* o2 = new Pipe();
 
     {
         auto* t1 = new Terminal(0, 0, "Shell #1");
@@ -469,8 +492,10 @@ void test_multi_term_destroy_one_affects_not_other() {
     TEST_ASSERT_EQ(t2->cell(0, 1).ch, 'K');
 
     delete t2;
-    delete s1; delete s2;
-    delete o1; delete o2;
+    delete s1;
+    delete s2;
+    delete o1;
+    delete o2;
 }
 
 // ============================================================

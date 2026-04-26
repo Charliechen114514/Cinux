@@ -21,13 +21,13 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstring>
+#    include <cstdint>
+#    include <cstring>
 
-#include "kernel/fs/file.hpp"
-#include "kernel/fs/inode.hpp"
-#include "kernel/ipc/pipe.hpp"
-#include "kernel/ipc/pipe_ops.hpp"
+#    include "kernel/fs/file.hpp"
+#    include "kernel/fs/inode.hpp"
+#    include "kernel/ipc/pipe.hpp"
+#    include "kernel/ipc/pipe_ops.hpp"
 
 using namespace cinux::fs;
 using namespace cinux::ipc;
@@ -37,24 +37,24 @@ using namespace cinux::ipc;
 // ============================================================
 
 struct PipeEndpoints {
-    Pipe*   pipe;
-    Inode*  read_inode;
-    Inode*  write_inode;
+    Pipe*         pipe;
+    Inode*        read_inode;
+    Inode*        write_inode;
     PipeReadOps*  read_ops;
     PipeWriteOps* write_ops;
 };
 
 static PipeEndpoints make_pipe_endpoints() {
     PipeEndpoints ep;
-    ep.pipe       = new Pipe();
-    ep.read_ops   = new PipeReadOps(ep.pipe);
-    ep.write_ops  = new PipeWriteOps(ep.pipe);
+    ep.pipe      = new Pipe();
+    ep.read_ops  = new PipeReadOps(ep.pipe);
+    ep.write_ops = new PipeWriteOps(ep.pipe);
 
-    ep.read_inode  = new Inode();
+    ep.read_inode       = new Inode();
     ep.read_inode->ops  = ep.read_ops;
     ep.read_inode->type = InodeType::Regular;
 
-    ep.write_inode = new Inode();
+    ep.write_inode       = new Inode();
     ep.write_inode->ops  = ep.write_ops;
     ep.write_inode->type = InodeType::Regular;
 
@@ -76,10 +76,10 @@ static void cleanup_pipe_endpoints(PipeEndpoints& ep) {
 // set() installs a File at a specific slot and get() retrieves it.
 TEST("sys_pipe: FDTable set installs File at specific slot") {
     FDTable table;
-    Inode inode{};
+    Inode   inode{};
 
-    File* f = new File(&inode, 0, OpenFlags::RDONLY);
-    bool ok = table.set(0, f);
+    File* f  = new File(&inode, 0, OpenFlags::RDONLY);
+    bool  ok = table.set(0, f);
     ASSERT_TRUE(ok);
 
     File* retrieved = table.get(0);
@@ -95,7 +95,7 @@ TEST("sys_pipe: FDTable set installs File at specific slot") {
 // set() at slot 1 installs correctly.
 TEST("sys_pipe: FDTable set installs File at slot 1") {
     FDTable table;
-    Inode inode{};
+    Inode   inode{};
 
     File* f = new File(&inode, 0, OpenFlags::WRONLY);
     ASSERT_TRUE(table.set(1, f));
@@ -115,8 +115,8 @@ TEST("sys_pipe: FDTable set installs File at slot 1") {
 // set() with negative fd returns false.
 TEST("sys_pipe: FDTable set rejects negative fd") {
     FDTable table;
-    Inode inode{};
-    File f(&inode, 0, OpenFlags::RDONLY);
+    Inode   inode{};
+    File    f(&inode, 0, OpenFlags::RDONLY);
 
     ASSERT_FALSE(table.set(-1, &f));
 }
@@ -124,8 +124,8 @@ TEST("sys_pipe: FDTable set rejects negative fd") {
 // set() with fd == FD_TABLE_SIZE returns false.
 TEST("sys_pipe: FDTable set rejects fd at table size") {
     FDTable table;
-    Inode inode{};
-    File f(&inode, 0, OpenFlags::RDONLY);
+    Inode   inode{};
+    File    f(&inode, 0, OpenFlags::RDONLY);
 
     ASSERT_FALSE(table.set(static_cast<int>(FD_TABLE_SIZE), &f));
 }
@@ -133,8 +133,8 @@ TEST("sys_pipe: FDTable set rejects fd at table size") {
 // set() with fd > FD_TABLE_SIZE returns false.
 TEST("sys_pipe: FDTable set rejects fd beyond table size") {
     FDTable table;
-    Inode inode{};
-    File f(&inode, 0, OpenFlags::RDONLY);
+    Inode   inode{};
+    File    f(&inode, 0, OpenFlags::RDONLY);
 
     ASSERT_FALSE(table.set(9999, &f));
 }
@@ -146,8 +146,8 @@ TEST("sys_pipe: FDTable set rejects fd beyond table size") {
 // set() replaces whatever was at the slot (caller manages old entry).
 TEST("sys_pipe: FDTable set replaces existing entry") {
     FDTable table;
-    Inode inode1{};
-    Inode inode2{};
+    Inode   inode1{};
+    Inode   inode2{};
 
     File* f1 = new File(&inode1, 0, OpenFlags::RDONLY);
     File* f2 = new File(&inode2, 0, OpenFlags::WRONLY);
@@ -172,11 +172,11 @@ TEST("sys_pipe: FDTable set replaces existing entry") {
 // Create a pipe, install both ends via FDTable::set(), write via
 // the write inode's ops, read via the read inode's ops.
 TEST("sys_pipe: pipe write/read round-trip through FDTable") {
-    FDTable table;
+    FDTable       table;
     PipeEndpoints ep = make_pipe_endpoints();
 
     // Install pipe ends at slots 0 (read) and 1 (write)
-    File* read_file  = new File(ep.read_inode,  0, OpenFlags::RDONLY);
+    File* read_file  = new File(ep.read_inode, 0, OpenFlags::RDONLY);
     File* write_file = new File(ep.write_inode, 0, OpenFlags::WRONLY);
 
     ASSERT_TRUE(table.set(0, read_file));
@@ -184,12 +184,12 @@ TEST("sys_pipe: pipe write/read round-trip through FDTable") {
 
     // Write data through the write inode's ops
     const char msg[] = "PipeData";
-    int64_t w = ep.write_inode->ops->write(ep.write_inode, 0, msg, 8);
+    int64_t    w     = ep.write_inode->ops->write(ep.write_inode, 0, msg, 8);
     ASSERT_EQ(w, 8);
 
     // Read data through the read inode's ops
-    char buf[16] = {};
-    int64_t r = ep.read_inode->ops->read(ep.read_inode, 0, buf, 8);
+    char    buf[16] = {};
+    int64_t r       = ep.read_inode->ops->read(ep.read_inode, 0, buf, 8);
     ASSERT_EQ(r, 8);
     ASSERT_TRUE(memcmp(buf, "PipeData", 8) == 0);
 
@@ -206,10 +206,10 @@ TEST("sys_pipe: pipe write/read round-trip through FDTable") {
 // After closing the read end (close_reader on Pipe), writing through
 // the write inode's ops returns -1.
 TEST("sys_pipe: write returns -1 after close_reader") {
-    FDTable table;
+    FDTable       table;
     PipeEndpoints ep = make_pipe_endpoints();
 
-    File* read_file  = new File(ep.read_inode,  0, OpenFlags::RDONLY);
+    File* read_file  = new File(ep.read_inode, 0, OpenFlags::RDONLY);
     File* write_file = new File(ep.write_inode, 0, OpenFlags::WRONLY);
 
     ASSERT_TRUE(table.set(0, read_file));
@@ -234,10 +234,10 @@ TEST("sys_pipe: write returns -1 after close_reader") {
 // After closing the write end (close_writer on Pipe), reading through
 // the read inode's ops returns 0.
 TEST("sys_pipe: read returns 0 after close_writer") {
-    FDTable table;
+    FDTable       table;
     PipeEndpoints ep = make_pipe_endpoints();
 
-    File* read_file  = new File(ep.read_inode,  0, OpenFlags::RDONLY);
+    File* read_file  = new File(ep.read_inode, 0, OpenFlags::RDONLY);
     File* write_file = new File(ep.write_inode, 0, OpenFlags::WRONLY);
 
     ASSERT_TRUE(table.set(0, read_file));
@@ -247,8 +247,8 @@ TEST("sys_pipe: read returns 0 after close_writer") {
     ep.pipe->close_writer();
 
     // Read should return 0 (EOF)
-    char buf[16] = {};
-    int64_t r = ep.read_inode->ops->read(ep.read_inode, 0, buf, 8);
+    char    buf[16] = {};
+    int64_t r       = ep.read_inode->ops->read(ep.read_inode, 0, buf, 8);
     ASSERT_EQ(r, 0);
 
     delete write_file;
@@ -262,10 +262,10 @@ TEST("sys_pipe: read returns 0 after close_writer") {
 
 // Write data, close writer, drain all data, then read returns 0.
 TEST("sys_pipe: drain then EOF through FDTable") {
-    FDTable table;
+    FDTable       table;
     PipeEndpoints ep = make_pipe_endpoints();
 
-    File* read_file  = new File(ep.read_inode,  0, OpenFlags::RDONLY);
+    File* read_file  = new File(ep.read_inode, 0, OpenFlags::RDONLY);
     File* write_file = new File(ep.write_inode, 0, OpenFlags::WRONLY);
 
     ASSERT_TRUE(table.set(0, read_file));
@@ -278,8 +278,8 @@ TEST("sys_pipe: drain then EOF through FDTable") {
     ep.pipe->close_writer();
 
     // Drain remaining data
-    char buf[16] = {};
-    int64_t r = ep.read_inode->ops->read(ep.read_inode, 0, buf, 8);
+    char    buf[16] = {};
+    int64_t r       = ep.read_inode->ops->read(ep.read_inode, 0, buf, 8);
     ASSERT_EQ(r, 2);
     ASSERT_TRUE(memcmp(buf, "AB", 2) == 0);
 
@@ -300,7 +300,7 @@ TEST("sys_pipe: drain then EOF through FDTable") {
 // offset, and flags.
 TEST("sys_pipe: FDTable set preserves File fields") {
     FDTable table;
-    Inode inode{};
+    Inode   inode{};
     inode.ino  = 77;
     inode.size = 2048;
 
@@ -323,8 +323,8 @@ TEST("sys_pipe: FDTable set preserves File fields") {
 // set() a File, then close() the fd -- get() should return nullptr.
 TEST("sys_pipe: set then close releases File") {
     FDTable table;
-    Inode inode{};
-    File* f = new File(&inode, 0, OpenFlags::RDONLY);
+    Inode   inode{};
+    File*   f = new File(&inode, 0, OpenFlags::RDONLY);
 
     ASSERT_TRUE(table.set(0, f));
     ASSERT_NOT_NULL(table.get(0));
@@ -340,10 +340,10 @@ TEST("sys_pipe: set then close releases File") {
 // Write-then-read multiple times in sequence through the FDTable
 // indirection.
 TEST("sys_pipe: multiple write/read cycles") {
-    FDTable table;
+    FDTable       table;
     PipeEndpoints ep = make_pipe_endpoints();
 
-    File* read_file  = new File(ep.read_inode,  0, OpenFlags::RDONLY);
+    File* read_file  = new File(ep.read_inode, 0, OpenFlags::RDONLY);
     File* write_file = new File(ep.write_inode, 0, OpenFlags::WRONLY);
 
     ASSERT_TRUE(table.set(0, read_file));

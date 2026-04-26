@@ -25,8 +25,8 @@
 
 #pragma once
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "kernel/mm/address_space.hpp"
 #include "kernel/proc/elf_types.hpp"
@@ -78,8 +78,8 @@ struct alignas(16) CpuContext {
     uint64_t kgs_base;
 };
 
-static_assert(offsetof(CpuContext, r15) == 0,  "r15 at offset 0");
-static_assert(offsetof(CpuContext, r14) == 8,  "r14 at offset 8");
+static_assert(offsetof(CpuContext, r15) == 0, "r15 at offset 0");
+static_assert(offsetof(CpuContext, r14) == 8, "r14 at offset 8");
 static_assert(offsetof(CpuContext, r13) == 16, "r13 at offset 16");
 static_assert(offsetof(CpuContext, r12) == 24, "r12 at offset 24");
 static_assert(offsetof(CpuContext, rbp) == 32, "rbp at offset 32");
@@ -221,11 +221,11 @@ public:
     static constexpr uint64_t STACK_PAGES = 4;
 
 private:
-    void (*entry_)() = nullptr;
-    const char* name_ = "unnamed";
-    uint64_t priority_ = 0;
-    cinux::mm::AddressSpace* addr_space_ = nullptr;
-    SchedulingClass* sched_class_ = nullptr;
+    void (*entry_)()                      = nullptr;
+    const char*              name_        = "unnamed";
+    uint64_t                 priority_    = 0;
+    cinux::mm::AddressSpace* addr_space_  = nullptr;
+    SchedulingClass*         sched_class_ = nullptr;
 };
 
 // ============================================================
@@ -277,18 +277,18 @@ bool handle_cow_fault(uint64_t fault_vaddr);
 // ============================================================
 
 namespace errno_values {
-    constexpr int EPERM   = 1;   ///< Operation not permitted
-    constexpr int ENOENT  = 2;   ///< No such file or directory
-    constexpr int ESRCH   = 3;   ///< No such process
-    constexpr int EIO     = 5;   ///< I/O error
-    constexpr int ENOEXEC = 8;   ///< Exec format error
-    constexpr int ENOMEM  = 12;  ///< Out of memory
-    constexpr int EACCES  = 13;  ///< Permission denied
-    constexpr int EFAULT  = 14;  ///< Bad address
-    constexpr int ECHILD  = 10;  ///< No child processes
-    constexpr int EISDIR  = 21;  ///< Is a directory
-    constexpr int EINVAL  = 22;  ///< Invalid argument
-}
+constexpr int EPERM   = 1;   ///< Operation not permitted
+constexpr int ENOENT  = 2;   ///< No such file or directory
+constexpr int ESRCH   = 3;   ///< No such process
+constexpr int EIO     = 5;   ///< I/O error
+constexpr int ENOEXEC = 8;   ///< Exec format error
+constexpr int ENOMEM  = 12;  ///< Out of memory
+constexpr int EACCES  = 13;  ///< Permission denied
+constexpr int EFAULT  = 14;  ///< Bad address
+constexpr int ECHILD  = 10;  ///< No child processes
+constexpr int EISDIR  = 21;  ///< Is a directory
+constexpr int EINVAL  = 22;  ///< Invalid argument
+}  // namespace errno_values
 
 /**
  * @brief Result codes from execve() loading
@@ -297,21 +297,21 @@ namespace errno_values {
  * return the negated value directly (e.g. -ENOENT, -ENOEXEC).
  */
 enum class ExecveResult : int {
-    Ok = 0,                      ///< Successfully loaded the new executable
-    BadPath       = -22,         ///< Path is null or empty (EINVAL)
-    FileNotFound  = -2,          ///< VFS could not resolve the path (ENOENT)
-    FileNotRegular = -21,        ///< Path resolves to a non-regular file (EISDIR)
-    ReadFailed    = -5,          ///< Failed to read the ELF data from the inode (EIO)
-    BadElfMagic   = -8,          ///< ELF magic number mismatch (ENOEXEC)
-    BadElfClass   = -8,          ///< Not a 64-bit ELF (ENOEXEC)
-    BadElfEndian  = -8,          ///< Not little-endian (ENOEXEC)
-    BadElfMachine = -8,          ///< Not x86-64 (ENOEXEC)
-    BadElfType    = -8,          ///< Not an executable (ENOEXEC)
-    BadElfHeaders = -8,          ///< Program header offset/size invalid (ENOEXEC)
-    NoLoadSegments = -8,         ///< No PT_LOAD segments found (ENOEXEC)
-    MapFailed     = -12,         ///< Address space map() failed for a segment (ENOMEM)
-    NoAddressSpace = -12,        ///< Task has no address space (ENOMEM)
-    NoCurrentTask = -3,          ///< No current task in the scheduler (ESRCH)
+    Ok             = 0,    ///< Successfully loaded the new executable
+    BadPath        = -22,  ///< Path is null or empty (EINVAL)
+    FileNotFound   = -2,   ///< VFS could not resolve the path (ENOENT)
+    FileNotRegular = -21,  ///< Path resolves to a non-regular file (EISDIR)
+    ReadFailed     = -5,   ///< Failed to read the ELF data from the inode (EIO)
+    BadElfMagic    = -8,   ///< ELF magic number mismatch (ENOEXEC)
+    BadElfClass    = -8,   ///< Not a 64-bit ELF (ENOEXEC)
+    BadElfEndian   = -8,   ///< Not little-endian (ENOEXEC)
+    BadElfMachine  = -8,   ///< Not x86-64 (ENOEXEC)
+    BadElfType     = -8,   ///< Not an executable (ENOEXEC)
+    BadElfHeaders  = -8,   ///< Program header offset/size invalid (ENOEXEC)
+    NoLoadSegments = -8,   ///< No PT_LOAD segments found (ENOEXEC)
+    MapFailed      = -12,  ///< Address space map() failed for a segment (ENOMEM)
+    NoAddressSpace = -12,  ///< Task has no address space (ENOMEM)
+    NoCurrentTask  = -3,   ///< No current task in the scheduler (ESRCH)
 };
 
 /**
@@ -330,8 +330,7 @@ enum class ExecveResult : int {
  * @param envp  Array of environment strings (may be nullptr)
  * @return ExecveResult::Ok on success, or an error code
  */
-ExecveResult execve(const char* path, const char* const argv[],
-                    const char* const envp[]);
+ExecveResult execve(const char* path, const char* const argv[], const char* const envp[]);
 
 // ============================================================
 // Waitpid
@@ -344,11 +343,11 @@ ExecveResult execve(const char* path, const char* const argv[],
  * return the negated value directly.
  */
 enum class WaitpidResult : int {
-    Ok          = 0,                   ///< Successfully reaped a child
-    NoChildren  = -10,                 ///< Caller has no children (ECHILD)
-    NotFound    = -3,                  ///< Specified PID is not a child (ESRCH)
-    InvalidPid  = -22,                 ///< PID argument is invalid (EINVAL)
-    NotExited   = -1,                  ///< Child exists but has not exited yet
+    Ok         = 0,    ///< Successfully reaped a child
+    NoChildren = -10,  ///< Caller has no children (ECHILD)
+    NotFound   = -3,   ///< Specified PID is not a child (ESRCH)
+    InvalidPid = -22,  ///< PID argument is invalid (EINVAL)
+    NotExited  = -1,   ///< Child exists but has not exited yet
 };
 
 /**

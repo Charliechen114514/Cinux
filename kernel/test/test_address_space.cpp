@@ -21,12 +21,11 @@
 #include <stdint.h>
 
 #include "big_kernel_test.h"
-
 #include "kernel/arch/x86_64/paging.hpp"
 #include "kernel/arch/x86_64/paging_config.hpp"
+#include "kernel/mm/address_space.hpp"
 #include "kernel/mm/pmm.hpp"
 #include "kernel/mm/vmm.hpp"
-#include "kernel/mm/address_space.hpp"
 
 using cinux::arch::FLAG_PRESENT;
 using cinux::arch::FLAG_WRITABLE;
@@ -266,8 +265,8 @@ void test_destroy_no_kernel_corruption() {
 
     {
         cinux::mm::AddressSpace as;
-        uint64_t virt = 0x20060000ULL;
-        uint64_t phys = g_pmm.alloc_page();
+        uint64_t                virt = 0x20060000ULL;
+        uint64_t                phys = g_pmm.alloc_page();
         TEST_ASSERT_NE(phys, 0u);
 
         as.map(virt, phys, FLAG_PRESENT | FLAG_WRITABLE);

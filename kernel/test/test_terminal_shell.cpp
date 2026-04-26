@@ -23,17 +23,17 @@
 
 #ifdef CINUX_GUI
 
-#include "boot/boot_info.h"
-#include "kernel/drivers/canvas.hpp"
-#include "kernel/drivers/video/font.hpp"
-#include "kernel/drivers/video/framebuffer.hpp"
-#include "kernel/gui/terminal.hpp"
-#include "kernel/gui/window_manager.hpp"
-#include "kernel/ipc/pipe.hpp"
-#include "kernel/ipc/pipe_ops.hpp"
-#include "kernel/fs/file.hpp"
-#include "kernel/fs/inode.hpp"
-#include "kernel/fs/vfs_mount.hpp"
+#    include "boot/boot_info.h"
+#    include "kernel/drivers/canvas.hpp"
+#    include "kernel/drivers/video/font.hpp"
+#    include "kernel/drivers/video/framebuffer.hpp"
+#    include "kernel/fs/file.hpp"
+#    include "kernel/fs/inode.hpp"
+#    include "kernel/fs/vfs_mount.hpp"
+#    include "kernel/gui/terminal.hpp"
+#    include "kernel/gui/window_manager.hpp"
+#    include "kernel/ipc/pipe.hpp"
+#    include "kernel/ipc/pipe_ops.hpp"
 
 using cinux::gui::Terminal;
 using cinux::ipc::Pipe;
@@ -50,7 +50,7 @@ using cinux::fs::OpenFlags;
 
 /// Verify that on_key forwards characters to stdin pipe
 void test_terminal_on_key_writes_to_stdin_pipe() {
-    auto* term = new Terminal(0, 0);
+    auto* term       = new Terminal(0, 0);
     auto* stdin_pipe = new Pipe();
 
     term->set_stdin_pipe(stdin_pipe);
@@ -58,7 +58,7 @@ void test_terminal_on_key_writes_to_stdin_pipe() {
     // Simulate a key press
     cinux::gui::KeyEvent ev;
     ev.pressed = true;
-    ev.ascii = 'A';
+    ev.ascii   = 'A';
     term->on_key(ev);
 
     // Verify character was written to stdin pipe
@@ -73,14 +73,14 @@ void test_terminal_on_key_writes_to_stdin_pipe() {
 
 /// Verify that on_key converts CR to LF
 void test_terminal_on_key_converts_cr_to_lf() {
-    auto* term = new Terminal(0, 0);
+    auto* term       = new Terminal(0, 0);
     auto* stdin_pipe = new Pipe();
 
     term->set_stdin_pipe(stdin_pipe);
 
     cinux::gui::KeyEvent ev;
     ev.pressed = true;
-    ev.ascii = '\r';  // Enter key sends CR
+    ev.ascii   = '\r';  // Enter key sends CR
     term->on_key(ev);
 
     char buf[4] = {};
@@ -93,14 +93,14 @@ void test_terminal_on_key_converts_cr_to_lf() {
 
 /// Verify that on_key does not write to screen when stdin pipe is set
 void test_terminal_on_key_no_screen_write_with_pipe() {
-    auto* term = new Terminal(0, 0);
+    auto* term       = new Terminal(0, 0);
     auto* stdin_pipe = new Pipe();
 
     term->set_stdin_pipe(stdin_pipe);
 
     cinux::gui::KeyEvent ev;
     ev.pressed = true;
-    ev.ascii = 'X';
+    ev.ascii   = 'X';
     term->on_key(ev);
 
     // Screen buffer should still be empty (echo comes from stdout pipe)
@@ -117,7 +117,7 @@ void test_terminal_on_key_no_screen_write_with_pipe() {
 
 /// Verify that poll_output reads data from stdout pipe into screen buffer
 void test_terminal_poll_output_reads_stdout() {
-    auto* term = new Terminal(0, 0);
+    auto* term        = new Terminal(0, 0);
     auto* stdout_pipe = new Pipe();
 
     term->set_stdout_pipe(stdout_pipe);
@@ -140,7 +140,7 @@ void test_terminal_poll_output_reads_stdout() {
 
 /// Verify that poll_output on empty pipe does nothing
 void test_terminal_poll_output_empty_pipe() {
-    auto* term = new Terminal(0, 0);
+    auto* term        = new Terminal(0, 0);
     auto* stdout_pipe = new Pipe();
 
     term->set_stdout_pipe(stdout_pipe);
@@ -157,7 +157,7 @@ void test_terminal_poll_output_empty_pipe() {
 
 /// Verify that poll_output handles newline correctly
 void test_terminal_poll_output_with_newline() {
-    auto* term = new Terminal(0, 0);
+    auto* term        = new Terminal(0, 0);
     auto* stdout_pipe = new Pipe();
 
     term->set_stdout_pipe(stdout_pipe);
@@ -197,8 +197,8 @@ void test_terminal_poll_output_no_pipe() {
 
 /// Simulate full Terminal-Shell data flow using pipes
 void test_terminal_shell_full_roundtrip() {
-    auto* term = new Terminal(0, 0);
-    auto* stdin_pipe = new Pipe();
+    auto* term        = new Terminal(0, 0);
+    auto* stdin_pipe  = new Pipe();
     auto* stdout_pipe = new Pipe();
 
     term->set_stdin_pipe(stdin_pipe);
@@ -207,12 +207,12 @@ void test_terminal_shell_full_roundtrip() {
     // Simulate: Terminal receives key 'H'
     cinux::gui::KeyEvent ev;
     ev.pressed = true;
-    ev.ascii = 'H';
+    ev.ascii   = 'H';
     term->on_key(ev);
 
     // Shell reads from stdin pipe
-    char read_buf[16] = {};
-    int64_t r = stdin_pipe->try_read(read_buf, 16);
+    char    read_buf[16] = {};
+    int64_t r            = stdin_pipe->try_read(read_buf, 16);
     TEST_ASSERT_EQ(r, 1);
     TEST_ASSERT_EQ(read_buf[0], 'H');
 
@@ -242,18 +242,18 @@ void test_terminal_pipe_fd_table_binding() {
     Pipe stdin_pipe;
     Pipe stdout_pipe;
 
-    auto* stdin_ops = new PipeReadOps(&stdin_pipe);
+    auto* stdin_ops  = new PipeReadOps(&stdin_pipe);
     auto* stdout_ops = new PipeWriteOps(&stdout_pipe);
 
     auto* stdin_inode = new Inode();
-    stdin_inode->ops = stdin_ops;
+    stdin_inode->ops  = stdin_ops;
     stdin_inode->type = InodeType::Regular;
 
     auto* stdout_inode = new Inode();
-    stdout_inode->ops = stdout_ops;
+    stdout_inode->ops  = stdout_ops;
     stdout_inode->type = InodeType::Regular;
 
-    auto* stdin_file = new File(stdin_inode, 0, OpenFlags::RDONLY);
+    auto* stdin_file  = new File(stdin_inode, 0, OpenFlags::RDONLY);
     auto* stdout_file = new File(stdout_inode, 0, OpenFlags::WRONLY);
 
     cinux::fs::g_global_fd_table().set(0, stdin_file);
@@ -270,12 +270,12 @@ void test_terminal_pipe_fd_table_binding() {
 
     // Write through stdout fd
     const char msg[] = "ok";
-    int64_t w = f1->inode->ops->write(f1->inode, 0, msg, 2);
+    int64_t    w     = f1->inode->ops->write(f1->inode, 0, msg, 2);
     TEST_ASSERT_EQ(w, 2);
 
     // Read back from stdout pipe directly
-    char buf[8] = {};
-    int64_t r = stdout_pipe.try_read(buf, 8);
+    char    buf[8] = {};
+    int64_t r      = stdout_pipe.try_read(buf, 8);
     TEST_ASSERT_EQ(r, 2);
     TEST_ASSERT_EQ(buf[0], 'o');
     TEST_ASSERT_EQ(buf[1], 'k');
@@ -296,8 +296,8 @@ void test_terminal_pipe_fd_table_binding() {
 /// Verify that when both pipes are connected, on_key does not echo
 /// and poll_output is needed to display shell output
 void test_terminal_both_pipes_no_direct_echo() {
-    auto* term = new Terminal(0, 0);
-    auto* stdin_pipe = new Pipe();
+    auto* term        = new Terminal(0, 0);
+    auto* stdin_pipe  = new Pipe();
     auto* stdout_pipe = new Pipe();
 
     term->set_stdin_pipe(stdin_pipe);
@@ -306,7 +306,7 @@ void test_terminal_both_pipes_no_direct_echo() {
     // Simulate typing "AB"
     cinux::gui::KeyEvent ev;
     ev.pressed = true;
-    ev.ascii = 'A';
+    ev.ascii   = 'A';
     term->on_key(ev);
     ev.ascii = 'B';
     term->on_key(ev);
@@ -338,7 +338,7 @@ void test_terminal_both_pipes_no_direct_echo() {
 
 /// Verify Terminal destructor closes stdin pipe write end (EOF to shell)
 void test_terminal_destructor_closes_stdin_pipe() {
-    auto* stdin_pipe = new Pipe();
+    auto* stdin_pipe  = new Pipe();
     auto* stdout_pipe = new Pipe();
 
     {
@@ -366,7 +366,7 @@ void test_terminal_destructor_closes_stdin_pipe() {
 
 /// Verify that after Terminal destruction, shell read returns 0 (EOF)
 void test_terminal_eof_propagation_to_shell() {
-    auto* stdin_pipe = new Pipe();
+    auto* stdin_pipe  = new Pipe();
     auto* stdout_pipe = new Pipe();
 
     {
@@ -377,8 +377,8 @@ void test_terminal_eof_propagation_to_shell() {
     }
 
     // Shell tries to read from stdin -- should get 0 (EOF) immediately
-    char buf[16] = {};
-    int64_t r = stdin_pipe->try_read(buf, 16);
+    char    buf[16] = {};
+    int64_t r       = stdin_pipe->try_read(buf, 16);
     TEST_ASSERT_EQ(r, 0);  // EOF: writer closed, buffer empty
 
     delete stdin_pipe;
@@ -387,7 +387,7 @@ void test_terminal_eof_propagation_to_shell() {
 
 /// Verify that after Terminal destruction, shell write to stdout returns -1
 void test_terminal_destructor_shell_write_fails() {
-    auto* stdin_pipe = new Pipe();
+    auto* stdin_pipe  = new Pipe();
     auto* stdout_pipe = new Pipe();
 
     {
@@ -399,7 +399,7 @@ void test_terminal_destructor_shell_write_fails() {
 
     // Shell tries to write to stdout -- reader is closed, should return -1
     const char msg[] = "test";
-    int64_t w = stdout_pipe->try_write(msg, 4);
+    int64_t    w     = stdout_pipe->try_write(msg, 4);
     TEST_ASSERT_EQ(w, -1);  // Reader closed
 
     delete stdin_pipe;
@@ -417,12 +417,12 @@ void test_terminal_destructor_no_pipes_no_crash() {
 
 /// Verify close button flow: WM destroy -> Terminal dtor -> pipes closed
 void test_wm_close_button_closes_terminal_pipes() {
-    auto* fb = new cinux::drivers::Framebuffer();
-    auto* font = new cinux::drivers::PSFFont();
+    auto* fb     = new cinux::drivers::Framebuffer();
+    auto* font   = new cinux::drivers::PSFFont();
     auto* screen = new cinux::drivers::Canvas();
 
     static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
-    auto* bi = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
+    auto*                      bi             = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
     fb->init(*bi);
     font->init();
     fb->clear(0);
@@ -432,7 +432,7 @@ void test_wm_close_button_closes_terminal_pipes() {
     wm->init(screen, font);
 
     // Create pipes for the terminal
-    auto* stdin_pipe = new Pipe();
+    auto* stdin_pipe  = new Pipe();
     auto* stdout_pipe = new Pipe();
 
     // Create Terminal and connect pipes

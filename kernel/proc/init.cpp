@@ -17,7 +17,7 @@
 #include "kernel/proc/sync.hpp"
 
 #ifdef CINUX_GUI
-#include "kernel/gui/gui_init.hpp"
+#    include "kernel/gui/gui_init.hpp"
 #endif
 
 namespace cinux::proc {
@@ -38,8 +38,7 @@ void gui_worker_thread() {
 
 void kernel_init_thread() {
     auto* self = Scheduler::current();
-    cinux::lib::kprintf("[INIT] kernel_init started tid=%u\n",
-                        self ? self->tid : 0);
+    cinux::lib::kprintf("[INIT] kernel_init started tid=%u\n", self ? self->tid : 0);
 
     cinux::lib::kprintf("[INIT] ===== Milestone 028: ext2 Filesystem =====\n");
     static cinux::fs::Ext2 ext2(cinux::drivers::ahci::AHCI::instance(), 1);
@@ -64,10 +63,7 @@ void kernel_init_thread() {
 
     // Launch GUI worker thread to handle deferred work (fork/execve)
     // outside of PIT interrupt context
-    auto* gui_task = TaskBuilder()
-        .set_entry(gui_worker_thread)
-        .set_name("gui_worker")
-        .build();
+    auto* gui_task = TaskBuilder().set_entry(gui_worker_thread).set_name("gui_worker").build();
     if (gui_task != nullptr) {
         Scheduler::add_task(gui_task);
         cinux::lib::kprintf("[INIT] GUI worker thread launched\n");
@@ -81,7 +77,7 @@ void kernel_init_thread() {
     if (child_pid == 0) {
         __asm__ volatile("cli");
 
-        auto* task = cinux::proc::Scheduler::current();
+        auto* task       = cinux::proc::Scheduler::current();
         task->addr_space = new cinux::mm::AddressSpace();
 
         const char* path   = "/bin/sh";
@@ -90,13 +86,12 @@ void kernel_init_thread() {
 
         auto result = cinux::proc::execve(path, argv, envp);
         if (result != cinux::proc::ExecveResult::Ok) {
-            cinux::lib::kprintf("[INIT] execve(%s) failed: %d\n",
-                                path, static_cast<int>(result));
+            cinux::lib::kprintf("[INIT] execve(%s) failed: %d\n", path, static_cast<int>(result));
             cinux::proc::Scheduler::exit_current();
         }
 
         // Set up user stack
-        uint64_t entry = task->ctx.rip;
+        uint64_t           entry = task->ctx.rip;
         constexpr uint64_t kUserPageFlags =
             cinux::arch::FLAG_PRESENT | cinux::arch::FLAG_WRITABLE | cinux::arch::FLAG_USER;
         uint64_t stack_base =
@@ -121,9 +116,7 @@ void kernel_init_thread() {
 
         task->addr_space->activate();
         cinux::proc::g_per_cpu.update_syscall_stack(task->kernel_stack_top);
-        jump_to_usermode(entry,
-                         cinux::arch::USER_STACK_TOP - cinux::arch::USER_ABI_RSP_OFFSET,
-                         0);
+        jump_to_usermode(entry, cinux::arch::USER_STACK_TOP - cinux::arch::USER_ABI_RSP_OFFSET, 0);
         cinux::proc::Scheduler::exit_current();
     } else if (child_pid > 0) {
         cinux::lib::kprintf("[INIT] Shell spawned pid=%d\n", child_pid);

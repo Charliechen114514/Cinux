@@ -18,25 +18,24 @@
  *   - usermode_init() and syscall_init() called
  */
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "big_kernel_test.h"
-
-#include "kernel/drivers/pit/pit.hpp"
-#include "kernel/drivers/pci/pci.hpp"
 #include "kernel/drivers/ahci/ahci.hpp"
+#include "kernel/drivers/pci/pci.hpp"
+#include "kernel/drivers/pit/pit.hpp"
 #include "kernel/fs/ext2.hpp"
 #include "kernel/fs/vfs_mount.hpp"
+#include "kernel/lib/string.hpp"
+#include "kernel/syscall/sys_close.hpp"
 #include "kernel/syscall/sys_creat.hpp"
 #include "kernel/syscall/sys_mkdir.hpp"
-#include "kernel/syscall/sys_unlink.hpp"
-#include "kernel/syscall/sys_rmdir.hpp"
 #include "kernel/syscall/sys_open.hpp"
-#include "kernel/syscall/sys_write.hpp"
 #include "kernel/syscall/sys_read.hpp"
-#include "kernel/syscall/sys_close.hpp"
-#include "kernel/lib/string.hpp"
+#include "kernel/syscall/sys_rmdir.hpp"
+#include "kernel/syscall/sys_unlink.hpp"
+#include "kernel/syscall/sys_write.hpp"
 
 using cinux::drivers::pci::PCI;
 using cinux::drivers::pci::PCIDevice;
@@ -91,14 +90,16 @@ void teardown_shell_write(AhciExt2Pair& pair) {
 static uint32_t g_name_seq = 0;
 
 void gen_name(char* buf, uint32_t buf_len, const char* prefix) {
-    uint32_t seed = static_cast<uint32_t>(
-        cinux::drivers::PIT::get_ticks() ^ (++g_name_seq));
+    uint32_t seed = static_cast<uint32_t>(cinux::drivers::PIT::get_ticks() ^ (++g_name_seq));
     seed ^= seed << 13;
     seed ^= seed >> 17;
     seed ^= seed << 5;
     uint32_t off = 0;
-    while (prefix[off] && off < buf_len - 9) { buf[off] = prefix[off]; ++off; }
-    buf[off++] = '_';
+    while (prefix[off] && off < buf_len - 9) {
+        buf[off] = prefix[off];
+        ++off;
+    }
+    buf[off++]       = '_';
     const char hex[] = "0123456789abcdef";
     for (int d = 6; d >= 0 && off < buf_len - 1; --d)
         buf[off++] = hex[(seed >> (d * 4)) & 0xf];
@@ -106,21 +107,19 @@ void gen_name(char* buf, uint32_t buf_len, const char* prefix) {
 }
 
 
-
 /// Build "/name" path in buf from a bare name
 void make_root_path(char* buf, uint32_t buf_len, const char* name) {
     uint32_t i = 0;
-    buf[i++] = '/';
+    buf[i++]   = '/';
     for (uint32_t j = 0; name[j] && i < buf_len - 1; ++j)
         buf[i++] = name[j];
     buf[i] = '\0';
 }
 
 /// Build "/dir/file" path in buf from dir name and file name
-void make_sub_path(char* buf, uint32_t buf_len,
-                   const char* dirname, const char* fname) {
+void make_sub_path(char* buf, uint32_t buf_len, const char* dirname, const char* fname) {
     uint32_t i = 0;
-    buf[i++] = '/';
+    buf[i++]   = '/';
     for (uint32_t j = 0; dirname[j] && i < buf_len - 2; ++j)
         buf[i++] = dirname[j];
     buf[i++] = '/';
@@ -142,8 +141,10 @@ void test_touch_creates_and_cleanup() {
     TEST_ASSERT_NOT_NULL(pair.ext2);
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
-    char name[32]; gen_name(name, 32, "tw");
-    char path[64]; make_root_path(path, 64, name);
+    char name[32];
+    gen_name(name, 32, "tw");
+    char path[64];
+    make_root_path(path, 64, name);
     auto path_addr = reinterpret_cast<uint64_t>(path);
 
     // sys_creat (touch)
@@ -153,8 +154,7 @@ void test_touch_creates_and_cleanup() {
     // lookup verifies file exists
     Inode* found = pair.ext2->lookup(name);
     TEST_ASSERT_NOT_NULL(found);
-    TEST_ASSERT_EQ(static_cast<uint32_t>(found->type),
-                   static_cast<uint32_t>(InodeType::Regular));
+    TEST_ASSERT_EQ(static_cast<uint32_t>(found->type), static_cast<uint32_t>(InodeType::Regular));
 
     cinux::lib::kprintf("[SHELL_WRITE] touch /%s OK (ino=%lu)\n", name, found->ino);
 
@@ -183,8 +183,10 @@ void test_mkdir_creates_and_cleanup() {
     TEST_ASSERT_NOT_NULL(pair.ext2);
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
-    char name[32]; gen_name(name, 32, "mw");
-    char path[64]; make_root_path(path, 64, name);
+    char name[32];
+    gen_name(name, 32, "mw");
+    char path[64];
+    make_root_path(path, 64, name);
     auto path_addr = reinterpret_cast<uint64_t>(path);
 
     // sys_mkdir
@@ -194,8 +196,7 @@ void test_mkdir_creates_and_cleanup() {
     // lookup verifies directory exists
     Inode* found = pair.ext2->lookup(name);
     TEST_ASSERT_NOT_NULL(found);
-    TEST_ASSERT_EQ(static_cast<uint32_t>(found->type),
-                   static_cast<uint32_t>(InodeType::Directory));
+    TEST_ASSERT_EQ(static_cast<uint32_t>(found->type), static_cast<uint32_t>(InodeType::Directory));
 
     cinux::lib::kprintf("[SHELL_WRITE] mkdir /%s OK (ino=%lu)\n", name, found->ino);
 
@@ -224,8 +225,10 @@ void test_echo_redirect_write_read() {
     TEST_ASSERT_NOT_NULL(pair.ext2);
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
-    char name[32]; gen_name(name, 32, "ew");
-    char path[64]; make_root_path(path, 64, name);
+    char name[32];
+    gen_name(name, 32, "ew");
+    char path[64];
+    make_root_path(path, 64, name);
     auto path_addr = reinterpret_cast<uint64_t>(path);
 
     // sys_creat (echo redirect creates the file)
@@ -241,18 +244,16 @@ void test_echo_redirect_write_read() {
     cinux::lib::kprintf("[SHELL_WRITE] echo redirect: open fd=%ld\n", fd);
 
     // sys_write text to file
-    const char text[] = "hello world\n";
-    auto text_addr = reinterpret_cast<uint64_t>(text);
-    int64_t write_result = cinux::syscall::sys_write(
-        static_cast<uint64_t>(fd), text_addr,
-        sizeof(text) - 1, 0, 0, 0);
+    const char text[]    = "hello world\n";
+    auto       text_addr = reinterpret_cast<uint64_t>(text);
+    int64_t    write_result =
+        cinux::syscall::sys_write(static_cast<uint64_t>(fd), text_addr, sizeof(text) - 1, 0, 0, 0);
     TEST_ASSERT_EQ(write_result, static_cast<int64_t>(sizeof(text) - 1));
 
     cinux::lib::kprintf("[SHELL_WRITE] echo redirect: wrote %ld bytes\n", write_result);
 
     // sys_close
-    int64_t close_result = cinux::syscall::sys_close(
-        static_cast<uint64_t>(fd), 0, 0, 0, 0, 0);
+    int64_t close_result = cinux::syscall::sys_close(static_cast<uint64_t>(fd), 0, 0, 0, 0, 0);
     TEST_ASSERT_EQ(close_result, 0);
 
     // sys_open for reading (O_RDONLY = 0)
@@ -261,11 +262,11 @@ void test_echo_redirect_write_read() {
 
     // sys_read back the data
     char read_buf[64];
-    for (uint32_t i = 0; i < sizeof(read_buf); ++i) read_buf[i] = 0;
-    auto buf_addr = reinterpret_cast<uint64_t>(read_buf);
-    int64_t nread = cinux::syscall::sys_read(
-        static_cast<uint64_t>(rfd), buf_addr,
-        sizeof(read_buf) - 1, 0, 0, 0);
+    for (uint32_t i = 0; i < sizeof(read_buf); ++i)
+        read_buf[i] = 0;
+    auto    buf_addr = reinterpret_cast<uint64_t>(read_buf);
+    int64_t nread    = cinux::syscall::sys_read(static_cast<uint64_t>(rfd), buf_addr,
+                                                sizeof(read_buf) - 1, 0, 0, 0);
     TEST_ASSERT_EQ(nread, static_cast<int64_t>(sizeof(text) - 1));
 
     // Verify content
@@ -299,8 +300,10 @@ void test_full_shell_write_flow() {
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
     // Step 1: mkdir
-    char dirname[32]; gen_name(dirname, 32, "fw");
-    char dir_path[64]; make_root_path(dir_path, 64, dirname);
+    char dirname[32];
+    gen_name(dirname, 32, "fw");
+    char dir_path[64];
+    make_root_path(dir_path, 64, dirname);
     auto dir_addr = reinterpret_cast<uint64_t>(dir_path);
 
     int64_t mkdir_result = cinux::syscall::sys_mkdir(dir_addr, 0, 0, 0, 0, 0);
@@ -308,14 +311,15 @@ void test_full_shell_write_flow() {
 
     Inode* dir = pair.ext2->lookup(dirname);
     TEST_ASSERT_NOT_NULL(dir);
-    TEST_ASSERT_EQ(static_cast<uint32_t>(dir->type),
-                   static_cast<uint32_t>(InodeType::Directory));
+    TEST_ASSERT_EQ(static_cast<uint32_t>(dir->type), static_cast<uint32_t>(InodeType::Directory));
 
     cinux::lib::kprintf("[SHELL_WRITE] full flow: mkdir /%s OK\n", dirname);
 
     // Step 2: creat file in dir
-    char fname[32]; gen_name(fname, 32, "fwf");
-    char file_path[96]; make_sub_path(file_path, 96, dirname, fname);
+    char fname[32];
+    gen_name(fname, 32, "fwf");
+    char file_path[96];
+    make_sub_path(file_path, 96, dirname, fname);
     auto file_addr = reinterpret_cast<uint64_t>(file_path);
 
     int64_t creat_result = cinux::syscall::sys_creat(file_addr, 0, 0, 0, 0, 0);
@@ -327,11 +331,10 @@ void test_full_shell_write_flow() {
     int64_t fd = cinux::syscall::sys_open(file_addr, 1, 0, 0, 0, 0);
     TEST_ASSERT_GE(fd, 0);
 
-    const char text[] = "shell write test\n";
-    auto text_addr = reinterpret_cast<uint64_t>(text);
-    int64_t write_result = cinux::syscall::sys_write(
-        static_cast<uint64_t>(fd), text_addr,
-        sizeof(text) - 1, 0, 0, 0);
+    const char text[]    = "shell write test\n";
+    auto       text_addr = reinterpret_cast<uint64_t>(text);
+    int64_t    write_result =
+        cinux::syscall::sys_write(static_cast<uint64_t>(fd), text_addr, sizeof(text) - 1, 0, 0, 0);
     TEST_ASSERT_EQ(write_result, static_cast<int64_t>(sizeof(text) - 1));
 
     cinux::syscall::sys_close(static_cast<uint64_t>(fd), 0, 0, 0, 0, 0);
@@ -343,11 +346,11 @@ void test_full_shell_write_flow() {
     TEST_ASSERT_GE(rfd, 0);
 
     char read_buf[64];
-    for (uint32_t i = 0; i < sizeof(read_buf); ++i) read_buf[i] = 0;
-    auto buf_addr = reinterpret_cast<uint64_t>(read_buf);
-    int64_t nread = cinux::syscall::sys_read(
-        static_cast<uint64_t>(rfd), buf_addr,
-        sizeof(read_buf) - 1, 0, 0, 0);
+    for (uint32_t i = 0; i < sizeof(read_buf); ++i)
+        read_buf[i] = 0;
+    auto    buf_addr = reinterpret_cast<uint64_t>(read_buf);
+    int64_t nread    = cinux::syscall::sys_read(static_cast<uint64_t>(rfd), buf_addr,
+                                                sizeof(read_buf) - 1, 0, 0, 0);
     TEST_ASSERT_EQ(nread, static_cast<int64_t>(sizeof(text) - 1));
     TEST_ASSERT_EQ(memcmp(read_buf, text, sizeof(text) - 1), 0);
 

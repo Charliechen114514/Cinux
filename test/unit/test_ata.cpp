@@ -25,11 +25,11 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
+#    include <cstdint>
 
 // Include kernel ATA header for constants
-#include "mini/driver/ata.hpp"
-#include "mini/driver/pci.hpp"
+#    include "mini/driver/ata.hpp"
+#    include "mini/driver/pci.hpp"
 
 using namespace cinux::mini::driver::ata;
 using namespace cinux::mini::driver::pci;
@@ -70,9 +70,15 @@ static uint8_t encode_lba28_count(uint16_t count) {
 /**
  * @brief Encode LBA28 LBA low/mid/high bytes
  */
-static uint8_t encode_lba28_low(uint64_t lba)  { return static_cast<uint8_t>(lba & 0xFF); }
-static uint8_t encode_lba28_mid(uint64_t lba)  { return static_cast<uint8_t>((lba >> 8) & 0xFF); }
-static uint8_t encode_lba28_high(uint64_t lba) { return static_cast<uint8_t>((lba >> 16) & 0xFF); }
+static uint8_t encode_lba28_low(uint64_t lba) {
+    return static_cast<uint8_t>(lba & 0xFF);
+}
+static uint8_t encode_lba28_mid(uint64_t lba) {
+    return static_cast<uint8_t>((lba >> 8) & 0xFF);
+}
+static uint8_t encode_lba28_high(uint64_t lba) {
+    return static_cast<uint8_t>((lba >> 16) & 0xFF);
+}
 
 /**
  * @brief Encode LBA48 drive register
@@ -98,16 +104,28 @@ static uint8_t encode_lba48_count_lo(uint16_t count) {
 /**
  * @brief Encode LBA48 high-order LBA bytes (sent first)
  */
-static uint8_t encode_lba48_hob_low(uint64_t lba)  { return static_cast<uint8_t>((lba >> 24) & 0xFF); }
-static uint8_t encode_lba48_hob_mid(uint64_t lba)  { return static_cast<uint8_t>((lba >> 32) & 0xFF); }
-static uint8_t encode_lba48_hob_high(uint64_t lba) { return static_cast<uint8_t>((lba >> 40) & 0xFF); }
+static uint8_t encode_lba48_hob_low(uint64_t lba) {
+    return static_cast<uint8_t>((lba >> 24) & 0xFF);
+}
+static uint8_t encode_lba48_hob_mid(uint64_t lba) {
+    return static_cast<uint8_t>((lba >> 32) & 0xFF);
+}
+static uint8_t encode_lba48_hob_high(uint64_t lba) {
+    return static_cast<uint8_t>((lba >> 40) & 0xFF);
+}
 
 /**
  * @brief Encode LBA48 low-order LBA bytes (sent second)
  */
-static uint8_t encode_lba48_lob_low(uint64_t lba)  { return static_cast<uint8_t>(lba & 0xFF); }
-static uint8_t encode_lba48_lob_mid(uint64_t lba)  { return static_cast<uint8_t>((lba >> 8) & 0xFF); }
-static uint8_t encode_lba48_lob_high(uint64_t lba) { return static_cast<uint8_t>((lba >> 16) & 0xFF); }
+static uint8_t encode_lba48_lob_low(uint64_t lba) {
+    return static_cast<uint8_t>(lba & 0xFF);
+}
+static uint8_t encode_lba48_lob_mid(uint64_t lba) {
+    return static_cast<uint8_t>((lba >> 8) & 0xFF);
+}
+static uint8_t encode_lba48_lob_high(uint64_t lba) {
+    return static_cast<uint8_t>((lba >> 16) & 0xFF);
+}
 
 // ============================================================
 // 1. ATA Constant Verification
@@ -457,10 +475,10 @@ TEST("ata: words per sector") {
  */
 TEST("ata: drive master bit layout") {
     uint8_t drive = ATA_DRIVE_MASTER;
-    ASSERT_TRUE(drive & 0x80);    // Bit 7 = 1
-    ASSERT_TRUE(drive & 0x40);    // Bit 6 = 1 (LBA mode)
-    ASSERT_TRUE(drive & 0x20);    // Bit 5 = 1
-    ASSERT_FALSE(drive & 0x10);   // Bit 4 = 0 (master, not slave)
+    ASSERT_TRUE(drive & 0x80);   // Bit 7 = 1
+    ASSERT_TRUE(drive & 0x40);   // Bit 6 = 1 (LBA mode)
+    ASSERT_TRUE(drive & 0x20);   // Bit 5 = 1
+    ASSERT_FALSE(drive & 0x10);  // Bit 4 = 0 (master, not slave)
 }
 
 /**
@@ -468,7 +486,7 @@ TEST("ata: drive master bit layout") {
  */
 TEST("ata: LBA48 mode bit in drive register") {
     uint8_t lba48_drive = encode_lba48_drive();
-    ASSERT_TRUE(lba48_drive & 0x40);  // LBA48 bit set
+    ASSERT_TRUE(lba48_drive & 0x40);      // LBA48 bit set
     ASSERT_EQ(lba48_drive & 0xE0, 0xE0);  // Master + LBA bits preserved
 }
 
@@ -485,7 +503,7 @@ TEST("ata: init reset values") {
     // SRST = bit 1 = 0x02, nIEN = bit 2 = 0x04
     // Combined = 0x04 (per the code: outb(CTRL, 0x04))
     uint8_t reset_val = 0x04;
-    ASSERT_TRUE(reset_val & 0x04);  // nIEN set
+    ASSERT_TRUE(reset_val & 0x04);   // nIEN set
     ASSERT_FALSE(reset_val & 0x01);  // Bit 0 clear
 
     // Deassert: 0x00
@@ -574,8 +592,8 @@ TEST("ata: PRD structure size") {
 TEST("ata: PRD field layout") {
     Prd prd{};
     prd.buffer_addr = 0x12345678;
-    prd.byte_count = 0x0100;
-    prd.flags = PRD_FLAG_EOT;
+    prd.byte_count  = 0x0100;
+    prd.flags       = PRD_FLAG_EOT;
     ASSERT_EQ(prd.buffer_addr, 0x12345678u);
     ASSERT_EQ(prd.byte_count, 0x0100u);
     ASSERT_EQ(prd.flags, 0x8000u);
@@ -583,7 +601,7 @@ TEST("ata: PRD field layout") {
 
 TEST("ata: DMA byte count encoding (0 = 65536)") {
     // In PRD, byte_count of 0 means 65536 bytes
-    uint32_t chunk = 65536;
+    uint32_t chunk   = 65536;
     uint16_t encoded = static_cast<uint16_t>(chunk & 0xFFFF);
     ASSERT_EQ(encoded, 0u);
 }

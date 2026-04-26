@@ -9,14 +9,15 @@
  */
 
 #define TEST_FRAMEWORK_IMPL
-#include "test_framework.h"
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <thread>
+
 #include <atomic>
+#include <thread>
 #include <vector>
+
+#include "test_framework.h"
 
 // ============================================================
 // Constants (mirrored from heap.cpp)
@@ -52,10 +53,10 @@ class TestHeap {
 public:
     void init(size_t region_size) {
         region_size_ = align_up(region_size, PAGE_SIZE);
-        buffer_ = static_cast<uint8_t*>(calloc(1, region_size_));
-        base_   = reinterpret_cast<uintptr_t>(buffer_);
+        buffer_      = static_cast<uint8_t*>(calloc(1, region_size_));
+        base_        = reinterpret_cast<uintptr_t>(buffer_);
 
-        auto* first = reinterpret_cast<BlockHeader*>(base_);
+        auto* first  = reinterpret_cast<BlockHeader*>(base_);
         first->magic = HEAP_MAGIC;
         first->size  = static_cast<uint32_t>(region_size_ - HEADER_SIZE);
         first->free  = 1;
@@ -65,13 +66,13 @@ public:
         used_      = 0;
     }
 
-    ~TestHeap() {
-        free(buffer_);
-    }
+    ~TestHeap() { free(buffer_); }
 
     void* alloc(size_t size, size_t align = 16) {
-        if (size == 0) return nullptr;
-        if (align < 16) align = 16;
+        if (size == 0)
+            return nullptr;
+        if (align < 16)
+            align = 16;
 
         size_t needed = size + (align - 1);
 
@@ -79,13 +80,14 @@ public:
         BlockHeader* curr = free_list_;
 
         while (curr != nullptr) {
-            if (curr->magic != HEAP_MAGIC) return nullptr;
+            if (curr->magic != HEAP_MAGIC)
+                return nullptr;
 
             if (curr->free && curr->size >= needed) {
-                uintptr_t curr_addr = reinterpret_cast<uintptr_t>(curr);
-                uintptr_t block_end = curr_addr + HEADER_SIZE + curr->size;
+                uintptr_t curr_addr       = reinterpret_cast<uintptr_t>(curr);
+                uintptr_t block_end       = curr_addr + HEADER_SIZE + curr->size;
                 uintptr_t aligned_payload = align_up(curr_addr + HEADER_SIZE, align);
-                uintptr_t hdr_addr = aligned_payload - HEADER_SIZE;
+                uintptr_t hdr_addr        = aligned_payload - HEADER_SIZE;
 
                 size_t usable = static_cast<size_t>(block_end - aligned_payload);
                 if (usable < size) {
@@ -94,7 +96,7 @@ public:
                     continue;
                 }
 
-                size_t front_pad = static_cast<size_t>(hdr_addr - curr_addr);
+                size_t front_pad  = static_cast<size_t>(hdr_addr - curr_addr);
                 size_t tail_space = static_cast<size_t>(block_end - (aligned_payload + size));
 
                 // Remove curr from free list
@@ -113,7 +115,7 @@ public:
 
                 // Tail remainder: create free block after allocation
                 if (tail_space >= MIN_SPLIT) {
-                    auto* rem = reinterpret_cast<BlockHeader*>(aligned_payload + size);
+                    auto* rem  = reinterpret_cast<BlockHeader*>(aligned_payload + size);
                     rem->magic = HEAP_MAGIC;
                     rem->size  = static_cast<uint32_t>(tail_space - HEADER_SIZE);
                     rem->free  = 1;
@@ -122,7 +124,7 @@ public:
                 }
 
                 // Write allocated block header at aligned_payload - HEADER_SIZE
-                auto* alloc_hdr = reinterpret_cast<BlockHeader*>(hdr_addr);
+                auto* alloc_hdr  = reinterpret_cast<BlockHeader*>(hdr_addr);
                 alloc_hdr->magic = HEAP_MAGIC;
                 alloc_hdr->size  = static_cast<uint32_t>(size);
                 alloc_hdr->free  = 0;
@@ -142,13 +144,16 @@ public:
     }
 
     void free_mem(void* ptr) {
-        if (ptr == nullptr) return;
+        if (ptr == nullptr)
+            return;
 
-        auto* block = reinterpret_cast<BlockHeader*>(
-            reinterpret_cast<uintptr_t>(ptr) - HEADER_SIZE);
+        auto* block =
+            reinterpret_cast<BlockHeader*>(reinterpret_cast<uintptr_t>(ptr) - HEADER_SIZE);
 
-        if (block->magic != HEAP_MAGIC) return;
-        if (block->free) return;  // double-free detection
+        if (block->magic != HEAP_MAGIC)
+            return;
+        if (block->free)
+            return;  // double-free detection
 
         used_ -= HEADER_SIZE + block->size;
         block->free = 1;
@@ -163,10 +168,11 @@ public:
 
     // Count total free bytes in free list
     size_t free_total() const {
-        size_t t = 0;
+        size_t       t = 0;
         BlockHeader* c = free_list_;
         while (c != nullptr) {
-            if (c->free) t += c->size;
+            if (c->free)
+                t += c->size;
             c = c->next;
         }
         return t;
@@ -174,24 +180,31 @@ public:
 
     // Count free list blocks
     size_t free_block_count() const {
-        size_t n = 0;
+        size_t       n = 0;
         BlockHeader* c = free_list_;
-        while (c != nullptr) { n++; c = c->next; }
+        while (c != nullptr) {
+            n++;
+            c = c->next;
+        }
         return n;
     }
 
     // Validate free list: no cycles, all magic valid, all marked free
     bool validate_free_list() const {
-        size_t count = 0;
-        size_t max_count = 10000;  // safety limit
-        BlockHeader* c = free_list_;
+        size_t       count     = 0;
+        size_t       max_count = 10000;  // safety limit
+        BlockHeader* c         = free_list_;
         while (c != nullptr) {
-            if (++count > max_count) return false;  // cycle detected
-            if (c->magic != HEAP_MAGIC) return false;
-            if (!c->free) return false;
+            if (++count > max_count)
+                return false;  // cycle detected
+            if (c->magic != HEAP_MAGIC)
+                return false;
+            if (!c->free)
+                return false;
             // Check block is within buffer
             auto addr = reinterpret_cast<uintptr_t>(c);
-            if (addr < base_ || addr + HEADER_SIZE > base_ + region_size_) return false;
+            if (addr < base_ || addr + HEADER_SIZE > base_ + region_size_)
+                return false;
             c = c->next;
         }
         return true;
@@ -199,29 +212,29 @@ public:
 
     // Check if a pointer's block still has valid magic
     bool has_valid_magic(void* ptr) const {
-        if (ptr == nullptr) return false;
+        if (ptr == nullptr)
+            return false;
         auto addr = reinterpret_cast<uintptr_t>(ptr);
-        if (addr < base_ + HEADER_SIZE || addr >= base_ + region_size_) return false;
+        if (addr < base_ + HEADER_SIZE || addr >= base_ + region_size_)
+            return false;
         auto* block = reinterpret_cast<BlockHeader*>(addr - HEADER_SIZE);
         return block->magic == HEAP_MAGIC;
     }
 
     // Check if a pointer's block is marked free
     bool is_block_free(void* ptr) const {
-        auto* block = reinterpret_cast<BlockHeader*>(
-            reinterpret_cast<uintptr_t>(ptr) - HEADER_SIZE);
+        auto* block =
+            reinterpret_cast<BlockHeader*>(reinterpret_cast<uintptr_t>(ptr) - HEADER_SIZE);
         return block->free == 1;
     }
 
 private:
-    static uint64_t align_up(uint64_t value, uint64_t a) {
-        return (value + a - 1) & ~(a - 1);
-    }
+    static uint64_t align_up(uint64_t value, uint64_t a) { return (value + a - 1) & ~(a - 1); }
 
     void coalesce(BlockHeader* block) {
         bool changed = true;
         while (changed) {
-            changed = false;
+            changed           = false;
             BlockHeader* prev = nullptr;
             BlockHeader* curr = free_list_;
             while (curr != nullptr) {
@@ -235,20 +248,25 @@ private:
 
                 if (curr_addr + HEADER_SIZE + curr->size == block_addr) {
                     curr->size += HEADER_SIZE + block->size;
-                    if (free_list_ == block) free_list_ = block->next;
+                    if (free_list_ == block)
+                        free_list_ = block->next;
                     else {
                         auto* p = free_list_;
-                        while (p && p->next != block) p = p->next;
-                        if (p) p->next = block->next;
+                        while (p && p->next != block)
+                            p = p->next;
+                        if (p)
+                            p->next = block->next;
                     }
-                    block = curr;
+                    block   = curr;
                     changed = true;
                     break;
                 }
                 if (block_addr + HEADER_SIZE + block->size == curr_addr) {
                     block->size += HEADER_SIZE + curr->size;
-                    if (prev) prev->next = curr->next;
-                    else      free_list_ = curr->next;
+                    if (prev)
+                        prev->next = curr->next;
+                    else
+                        free_list_ = curr->next;
                     changed = true;
                     break;
                 }
@@ -716,7 +734,7 @@ TEST("heap: alloc(1) minimum allocation") {
 
     // Write to the single byte
     auto* bp = static_cast<uint8_t*>(p);
-    *bp = 0x42;
+    *bp      = 0x42;
     ASSERT_EQ(*bp, 0x42u);
 
     heap.free_mem(p);
@@ -729,10 +747,11 @@ TEST("heap: alloc returns nullptr when heap exhausted") {
 
     // Exhaust the heap (each alloc(64) needs ~96 bytes)
     void* ptrs[64];
-    int count = 0;
+    int   count = 0;
     for (int i = 0; i < 64; i++) {
         ptrs[i] = heap.alloc(256);
-        if (ptrs[i] == nullptr) break;
+        if (ptrs[i] == nullptr)
+            break;
         count++;
     }
 
@@ -769,9 +788,9 @@ TEST("heap: free list integrity after fragmented alloc/free") {
     heap.init(16 * PAGE_SIZE);
 
     // Allocate 20 blocks of varying sizes
-    void* ptrs[20];
-    size_t sizes[20] = {32,64,48,128,96,32,64,80,48,64,
-                        32,96,48,128,32,64,80,48,96,64};
+    void*  ptrs[20];
+    size_t sizes[20] = {32, 64, 48, 128, 96, 32, 64, 80, 48, 64,
+                        32, 96, 48, 128, 32, 64, 80, 48, 96, 64};
     for (int i = 0; i < 20; i++) {
         ptrs[i] = heap.alloc(sizes[i]);
         ASSERT_NOT_NULL(ptrs[i]);
@@ -801,9 +820,9 @@ TEST("heap: multiple allocations do not overlap") {
     TestHeap heap;
     heap.init(16 * PAGE_SIZE);
 
-    size_t sizes[] = {32, 64, 48, 128, 37, 93, 64, 4096, 17, 256};
-    constexpr int N = 10;
-    void* ptrs[N];
+    size_t        sizes[] = {32, 64, 48, 128, 37, 93, 64, 4096, 17, 256};
+    constexpr int N       = 10;
+    void*         ptrs[N];
 
     for (int i = 0; i < N; i++) {
         ptrs[i] = heap.alloc(sizes[i]);
@@ -874,27 +893,20 @@ public:
         }
     }
 
-    void release() {
-        locked_.store(false, std::memory_order_release);
-    }
+    void release() { locked_.store(false, std::memory_order_release); }
 
-    [[nodiscard]] auto guard() {
-        return Guard(this);
-    }
+    [[nodiscard]] auto guard() { return Guard(this); }
 
 private:
     std::atomic<bool> locked_{false};
 
     class Guard {
     public:
-        explicit Guard(Spinlock* lock) : lock_(lock) {
-            lock_->acquire();
-        }
-        ~Guard() {
-            lock_->release();
-        }
-        Guard(const Guard&) = delete;
+        explicit Guard(Spinlock* lock) : lock_(lock) { lock_->acquire(); }
+        ~Guard() { lock_->release(); }
+        Guard(const Guard&)            = delete;
         Guard& operator=(const Guard&) = delete;
+
     private:
         Spinlock* lock_;
     };
@@ -902,9 +914,7 @@ private:
 
 class ThreadSafeTestHeap {
 public:
-    void init(size_t region_size) {
-        heap_.init(region_size);
-    }
+    void init(size_t region_size) { heap_.init(region_size); }
 
     void* alloc(size_t size, size_t align = 16) {
         auto g = lock_.guard();
@@ -920,7 +930,7 @@ public:
 
     size_t used() const { return heap_.used(); }
     size_t total() const { return heap_.total(); }
-    bool validate_free_list() const { return heap_.validate_free_list(); }
+    bool   validate_free_list() const { return heap_.validate_free_list(); }
 
 private:
     TestHeap heap_;
@@ -933,21 +943,21 @@ TEST("heap: concurrent alloc/free with spinlock") {
     ThreadSafeTestHeap heap;
     heap.init(256 * PAGE_SIZE);
 
-    constexpr int NUM_THREADS = 4;
-    constexpr int OPS_PER_THREAD = 100;
+    constexpr int    NUM_THREADS    = 4;
+    constexpr int    OPS_PER_THREAD = 100;
     std::atomic<int> errors{0};
 
     auto worker = [&](int thread_id) {
         void* ptrs[OPS_PER_THREAD];
         for (int i = 0; i < OPS_PER_THREAD; i++) {
             size_t sz = static_cast<size_t>((thread_id * 7 + i * 13) % 200 + 16);
-            ptrs[i] = heap.alloc(sz);
+            ptrs[i]   = heap.alloc(sz);
             if (ptrs[i] == nullptr) {
                 errors.fetch_add(1, std::memory_order_relaxed);
                 continue;
             }
-            auto* buf = static_cast<uint8_t*>(ptrs[i]);
-            buf[0] = static_cast<uint8_t>(thread_id);
+            auto* buf   = static_cast<uint8_t*>(ptrs[i]);
+            buf[0]      = static_cast<uint8_t>(thread_id);
             buf[sz - 1] = static_cast<uint8_t>(thread_id ^ 0xFF);
         }
         for (int i = 0; i < OPS_PER_THREAD; i++) {
@@ -975,8 +985,8 @@ TEST("heap: concurrent interleaved alloc/free") {
     ThreadSafeTestHeap heap;
     heap.init(512 * PAGE_SIZE);
 
-    constexpr int NUM_THREADS = 4;
-    constexpr int CYCLES = 50;
+    constexpr int    NUM_THREADS = 4;
+    constexpr int    CYCLES      = 50;
     std::atomic<int> errors{0};
 
     auto worker = [&](int) {
@@ -987,14 +997,18 @@ TEST("heap: concurrent interleaved alloc/free") {
             if (a == nullptr || b == nullptr || d == nullptr) {
                 errors.fetch_add(1, std::memory_order_relaxed);
             }
-            if (b) heap.free_mem(b);
-            if (a) heap.free_mem(a);
+            if (b)
+                heap.free_mem(b);
+            if (a)
+                heap.free_mem(a);
             void* e = heap.alloc(48);
             if (e == nullptr) {
                 errors.fetch_add(1, std::memory_order_relaxed);
             }
-            if (d) heap.free_mem(d);
-            if (e) heap.free_mem(e);
+            if (d)
+                heap.free_mem(d);
+            if (e)
+                heap.free_mem(e);
         }
     };
 

@@ -6,9 +6,9 @@
  * Usage: stat <path>
  */
 
-#include "shell.hpp"
 #include "libc/string.hpp"
 #include "libc/syscall.h"
+#include "shell.hpp"
 
 using cinux::user::strlen;
 
@@ -20,7 +20,7 @@ void write_str(const char* s) {
 
 void write_uint64(uint64_t val) {
     char buf[21];
-    int pos = 0;
+    int  pos = 0;
 
     if (val == 0) {
         buf[pos++] = '0';
@@ -34,8 +34,8 @@ void write_uint64(uint64_t val) {
 
     // Reverse
     for (int i = 0; i < pos / 2; ++i) {
-        char t = buf[i];
-        buf[i] = buf[pos - 1 - i];
+        char t           = buf[i];
+        buf[i]           = buf[pos - 1 - i];
         buf[pos - 1 - i] = t;
     }
 
@@ -45,7 +45,7 @@ void write_uint64(uint64_t val) {
 
 void write_octal(uint32_t val) {
     char buf[12];
-    int pos = 0;
+    int  pos = 0;
 
     if (val == 0) {
         buf[pos++] = '0';
@@ -59,8 +59,8 @@ void write_octal(uint32_t val) {
 
     // Reverse
     for (int i = 0; i < pos / 2; ++i) {
-        char t = buf[i];
-        buf[i] = buf[pos - 1 - i];
+        char t           = buf[i];
+        buf[i]           = buf[pos - 1 - i];
         buf[pos - 1 - i] = t;
     }
 
@@ -77,7 +77,7 @@ void cmd_stat(int argc, char** argv) {
     }
 
     struct sys_stat st;
-    int64_t ret = sys_stat(argv[1], &st);
+    int64_t         ret = sys_stat(argv[1], &st);
     if (ret < 0) {
         write_str("stat: cannot stat '");
         write_str(argv[1]);

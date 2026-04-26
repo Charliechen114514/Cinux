@@ -45,7 +45,7 @@ namespace cinux::drivers::ahci {
 class AHCI {
 public:
     static AHCI& instance();
-    static void set_instance(AHCI* ahci);
+    static void  set_instance(AHCI* ahci);
     /**
      * @brief Initialise the AHCI controller from a PCI device descriptor
      *
@@ -61,7 +61,7 @@ public:
      *
      * @param dev  PCI device descriptor for the AHCI HBA (from pci_find_ahci)
      */
-    void init(const pci::PCIDevice& dev);
+    void         init(const pci::PCIDevice& dev);
 
     /**
      * @brief Read sectors from a SATA device via DMA
@@ -77,8 +77,7 @@ public:
      *                    (must be physically contiguous and aligned)
      * @return            true on success, false on timeout or error
      */
-    bool read(uint8_t port_index, uint64_t lba, uint16_t count,
-              uint64_t buf);
+    bool read(uint8_t port_index, uint64_t lba, uint16_t count, uint64_t buf);
 
     /**
      * @brief Write sectors to a SATA device via DMA
@@ -91,8 +90,7 @@ public:
      * @param buf         Physical address of the source buffer
      * @return            true on success, false on timeout or error
      */
-    bool write(uint8_t port_index, uint64_t lba, uint16_t count,
-               uint64_t buf);
+    bool write(uint8_t port_index, uint64_t lba, uint16_t count, uint64_t buf);
 
     /**
      * @brief Get the pointer to the MMIO-mapped HBA registers
@@ -151,8 +149,7 @@ private:
      * @param buf_phys    Physical address of the data buffer
      * @return            true if the command completed successfully
      */
-    bool execute_command(uint8_t port_index, uint8_t slot,
-                         bool write_cmd, uint64_t lba,
+    bool execute_command(uint8_t port_index, uint8_t slot, bool write_cmd, uint64_t lba,
                          uint16_t count, uint64_t buf_phys);
 
     /**
@@ -163,9 +160,7 @@ private:
      * @param lba         Starting LBA
      * @param count       Sector count
      */
-    static void build_cfis(HBACommandTable* cmd_tbl,
-                           bool write_cmd, uint64_t lba,
-                           uint16_t count);
+    static void build_cfis(HBACommandTable* cmd_tbl, bool write_cmd, uint64_t lba, uint16_t count);
 
     /// MMIO base pointer (virtual address of BAR5)
     HBAMem* hba_mem_{};

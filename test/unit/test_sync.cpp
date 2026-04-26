@@ -18,6 +18,7 @@
 #define TEST_FRAMEWORK_IMPL
 #include <stdint.h>
 #include <string.h>
+
 #include <atomic>
 
 #include "test_framework.h"
@@ -34,10 +35,10 @@ enum class TaskState : uint8_t {
 };
 
 struct Task {
-    int         dummy;          // placeholder for CpuContext
-    TaskState   state;
-    uint64_t    tid;
-    Task*       wait_next;
+    int       dummy;  // placeholder for CpuContext
+    TaskState state;
+    uint64_t  tid;
+    Task*     wait_next;
 };
 
 // ============================================================
@@ -46,10 +47,10 @@ struct Task {
 
 namespace mock_scheduler {
 
-static Task*  last_blocked    = nullptr;
-static Task*  last_unblocked  = nullptr;
-static int    block_count     = 0;
-static int    unblock_count   = 0;
+static Task* last_blocked   = nullptr;
+static Task* last_unblocked = nullptr;
+static int   block_count    = 0;
+static int   unblock_count  = 0;
 
 void reset() {
     last_blocked   = nullptr;
@@ -60,14 +61,14 @@ void reset() {
 
 void block(Task* task, const char* reason) {
     (void)reason;
-    task->state     = TaskState::Blocked;
-    last_blocked    = task;
+    task->state  = TaskState::Blocked;
+    last_blocked = task;
     block_count++;
 }
 
 void unblock(Task* task) {
-    task->state     = TaskState::Ready;
-    last_unblocked  = task;
+    task->state    = TaskState::Ready;
+    last_unblocked = task;
     unblock_count++;
 }
 
@@ -79,8 +80,8 @@ void unblock(Task* task) {
 
 namespace mock_per_cpu {
 
-static Task  tasks[8];
-static int   current_index = 0;
+static Task tasks[8];
+static int  current_index = 0;
 
 void init() {
     for (int i = 0; i < 8; i++) {
@@ -115,31 +116,22 @@ public:
         }
     }
 
-    void release() {
-        locked_.store(false, std::memory_order_release);
-    }
+    void release() { locked_.store(false, std::memory_order_release); }
 
-    [[nodiscard]] auto guard() {
-        return Guard(this);
-    }
+    [[nodiscard]] auto guard() { return Guard(this); }
 
-    bool is_locked() const {
-        return locked_.load(std::memory_order_acquire);
-    }
+    bool is_locked() const { return locked_.load(std::memory_order_acquire); }
 
 private:
     std::atomic<bool> locked_{false};
 
     class Guard {
     public:
-        explicit Guard(Spinlock* lock) : lock_(lock) {
-            lock_->acquire();
-        }
-        ~Guard() {
-            lock_->release();
-        }
-        Guard(const Guard&) = delete;
+        explicit Guard(Spinlock* lock) : lock_(lock) { lock_->acquire(); }
+        ~Guard() { lock_->release(); }
+        Guard(const Guard&)            = delete;
         Guard& operator=(const Guard&) = delete;
+
     private:
         Spinlock* lock_;
     };
@@ -169,8 +161,8 @@ static Task* dequeue_waiter(Task*& head) {
     if (head == nullptr) {
         return nullptr;
     }
-    Task* task = head;
-    head = task->wait_next;
+    Task* task      = head;
+    head            = task->wait_next;
     task->wait_next = nullptr;
     return task;
 }
@@ -220,9 +212,7 @@ public:
         return true;
     }
 
-    [[nodiscard]] auto guard() {
-        return Guard(this);
-    }
+    [[nodiscard]] auto guard() { return Guard(this); }
 
     // Test helpers
     Task* owner() const { return owner_; }
@@ -230,15 +220,16 @@ public:
 
 private:
     Spinlock spin_;
-    Task*    owner_      = nullptr;
-    Task*    wait_head_  = nullptr;
+    Task*    owner_     = nullptr;
+    Task*    wait_head_ = nullptr;
 
     class Guard {
     public:
         explicit Guard(Mutex* mtx) : mtx_(mtx) { mtx_->lock(); }
         ~Guard() { mtx_->unlock(); }
-        Guard(const Guard&) = delete;
+        Guard(const Guard&)            = delete;
         Guard& operator=(const Guard&) = delete;
+
     private:
         Mutex* mtx_;
     };
@@ -250,8 +241,7 @@ private:
 
 class Semaphore {
 public:
-    explicit Semaphore(int64_t initial = 0)
-        : count_(initial), wait_head_(nullptr) {}
+    explicit Semaphore(int64_t initial = 0) : count_(initial), wait_head_(nullptr) {}
 
     void post() {
         spin_.acquire();
@@ -356,7 +346,7 @@ TEST("spinlock: double release is benign") {
 // Enqueue one task, dequeue returns it
 TEST("wait_queue: enqueue one dequeue one") {
     Task* head = nullptr;
-    Task t = make_task(1);
+    Task  t    = make_task(1);
     enqueue_waiter(head, &t);
     ASSERT_EQ(head, &t);
     ASSERT_NULL(t.wait_next);
@@ -370,9 +360,9 @@ TEST("wait_queue: enqueue one dequeue one") {
 // Enqueue multiple tasks, dequeue returns FIFO order
 TEST("wait_queue: FIFO ordering") {
     Task* head = nullptr;
-    Task t1 = make_task(1);
-    Task t2 = make_task(2);
-    Task t3 = make_task(3);
+    Task  t1   = make_task(1);
+    Task  t2   = make_task(2);
+    Task  t3   = make_task(3);
 
     enqueue_waiter(head, &t1);
     enqueue_waiter(head, &t2);
@@ -392,8 +382,8 @@ TEST("wait_queue: dequeue empty returns nullptr") {
 
 // Enqueue sets wait_next to nullptr
 TEST("wait_queue: enqueue clears wait_next") {
-    Task* head = nullptr;
-    Task t = make_task(1);
+    Task* head  = nullptr;
+    Task  t     = make_task(1);
     t.wait_next = reinterpret_cast<Task*>(0xDEAD);  // sentinel
     enqueue_waiter(head, &t);
     ASSERT_NULL(t.wait_next);
@@ -469,8 +459,7 @@ TEST("mutex: lock on held mutex blocks and enqueues") {
 
     ASSERT_EQ(mock_scheduler::block_count, 1);
     ASSERT_EQ(mock_scheduler::last_blocked, mock_per_cpu::tasks + 1);
-    ASSERT_EQ(static_cast<int>(mock_per_cpu::tasks[1].state),
-              static_cast<int>(TaskState::Blocked));
+    ASSERT_EQ(static_cast<int>(mock_per_cpu::tasks[1].state), static_cast<int>(TaskState::Blocked));
 }
 
 // Unlocking transfers ownership to the head waiter
@@ -627,7 +616,7 @@ TEST("semaphore: try_wait fails when count negative") {
 
     Semaphore s(0);
     mock_per_cpu::set_current(0);
-    s.wait();      // count -> -1, blocks task 0
+    s.wait();  // count -> -1, blocks task 0
     // try_wait from another task perspective
     ASSERT_FALSE(s.try_wait());
 }
@@ -639,9 +628,9 @@ TEST("semaphore: post wakes waiter when count negative") {
 
     Semaphore s(0);
     mock_per_cpu::set_current(0);
-    s.wait();      // count -> -1, blocks task 0
+    s.wait();  // count -> -1, blocks task 0
 
-    s.post();      // count -> 0, unblocks task 0
+    s.post();  // count -> 0, unblocks task 0
     ASSERT_EQ(s.count(), 0);
     ASSERT_EQ(mock_scheduler::unblock_count, 1);
     ASSERT_EQ(mock_scheduler::last_unblocked, mock_per_cpu::tasks + 0);
@@ -655,11 +644,11 @@ TEST("semaphore: FIFO ordering of waiters") {
     Semaphore s(0);
 
     mock_per_cpu::set_current(0);
-    s.wait();      // count -> -1
+    s.wait();  // count -> -1
     mock_per_cpu::set_current(1);
-    s.wait();      // count -> -2
+    s.wait();  // count -> -2
     mock_per_cpu::set_current(2);
-    s.wait();      // count -> -3
+    s.wait();  // count -> -3
 
     ASSERT_EQ(mock_scheduler::block_count, 3);
 
@@ -688,21 +677,21 @@ TEST("semaphore: counting semaphore pattern") {
     Semaphore sem_used(0);
 
     // Producer posts 3 items without blocking
-    sem_free.wait();   // count 3->2
-    sem_free.wait();   // count 2->1
-    sem_free.wait();   // count 1->0
+    sem_free.wait();  // count 3->2
+    sem_free.wait();  // count 2->1
+    sem_free.wait();  // count 1->0
     ASSERT_EQ(sem_free.count(), 0);
 
-    sem_used.post();   // count 0->1
-    sem_used.post();   // count 1->2
-    sem_used.post();   // count 2->3
+    sem_used.post();  // count 0->1
+    sem_used.post();  // count 1->2
+    sem_used.post();  // count 2->3
     ASSERT_EQ(sem_used.count(), 3);
 
     // Consumer can consume 3 without blocking
     mock_per_cpu::set_current(0);
-    sem_used.wait();   // count 3->2
-    sem_used.wait();   // count 2->1
-    sem_used.wait();   // count 1->0
+    sem_used.wait();  // count 3->2
+    sem_used.wait();  // count 2->1
+    sem_used.wait();  // count 1->0
     ASSERT_EQ(sem_used.count(), 0);
     ASSERT_EQ(mock_scheduler::block_count, 0);
 }

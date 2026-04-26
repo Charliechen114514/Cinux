@@ -30,10 +30,7 @@ namespace cinux::io {
  */
 inline uint8_t io_inb(uint16_t port) {
     uint8_t value;
-    __asm__ volatile("inb %1, %0"
-                     : "=a"(value)
-                     : "Nd"(port)
-                     : "memory");
+    __asm__ volatile("inb %1, %0" : "=a"(value) : "Nd"(port) : "memory");
     return value;
 }
 
@@ -44,10 +41,7 @@ inline uint8_t io_inb(uint16_t port) {
  * @param value  The byte value to write
  */
 inline void io_outb(uint16_t port, uint8_t value) {
-    __asm__ volatile("outb %0, %1"
-                     :
-                     : "a"(value), "Nd"(port)
-                     : "memory");
+    __asm__ volatile("outb %0, %1" : : "a"(value), "Nd"(port) : "memory");
 }
 
 // ============================================================
@@ -62,10 +56,7 @@ inline void io_outb(uint16_t port, uint8_t value) {
  */
 inline uint16_t io_inw(uint16_t port) {
     uint16_t value;
-    __asm__ volatile("inw %1, %0"
-                     : "=a"(value)
-                     : "Nd"(port)
-                     : "memory");
+    __asm__ volatile("inw %1, %0" : "=a"(value) : "Nd"(port) : "memory");
     return value;
 }
 
@@ -76,10 +67,7 @@ inline uint16_t io_inw(uint16_t port) {
  * @param value  The 16-bit value to write
  */
 inline void io_outw(uint16_t port, uint16_t value) {
-    __asm__ volatile("outw %0, %1"
-                     :
-                     : "a"(value), "Nd"(port)
-                     : "memory");
+    __asm__ volatile("outw %0, %1" : : "a"(value), "Nd"(port) : "memory");
 }
 
 // ============================================================
@@ -94,10 +82,7 @@ inline void io_outw(uint16_t port, uint16_t value) {
  */
 inline uint32_t io_inl(uint16_t port) {
     uint32_t value;
-    __asm__ volatile("inl %1, %0"
-                     : "=a"(value)
-                     : "Nd"(port)
-                     : "memory");
+    __asm__ volatile("inl %1, %0" : "=a"(value) : "Nd"(port) : "memory");
     return value;
 }
 
@@ -108,10 +93,7 @@ inline uint32_t io_inl(uint16_t port) {
  * @param value  The 32-bit value to write
  */
 inline void io_outl(uint16_t port, uint32_t value) {
-    __asm__ volatile("outl %0, %1"
-                     :
-                     : "a"(value), "Nd"(port)
-                     : "memory");
+    __asm__ volatile("outl %0, %1" : : "a"(value), "Nd"(port) : "memory");
 }
 
 // ============================================================

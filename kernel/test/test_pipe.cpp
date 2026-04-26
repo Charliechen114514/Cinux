@@ -18,7 +18,6 @@
  */
 
 #include "big_kernel_test.h"
-
 #include "kernel/ipc/pipe.hpp"
 #include "kernel/ipc/pipe_ops.hpp"
 
@@ -34,11 +33,11 @@ void test_pipe_basic_write_read() {
     auto* pipe = new Pipe();
 
     const char msg[] = "Hello";
-    int64_t w = pipe->write(msg, 5);
+    int64_t    w     = pipe->write(msg, 5);
     TEST_ASSERT_EQ(w, 5);
 
-    char buf[8] = {};
-    int64_t r = pipe->read(buf, 5);
+    char    buf[8] = {};
+    int64_t r      = pipe->read(buf, 5);
     TEST_ASSERT_EQ(r, 5);
 
     // Verify content
@@ -73,8 +72,8 @@ void test_pipe_read_eof_after_close_writer() {
     auto* pipe = new Pipe();
 
     pipe->close_writer();
-    char buf[8] = {};
-    int64_t r = pipe->read(buf, 4);
+    char    buf[8] = {};
+    int64_t r      = pipe->read(buf, 4);
     TEST_ASSERT_EQ(r, 0);
 
     delete pipe;
@@ -87,8 +86,8 @@ void test_pipe_drain_then_eof() {
     pipe->write("AB", 2);
     pipe->close_writer();
 
-    char buf[8] = {};
-    int64_t r = pipe->read(buf, 2);
+    char    buf[8] = {};
+    int64_t r      = pipe->read(buf, 2);
     TEST_ASSERT_EQ(r, 2);
     TEST_ASSERT_EQ(buf[0], 'A');
     TEST_ASSERT_EQ(buf[1], 'B');
@@ -141,8 +140,8 @@ void test_pipe_read_ops_delegates_read() {
     pipe->close_writer();
 
     PipeReadOps read_ops(pipe);
-    char buf[8] = {};
-    int64_t r = read_ops.read(nullptr, 0, buf, 8);
+    char        buf[8] = {};
+    int64_t     r      = read_ops.read(nullptr, 0, buf, 8);
     TEST_ASSERT_EQ(r, 2);
     TEST_ASSERT_EQ(buf[0], 'O');
     TEST_ASSERT_EQ(buf[1], 'K');
@@ -151,7 +150,7 @@ void test_pipe_read_ops_delegates_read() {
 }
 
 void test_pipe_read_ops_write_returns_minus1() {
-    auto* pipe = new Pipe();
+    auto*       pipe = new Pipe();
     PipeReadOps read_ops(pipe);
 
     int64_t w = read_ops.write(nullptr, 0, "data", 4);
@@ -164,11 +163,11 @@ void test_pipe_write_ops_delegates_write() {
     auto* pipe = new Pipe();
 
     PipeWriteOps write_ops(pipe);
-    int64_t w = write_ops.write(nullptr, 0, "W", 1);
+    int64_t      w = write_ops.write(nullptr, 0, "W", 1);
     TEST_ASSERT_EQ(w, 1);
 
-    char buf[8] = {};
-    int64_t r = pipe->read(buf, 1);
+    char    buf[8] = {};
+    int64_t r      = pipe->read(buf, 1);
     TEST_ASSERT_EQ(r, 1);
     TEST_ASSERT_EQ(buf[0], 'W');
 
@@ -176,12 +175,12 @@ void test_pipe_write_ops_delegates_write() {
 }
 
 void test_pipe_write_ops_read_returns_minus1() {
-    auto* pipe = new Pipe();
+    auto*        pipe = new Pipe();
     PipeWriteOps write_ops(pipe);
 
     // PipeWriteOps inherits read() from InodeOps, which returns -1
-    char buf[8] = {};
-    int64_t r = write_ops.read(nullptr, 0, buf, 8);
+    char    buf[8] = {};
+    int64_t r      = write_ops.read(nullptr, 0, buf, 8);
     TEST_ASSERT_EQ(r, -1);
 
     delete pipe;
@@ -198,8 +197,8 @@ void test_pipe_multiple_writes_single_read() {
     pipe->write("CD", 2);
     pipe->write("EF", 2);
 
-    char buf[8] = {};
-    int64_t r = pipe->read(buf, 6);
+    char    buf[8] = {};
+    int64_t r      = pipe->read(buf, 6);
     TEST_ASSERT_EQ(r, 6);
     TEST_ASSERT_EQ(buf[0], 'A');
     TEST_ASSERT_EQ(buf[1], 'B');
@@ -244,14 +243,14 @@ void test_pipe_read_zero_count() {
 // ============================================================
 
 void test_pipe_try_read_empty() {
-    auto* pipe = new Pipe();
-    char buf[8] = {};
+    auto* pipe   = new Pipe();
+    char  buf[8] = {};
     TEST_ASSERT_EQ(pipe->try_read(buf, 8), 0);
     delete pipe;
 }
 
 void test_pipe_try_write_then_try_read() {
-    auto* pipe = new Pipe();
+    auto*      pipe  = new Pipe();
     const char msg[] = "Hi";
     TEST_ASSERT_EQ(pipe->try_write(msg, 2), 2);
 

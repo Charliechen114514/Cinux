@@ -22,9 +22,9 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
+#    include <cstddef>
+#    include <cstdint>
+#    include <cstring>
 
 // ============================================================
 // Include the real string utility implementation
@@ -61,8 +61,8 @@ namespace mock {
 
 // Capture buffer for sys_write output (stdout + file writes)
 constexpr size_t CAPTURE_SIZE = 8192;
-char write_capture[CAPTURE_SIZE];
-size_t write_capture_len = 0;
+char             write_capture[CAPTURE_SIZE];
+size_t           write_capture_len = 0;
 
 void reset_capture() {
     std::memset(write_capture, 0, sizeof(write_capture));
@@ -70,7 +70,7 @@ void reset_capture() {
 }
 
 // File-write capture (fd != 1)
-char file_capture[4096];
+char   file_capture[4096];
 size_t file_capture_len = 0;
 
 void reset_file_capture() {
@@ -79,20 +79,23 @@ void reset_file_capture() {
 }
 
 // Mock syscall return values (configurable per test)
-int64_t creat_return = 0;
-int64_t mkdir_return = 0;
+int64_t creat_return  = 0;
+int64_t mkdir_return  = 0;
 int64_t unlink_return = 0;
-int64_t rmdir_return = 0;
-int64_t open_return = 3;   // fake fd
-int64_t close_return = 0;
+int64_t rmdir_return  = 0;
+int64_t open_return   = 3;  // fake fd
+int64_t close_return  = 0;
 
 // Last path argument passed to each syscall
 char last_path[256];
-void clear_last_path() { std::memset(last_path, 0, sizeof(last_path)); }
+void clear_last_path() {
+    std::memset(last_path, 0, sizeof(last_path));
+}
 
 // Mock sys_write: captures stdout into write_capture, file writes into file_capture
 int64_t sys_write(int fd, const void* buf, size_t count) {
-    if (buf == nullptr) return -1;
+    if (buf == nullptr)
+        return -1;
     if (fd == 1) {
         size_t to_copy = count;
         if (write_capture_len + to_copy > CAPTURE_SIZE - 1)
@@ -188,8 +191,8 @@ void cmd_touch(int argc, char** argv) {
         write_str("touch: missing file operand\n");
         return;
     }
-    const char* path = argv[1];
-    int64_t result = mock::sys_creat(path);
+    const char* path   = argv[1];
+    int64_t     result = mock::sys_creat(path);
     if (result < 0) {
         write_str("touch: cannot create '");
         write_str(path);
@@ -203,8 +206,8 @@ void cmd_mkdir(int argc, char** argv) {
         write_str("mkdir: missing directory operand\n");
         return;
     }
-    const char* path = argv[1];
-    int64_t result = mock::sys_mkdir(path);
+    const char* path   = argv[1];
+    int64_t     result = mock::sys_mkdir(path);
     if (result < 0) {
         write_str("mkdir: cannot create directory '");
         write_str(path);
@@ -218,8 +221,8 @@ void cmd_rm(int argc, char** argv) {
         write_str("rm: missing file operand\n");
         return;
     }
-    const char* path = argv[1];
-    int64_t result = mock::sys_unlink(path);
+    const char* path   = argv[1];
+    int64_t     result = mock::sys_unlink(path);
     if (result < 0) {
         write_str("rm: cannot remove '");
         write_str(path);
@@ -233,8 +236,8 @@ void cmd_rmdir(int argc, char** argv) {
         write_str("rmdir: missing directory operand\n");
         return;
     }
-    const char* path = argv[1];
-    int64_t result = mock::sys_rmdir(path);
+    const char* path   = argv[1];
+    int64_t     result = mock::sys_rmdir(path);
     if (result < 0) {
         write_str("rmdir: cannot remove '");
         write_str(path);
@@ -253,8 +256,8 @@ void cmd_echo(int argc, char** argv) {
     }
 
     if (redirect_idx > 0 && redirect_idx + 1 < argc) {
-        const char* path = argv[redirect_idx + 1];
-        int64_t creat_result = mock::sys_creat(path);
+        const char* path         = argv[redirect_idx + 1];
+        int64_t     creat_result = mock::sys_creat(path);
         if (creat_result < 0) {
             write_str("echo: cannot create '");
             write_str(path);
@@ -490,15 +493,11 @@ TEST("shell_write_echo_redirect: redirects text to file") {
     mock::reset_file_capture();
     mock::clear_last_path();
     mock::creat_return = 0;
-    mock::open_return = 3;
+    mock::open_return  = 3;
     mock::close_return = 0;
 
-    char* argv[] = {
-        const_cast<char*>("echo"),
-        const_cast<char*>("hello"),
-        const_cast<char*>(">"),
-        const_cast<char*>("/outfile")
-    };
+    char* argv[] = {const_cast<char*>("echo"), const_cast<char*>("hello"), const_cast<char*>(">"),
+                    const_cast<char*>("/outfile")};
     shell_write_test::cmd_echo(4, argv);
 
     // No stdout output
@@ -512,17 +511,12 @@ TEST("shell_write_echo_redirect: redirects multiple words to file") {
     mock::reset_capture();
     mock::reset_file_capture();
     mock::creat_return = 0;
-    mock::open_return = 3;
+    mock::open_return  = 3;
     mock::close_return = 0;
 
-    char* argv[] = {
-        const_cast<char*>("echo"),
-        const_cast<char*>("hello"),
-        const_cast<char*>("world"),
-        const_cast<char*>("foo"),
-        const_cast<char*>(">"),
-        const_cast<char*>("/multiout")
-    };
+    char* argv[] = {const_cast<char*>("echo"),  const_cast<char*>("hello"),
+                    const_cast<char*>("world"), const_cast<char*>("foo"),
+                    const_cast<char*>(">"),     const_cast<char*>("/multiout")};
     shell_write_test::cmd_echo(6, argv);
 
     ASSERT_EQ(mock::write_capture_len, 0ULL);
@@ -533,11 +527,7 @@ TEST("shell_write_echo_redirect: redirects multiple words to file") {
 TEST("shell_write_echo_redirect: missing file after > falls through to normal echo") {
     mock::reset_capture();
 
-    char* argv[] = {
-        const_cast<char*>("echo"),
-        const_cast<char*>("hello"),
-        const_cast<char*>(">")
-    };
+    char* argv[] = {const_cast<char*>("echo"), const_cast<char*>("hello"), const_cast<char*>(">")};
     shell_write_test::cmd_echo(3, argv);
 
     // redirect_idx = 2, redirect_idx + 1 = 3 which is NOT < argc(3)
@@ -551,12 +541,8 @@ TEST("shell_write_echo_redirect: creat failure prints error") {
     mock::reset_file_capture();
     mock::creat_return = -1;
 
-    char* argv[] = {
-        const_cast<char*>("echo"),
-        const_cast<char*>("hello"),
-        const_cast<char*>(">"),
-        const_cast<char*>("/badfile")
-    };
+    char* argv[] = {const_cast<char*>("echo"), const_cast<char*>("hello"), const_cast<char*>(">"),
+                    const_cast<char*>("/badfile")};
     shell_write_test::cmd_echo(4, argv);
 
     ASSERT_TRUE(std::strstr(mock::write_capture, "cannot create '") != nullptr);
@@ -568,14 +554,10 @@ TEST("shell_write_echo_redirect: open failure prints error") {
     mock::reset_capture();
     mock::reset_file_capture();
     mock::creat_return = 0;
-    mock::open_return = -1;
+    mock::open_return  = -1;
 
-    char* argv[] = {
-        const_cast<char*>("echo"),
-        const_cast<char*>("hello"),
-        const_cast<char*>(">"),
-        const_cast<char*>("/noopen")
-    };
+    char* argv[] = {const_cast<char*>("echo"), const_cast<char*>("hello"), const_cast<char*>(">"),
+                    const_cast<char*>("/noopen")};
     shell_write_test::cmd_echo(4, argv);
 
     ASSERT_TRUE(std::strstr(mock::write_capture, "cannot open '") != nullptr);
@@ -586,11 +568,8 @@ TEST("shell_write_echo_redirect: open failure prints error") {
 TEST("shell_write_echo_redirect: normal echo without redirect") {
     mock::reset_capture();
 
-    char* argv[] = {
-        const_cast<char*>("echo"),
-        const_cast<char*>("hello"),
-        const_cast<char*>("world")
-    };
+    char* argv[] = {const_cast<char*>("echo"), const_cast<char*>("hello"),
+                    const_cast<char*>("world")};
     shell_write_test::cmd_echo(3, argv);
 
     ASSERT_TRUE(std::strcmp(mock::write_capture, "hello world\n") == 0);
@@ -604,11 +583,15 @@ TEST("shell_write_echo_redirect: normal echo without redirect") {
 size_t tokenize(char* line, char** argv, size_t max_tokens) {
     size_t argc = 0;
     while (*line != '\0' && argc < max_tokens) {
-        while (*line == ' ' || *line == '\t') ++line;
-        if (*line == '\0') break;
+        while (*line == ' ' || *line == '\t')
+            ++line;
+        if (*line == '\0')
+            break;
         argv[argc++] = line;
-        while (*line != '\0' && *line != ' ' && *line != '\t') ++line;
-        if (*line != '\0') *line++ = '\0';
+        while (*line != '\0' && *line != ' ' && *line != '\t')
+            ++line;
+        if (*line != '\0')
+            *line++ = '\0';
     }
     return argc;
 }
@@ -626,17 +609,14 @@ TEST("shell_write_pipeline: touch /myfile dispatches correctly") {
     mock::clear_last_path();
     mock::creat_return = 0;
 
-    char line[] = "touch /myfile";
-    char* argv[MAX_TOKENS];
+    char   line[] = "touch /myfile";
+    char*  argv[MAX_TOKENS];
     size_t argc = tokenize(line, argv, MAX_TOKENS);
 
     CmdEntry cmds[] = {
-        {"touch", shell_write_test::cmd_touch},
-        {"mkdir", shell_write_test::cmd_mkdir},
-        {"rm",    shell_write_test::cmd_rm},
-        {"rmdir", shell_write_test::cmd_rmdir},
-        {"echo",  shell_write_test::cmd_echo},
-        {nullptr, nullptr},
+        {"touch", shell_write_test::cmd_touch}, {"mkdir", shell_write_test::cmd_mkdir},
+        {"rm", shell_write_test::cmd_rm},       {"rmdir", shell_write_test::cmd_rmdir},
+        {"echo", shell_write_test::cmd_echo},   {nullptr, nullptr},
     };
 
     bool found = false;
@@ -658,17 +638,14 @@ TEST("shell_write_pipeline: mkdir /mydir dispatches correctly") {
     mock::clear_last_path();
     mock::mkdir_return = 0;
 
-    char line[] = "mkdir /mydir";
-    char* argv[MAX_TOKENS];
+    char   line[] = "mkdir /mydir";
+    char*  argv[MAX_TOKENS];
     size_t argc = tokenize(line, argv, MAX_TOKENS);
 
     CmdEntry cmds[] = {
-        {"touch", shell_write_test::cmd_touch},
-        {"mkdir", shell_write_test::cmd_mkdir},
-        {"rm",    shell_write_test::cmd_rm},
-        {"rmdir", shell_write_test::cmd_rmdir},
-        {"echo",  shell_write_test::cmd_echo},
-        {nullptr, nullptr},
+        {"touch", shell_write_test::cmd_touch}, {"mkdir", shell_write_test::cmd_mkdir},
+        {"rm", shell_write_test::cmd_rm},       {"rmdir", shell_write_test::cmd_rmdir},
+        {"echo", shell_write_test::cmd_echo},   {nullptr, nullptr},
     };
 
     bool found = false;
@@ -690,17 +667,14 @@ TEST("shell_write_pipeline: rm /myfile dispatches correctly") {
     mock::clear_last_path();
     mock::unlink_return = 0;
 
-    char line[] = "rm /myfile";
-    char* argv[MAX_TOKENS];
+    char   line[] = "rm /myfile";
+    char*  argv[MAX_TOKENS];
     size_t argc = tokenize(line, argv, MAX_TOKENS);
 
     CmdEntry cmds[] = {
-        {"touch", shell_write_test::cmd_touch},
-        {"mkdir", shell_write_test::cmd_mkdir},
-        {"rm",    shell_write_test::cmd_rm},
-        {"rmdir", shell_write_test::cmd_rmdir},
-        {"echo",  shell_write_test::cmd_echo},
-        {nullptr, nullptr},
+        {"touch", shell_write_test::cmd_touch}, {"mkdir", shell_write_test::cmd_mkdir},
+        {"rm", shell_write_test::cmd_rm},       {"rmdir", shell_write_test::cmd_rmdir},
+        {"echo", shell_write_test::cmd_echo},   {nullptr, nullptr},
     };
 
     bool found = false;
@@ -722,17 +696,14 @@ TEST("shell_write_pipeline: rmdir /mydir dispatches correctly") {
     mock::clear_last_path();
     mock::rmdir_return = 0;
 
-    char line[] = "rmdir /mydir";
-    char* argv[MAX_TOKENS];
+    char   line[] = "rmdir /mydir";
+    char*  argv[MAX_TOKENS];
     size_t argc = tokenize(line, argv, MAX_TOKENS);
 
     CmdEntry cmds[] = {
-        {"touch", shell_write_test::cmd_touch},
-        {"mkdir", shell_write_test::cmd_mkdir},
-        {"rm",    shell_write_test::cmd_rm},
-        {"rmdir", shell_write_test::cmd_rmdir},
-        {"echo",  shell_write_test::cmd_echo},
-        {nullptr, nullptr},
+        {"touch", shell_write_test::cmd_touch}, {"mkdir", shell_write_test::cmd_mkdir},
+        {"rm", shell_write_test::cmd_rm},       {"rmdir", shell_write_test::cmd_rmdir},
+        {"echo", shell_write_test::cmd_echo},   {nullptr, nullptr},
     };
 
     bool found = false;
@@ -754,20 +725,17 @@ TEST("shell_write_pipeline: echo hello > file dispatches correctly") {
     mock::reset_file_capture();
     mock::clear_last_path();
     mock::creat_return = 0;
-    mock::open_return = 3;
+    mock::open_return  = 3;
     mock::close_return = 0;
 
-    char line[] = "echo hello > /outfile";
-    char* argv[MAX_TOKENS];
+    char   line[] = "echo hello > /outfile";
+    char*  argv[MAX_TOKENS];
     size_t argc = tokenize(line, argv, MAX_TOKENS);
 
     CmdEntry cmds[] = {
-        {"touch", shell_write_test::cmd_touch},
-        {"mkdir", shell_write_test::cmd_mkdir},
-        {"rm",    shell_write_test::cmd_rm},
-        {"rmdir", shell_write_test::cmd_rmdir},
-        {"echo",  shell_write_test::cmd_echo},
-        {nullptr, nullptr},
+        {"touch", shell_write_test::cmd_touch}, {"mkdir", shell_write_test::cmd_mkdir},
+        {"rm", shell_write_test::cmd_rm},       {"rmdir", shell_write_test::cmd_rmdir},
+        {"echo", shell_write_test::cmd_echo},   {nullptr, nullptr},
     };
 
     bool found = false;
@@ -790,12 +758,9 @@ TEST("shell_write_pipeline: echo hello > file dispatches correctly") {
 
 TEST("shell_write_dispatch: all write commands registered") {
     CmdEntry cmds[] = {
-        {"touch", shell_write_test::cmd_touch},
-        {"mkdir", shell_write_test::cmd_mkdir},
-        {"rm",    shell_write_test::cmd_rm},
-        {"rmdir", shell_write_test::cmd_rmdir},
-        {"echo",  shell_write_test::cmd_echo},
-        {nullptr, nullptr},
+        {"touch", shell_write_test::cmd_touch}, {"mkdir", shell_write_test::cmd_mkdir},
+        {"rm", shell_write_test::cmd_rm},       {"rmdir", shell_write_test::cmd_rmdir},
+        {"echo", shell_write_test::cmd_echo},   {nullptr, nullptr},
     };
 
     int count = 0;
@@ -807,12 +772,9 @@ TEST("shell_write_dispatch: all write commands registered") {
 
 TEST("shell_write_dispatch: unknown command not found") {
     CmdEntry cmds[] = {
-        {"touch", shell_write_test::cmd_touch},
-        {"mkdir", shell_write_test::cmd_mkdir},
-        {"rm",    shell_write_test::cmd_rm},
-        {"rmdir", shell_write_test::cmd_rmdir},
-        {"echo",  shell_write_test::cmd_echo},
-        {nullptr, nullptr},
+        {"touch", shell_write_test::cmd_touch}, {"mkdir", shell_write_test::cmd_mkdir},
+        {"rm", shell_write_test::cmd_rm},       {"rmdir", shell_write_test::cmd_rmdir},
+        {"echo", shell_write_test::cmd_echo},   {nullptr, nullptr},
     };
 
     bool found = false;

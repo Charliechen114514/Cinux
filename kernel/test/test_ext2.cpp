@@ -19,16 +19,15 @@
  *   - Heap initialised (needed for new/delete)
  */
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "big_kernel_test.h"
-
-#include "kernel/drivers/pci/pci.hpp"
 #include "kernel/drivers/ahci/ahci.hpp"
+#include "kernel/drivers/pci/pci.hpp"
 #include "kernel/fs/ext2.hpp"
-#include "kernel/fs/vfs_mount.hpp"
 #include "kernel/fs/file.hpp"
+#include "kernel/fs/vfs_mount.hpp"
 #include "kernel/lib/string.hpp"
 #include "kernel/mm/pmm.hpp"
 #include "kernel/mm/vmm.hpp"
@@ -131,8 +130,7 @@ void test_lookup_root_returns_directory() {
 
     Inode* root = pair.ext2->lookup("");
     TEST_ASSERT_NOT_NULL(root);
-    TEST_ASSERT_EQ(static_cast<uint32_t>(root->type),
-                   static_cast<uint32_t>(InodeType::Directory));
+    TEST_ASSERT_EQ(static_cast<uint32_t>(root->type), static_cast<uint32_t>(InodeType::Directory));
 
     teardown_ext2(pair);
 }
@@ -143,8 +141,7 @@ void test_lookup_root_slash_returns_directory() {
 
     Inode* root = pair.ext2->lookup("/");
     TEST_ASSERT_NOT_NULL(root);
-    TEST_ASSERT_EQ(static_cast<uint32_t>(root->type),
-                   static_cast<uint32_t>(InodeType::Directory));
+    TEST_ASSERT_EQ(static_cast<uint32_t>(root->type), static_cast<uint32_t>(InodeType::Directory));
 
     teardown_ext2(pair);
 }
@@ -199,13 +196,12 @@ void test_lookup_file_has_read_ops() {
     }
 
     // If found, it should be a regular file with read ops
-    TEST_ASSERT_EQ(static_cast<uint32_t>(ino->type),
-                   static_cast<uint32_t>(InodeType::Regular));
+    TEST_ASSERT_EQ(static_cast<uint32_t>(ino->type), static_cast<uint32_t>(InodeType::Regular));
     TEST_ASSERT_NOT_NULL(ino->ops);
 
     // Read the file content
-    char buf[256] = {};
-    int64_t n = ino->ops->read(ino, 0, buf, sizeof(buf) - 1);
+    char    buf[256] = {};
+    int64_t n        = ino->ops->read(ino, 0, buf, sizeof(buf) - 1);
     TEST_ASSERT_GT(n, 0);
 
     cinux::lib::kprintf("[EXT2] Read %ld bytes from file\n", n);
@@ -230,17 +226,16 @@ void test_read_with_offset() {
         return;
     }
 
-    TEST_ASSERT_EQ(static_cast<uint32_t>(ino->type),
-                   static_cast<uint32_t>(InodeType::Regular));
+    TEST_ASSERT_EQ(static_cast<uint32_t>(ino->type), static_cast<uint32_t>(InodeType::Regular));
 
     // Read first 4 bytes
-    char buf1[8] = {};
-    int64_t n1 = ino->ops->read(ino, 0, buf1, 4);
+    char    buf1[8] = {};
+    int64_t n1      = ino->ops->read(ino, 0, buf1, 4);
     TEST_ASSERT_EQ(n1, 4);
 
     // Read next 4 bytes at offset 4
-    char buf2[8] = {};
-    int64_t n2 = ino->ops->read(ino, 4, buf2, 4);
+    char    buf2[8] = {};
+    int64_t n2      = ino->ops->read(ino, 4, buf2, 4);
     TEST_ASSERT_EQ(n2, 4);
 
     // The two reads should give different content (unless the file
@@ -263,12 +258,11 @@ void test_read_past_end_returns_zero() {
         return;
     }
 
-    TEST_ASSERT_EQ(static_cast<uint32_t>(ino->type),
-                   static_cast<uint32_t>(InodeType::Regular));
+    TEST_ASSERT_EQ(static_cast<uint32_t>(ino->type), static_cast<uint32_t>(InodeType::Regular));
 
     // Read past end
-    char buf[16] = {};
-    int64_t n = ino->ops->read(ino, ino->size + 100, buf, sizeof(buf));
+    char    buf[16] = {};
+    int64_t n       = ino->ops->read(ino, ino->size + 100, buf, sizeof(buf));
     TEST_ASSERT_EQ(n, 0);
 
     teardown_ext2(pair);
@@ -368,8 +362,8 @@ void test_vfs_mount_and_resolve() {
     TEST_ASSERT_TRUE(added);
 
     // Resolve should find the ext2 filesystem
-    const char* rel_path = nullptr;
-    cinux::fs::FileSystem* fs = cinux::fs::vfs_resolve("/etc/motd", &rel_path);
+    const char*            rel_path = nullptr;
+    cinux::fs::FileSystem* fs       = cinux::fs::vfs_resolve("/etc/motd", &rel_path);
     TEST_ASSERT_NOT_NULL(fs);
     TEST_ASSERT_NOT_NULL(rel_path);
 
@@ -390,14 +384,13 @@ void test_vfs_lookup_through_vfs() {
     cinux::fs::vfs_mount_add("/", pair.ext2);
 
     // Resolve + lookup root directory
-    const char* rel_path = nullptr;
-    cinux::fs::FileSystem* fs = cinux::fs::vfs_resolve("/", &rel_path);
+    const char*            rel_path = nullptr;
+    cinux::fs::FileSystem* fs       = cinux::fs::vfs_resolve("/", &rel_path);
     TEST_ASSERT_NOT_NULL(fs);
 
     Inode* root = fs->lookup(rel_path);
     TEST_ASSERT_NOT_NULL(root);
-    TEST_ASSERT_EQ(static_cast<uint32_t>(root->type),
-                   static_cast<uint32_t>(InodeType::Directory));
+    TEST_ASSERT_EQ(static_cast<uint32_t>(root->type), static_cast<uint32_t>(InodeType::Directory));
 
     // Clean up
     cinux::fs::vfs_mount_remove("/");
@@ -413,8 +406,8 @@ void test_vfs_open_read_close() {
     cinux::fs::vfs_mount_add("/", pair.ext2);
 
     // Try to open a file through VFS
-    const char* rel_path = nullptr;
-    cinux::fs::FileSystem* fs = cinux::fs::vfs_resolve("/etc/motd", &rel_path);
+    const char*            rel_path = nullptr;
+    cinux::fs::FileSystem* fs       = cinux::fs::vfs_resolve("/etc/motd", &rel_path);
     TEST_ASSERT_NOT_NULL(fs);
 
     Inode* ino = fs->lookup(rel_path);
@@ -441,9 +434,8 @@ void test_vfs_open_read_close() {
     TEST_ASSERT_NOT_NULL(file);
     TEST_ASSERT_NOT_NULL(file->inode);
     TEST_ASSERT_NOT_NULL(file->inode->ops);
-    char buf[256] = {};
-    int64_t n = file->inode->ops->read(file->inode, file->offset, buf,
-                                        sizeof(buf) - 1);
+    char    buf[256] = {};
+    int64_t n        = file->inode->ops->read(file->inode, file->offset, buf, sizeof(buf) - 1);
     TEST_ASSERT_GT(n, 0);
 
     cinux::lib::kprintf("[EXT2] VFS read %ld bytes\n", n);
@@ -469,9 +461,8 @@ void test_vfs_lookup_nonexistent() {
 
     cinux::fs::vfs_mount_add("/", pair.ext2);
 
-    const char* rel_path = nullptr;
-    cinux::fs::FileSystem* fs = cinux::fs::vfs_resolve(
-        "/no_such_file_at_all.txt", &rel_path);
+    const char*            rel_path = nullptr;
+    cinux::fs::FileSystem* fs       = cinux::fs::vfs_resolve("/no_such_file_at_all.txt", &rel_path);
     TEST_ASSERT_NOT_NULL(fs);
 
     Inode* ino = fs->lookup(rel_path);

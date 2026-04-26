@@ -8,6 +8,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "kernel/arch/x86_64/syscall.hpp"
 
 namespace cinux::syscall {
@@ -19,7 +20,6 @@ namespace cinux::syscall {
  *
  * @return 0 on success
  */
-int64_t sys_yield(uint64_t, uint64_t, uint64_t,
-                  uint64_t, uint64_t, uint64_t);
+int64_t sys_yield(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 
 }  // namespace cinux::syscall

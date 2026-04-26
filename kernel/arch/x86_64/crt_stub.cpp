@@ -14,8 +14,9 @@
  * All stubs that represent programming errors simply cli;hlt forever.
  */
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
+
 #include <new>
 
 #include "kernel/mm/heap.hpp"
@@ -176,16 +177,14 @@ void* operator new[](unsigned long size) {
  * @brief Aligned new -- delegates to Heap::alloc with alignment
  */
 void* operator new(unsigned long size, std::align_val_t align) {
-    return cinux::mm::g_heap.alloc(static_cast<size_t>(size),
-                                   static_cast<size_t>(align));
+    return cinux::mm::g_heap.alloc(static_cast<size_t>(size), static_cast<size_t>(align));
 }
 
 /**
  * @brief Aligned array new -- delegates to Heap::alloc with alignment
  */
 void* operator new[](unsigned long size, std::align_val_t align) {
-    return cinux::mm::g_heap.alloc(static_cast<size_t>(size),
-                                   static_cast<size_t>(align));
+    return cinux::mm::g_heap.alloc(static_cast<size_t>(size), static_cast<size_t>(align));
 }
 
 /**

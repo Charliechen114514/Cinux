@@ -42,11 +42,11 @@ public:
     // Constants
     // ============================================================
 
-    static constexpr uint32_t TITLE_BAR_HEIGHT = 20;
+    static constexpr uint32_t TITLE_BAR_HEIGHT  = 20;
     static constexpr uint32_t CLOSE_BUTTON_SIZE = 14;
-    static constexpr uint32_t TITLE_MAX_LEN    = 63;
-    static constexpr uint32_t DEFAULT_WIDTH    = 320;
-    static constexpr uint32_t DEFAULT_HEIGHT   = 240;
+    static constexpr uint32_t TITLE_MAX_LEN     = 63;
+    static constexpr uint32_t DEFAULT_WIDTH     = 320;
+    static constexpr uint32_t DEFAULT_HEIGHT    = 240;
 
     // ============================================================
     // Title bar colours (0x00RRGGBB)
@@ -71,14 +71,12 @@ public:
      * @param w      Content area width in pixels
      * @param h      Content area height in pixels (excludes title bar)
      */
-    Window(const char* title = "Untitled",
-           int32_t x = 0, int32_t y = 0,
-           uint32_t w = DEFAULT_WIDTH,
+    Window(const char* title = "Untitled", int32_t x = 0, int32_t y = 0, uint32_t w = DEFAULT_WIDTH,
            uint32_t h = DEFAULT_HEIGHT);
 
     virtual ~Window() = default;
 
-    Window(const Window&) = delete;
+    Window(const Window&)            = delete;
     Window& operator=(const Window&) = delete;
 
     // ============================================================
@@ -198,13 +196,13 @@ public:
     // State accessors
     // ============================================================
 
-    uint32_t id() const { return id_; }
-    int32_t  x() const { return x_; }
-    int32_t  y() const { return y_; }
-    uint32_t width() const { return w_; }
-    uint32_t height() const { return h_; }
-    bool     visible() const { return visible_; }
-    bool     focused() const { return focused_; }
+    uint32_t    id() const { return id_; }
+    int32_t     x() const { return x_; }
+    int32_t     y() const { return y_; }
+    uint32_t    width() const { return w_; }
+    uint32_t    height() const { return h_; }
+    bool        visible() const { return visible_; }
+    bool        focused() const { return focused_; }
     const char* title() const { return title_; }
 
     /**
@@ -229,15 +227,15 @@ private:
 
     static uint32_t next_id_;  ///< Auto-incrementing window ID counter
 
-    uint32_t id_;             ///< Unique window identifier
-    int32_t  x_;              ///< Screen X position
-    int32_t  y_;              ///< Screen Y position
-    uint32_t w_;              ///< Content area width
-    uint32_t h_;              ///< Content area height
-    char     title_[TITLE_MAX_LEN + 1];  ///< Null-terminated title
-    cinux::drivers::Canvas canvas_;      ///< Off-screen back buffer
-    bool     visible_;        ///< Whether the window should be rendered
-    bool     focused_;        ///< Whether the window has input focus
+    uint32_t               id_;                        ///< Unique window identifier
+    int32_t                x_;                         ///< Screen X position
+    int32_t                y_;                         ///< Screen Y position
+    uint32_t               w_;                         ///< Content area width
+    uint32_t               h_;                         ///< Content area height
+    char                   title_[TITLE_MAX_LEN + 1];  ///< Null-terminated title
+    cinux::drivers::Canvas canvas_;                    ///< Off-screen back buffer
+    bool                   visible_;                   ///< Whether the window should be rendered
+    bool                   focused_;                   ///< Whether the window has input focus
 
     // ============================================================
     // Internal helpers

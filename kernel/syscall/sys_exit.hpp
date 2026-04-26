@@ -8,6 +8,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "kernel/arch/x86_64/syscall.hpp"
 
 namespace cinux::syscall {
@@ -21,7 +22,6 @@ namespace cinux::syscall {
  * @param code  Exit code (0 = success)
  * @return Should not return; scheduler picks the next task
  */
-int64_t sys_exit(uint64_t code, uint64_t, uint64_t,
-                 uint64_t, uint64_t, uint64_t);
+int64_t sys_exit(uint64_t code, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 
 }  // namespace cinux::syscall

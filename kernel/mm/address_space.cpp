@@ -5,8 +5,8 @@
 
 #include "kernel/mm/address_space.hpp"
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "kernel/arch/x86_64/paging.hpp"
 #include "kernel/arch/x86_64/paging_config.hpp"
@@ -113,8 +113,7 @@ AddressSpace::~AddressSpace() {
 // Move operations
 // ============================================================
 
-AddressSpace::AddressSpace(AddressSpace&& other) noexcept
-    : pml4_phys_(other.pml4_phys_) {
+AddressSpace::AddressSpace(AddressSpace&& other) noexcept : pml4_phys_(other.pml4_phys_) {
     other.pml4_phys_ = 0;
 }
 
@@ -132,7 +131,7 @@ AddressSpace& AddressSpace::operator=(AddressSpace&& other) noexcept {
         }
 
         // Take ownership of the other's PML4
-        pml4_phys_ = other.pml4_phys_;
+        pml4_phys_       = other.pml4_phys_;
         other.pml4_phys_ = 0;
     }
     return *this;

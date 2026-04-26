@@ -23,9 +23,9 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
+#    include <cstdint>
 
-#include "fs/inode.hpp"
+#    include "fs/inode.hpp"
 
 using namespace cinux::fs;
 
@@ -47,8 +47,7 @@ using namespace cinux::fs;
  */
 class MockFileOps : public InodeOps {
 public:
-    int64_t read(const Inode* /*inode*/, uint64_t /*offset*/,
-                 void* buf, uint64_t count) override {
+    int64_t read(const Inode* /*inode*/, uint64_t /*offset*/, void* buf, uint64_t count) override {
         // Simulate a successful read: fill buffer with 'R' bytes
         auto* data = static_cast<uint8_t*>(buf);
         for (uint64_t i = 0; i < count; ++i) {
@@ -57,8 +56,8 @@ public:
         return static_cast<int64_t>(count);
     }
 
-    int64_t write(Inode* /*inode*/, uint64_t /*offset*/,
-                  const void* /*buf*/, uint64_t count) override {
+    int64_t write(Inode* /*inode*/, uint64_t /*offset*/, const void* /*buf*/,
+                  uint64_t count) override {
         // Simulate a successful write
         return static_cast<int64_t>(count);
     }
@@ -72,8 +71,8 @@ public:
  */
 class MockDirOps : public InodeOps {
 public:
-    int64_t readdir(const Inode* /*inode*/, uint64_t index,
-                    char* name, uint64_t name_max) override {
+    int64_t readdir(const Inode* /*inode*/, uint64_t index, char* name,
+                    uint64_t name_max) override {
         // Simulate returning a single directory entry "entry0"
         if (index == 0 && name != nullptr && name_max >= 7) {
             const char* entry = "entry0";
@@ -86,21 +85,18 @@ public:
         return -1;  // no more entries
     }
 
-    Inode* create(Inode* /*dir*/, const char* /*name*/,
-                  uint32_t /*namelen*/) override {
+    Inode* create(Inode* /*dir*/, const char* /*name*/, uint32_t /*namelen*/) override {
         // Return a pointer to a static Inode to simulate creation
         static Inode fake{42, 0, InodeType::Regular, nullptr, nullptr};
         return &fake;
     }
 
-    Inode* mkdir(Inode* /*dir*/, const char* /*name*/,
-                 uint32_t /*namelen*/) override {
+    Inode* mkdir(Inode* /*dir*/, const char* /*name*/, uint32_t /*namelen*/) override {
         static Inode fake{99, 1024, InodeType::Directory, nullptr, nullptr};
         return &fake;
     }
 
-    int64_t unlink(Inode* /*dir*/, const char* /*name*/,
-                   uint32_t /*namelen*/) override {
+    int64_t unlink(Inode* /*dir*/, const char* /*name*/, uint32_t /*namelen*/) override {
         return 0;  // success
     }
 };
@@ -111,46 +107,46 @@ public:
 
 TEST("inode_ops_defaults: base read returns -1") {
     InodeOps base;
-    Inode dummy{1, 0, InodeType::Regular, &base, nullptr};
-    char buf[16];
-    int64_t result = base.read(&dummy, 0, buf, 16);
+    Inode    dummy{1, 0, InodeType::Regular, &base, nullptr};
+    char     buf[16];
+    int64_t  result = base.read(&dummy, 0, buf, 16);
     ASSERT_EQ(result, static_cast<int64_t>(-1));
 }
 
 TEST("inode_ops_defaults: base write returns -1") {
-    InodeOps base;
-    Inode dummy{1, 0, InodeType::Regular, &base, nullptr};
+    InodeOps   base;
+    Inode      dummy{1, 0, InodeType::Regular, &base, nullptr};
     const char data[] = "test";
-    int64_t result = base.write(&dummy, 0, data, 4);
+    int64_t    result = base.write(&dummy, 0, data, 4);
     ASSERT_EQ(result, static_cast<int64_t>(-1));
 }
 
 TEST("inode_ops_defaults: base readdir returns -1") {
     InodeOps base;
-    Inode dummy{1, 0, InodeType::Directory, &base, nullptr};
-    char name[64];
-    int64_t result = base.readdir(&dummy, 0, name, 64);
+    Inode    dummy{1, 0, InodeType::Directory, &base, nullptr};
+    char     name[64];
+    int64_t  result = base.readdir(&dummy, 0, name, 64);
     ASSERT_EQ(result, static_cast<int64_t>(-1));
 }
 
 TEST("inode_ops_defaults: base create returns nullptr") {
     InodeOps base;
-    Inode dummy{1, 0, InodeType::Directory, &base, nullptr};
-    Inode* result = base.create(&dummy, "file", 4);
+    Inode    dummy{1, 0, InodeType::Directory, &base, nullptr};
+    Inode*   result = base.create(&dummy, "file", 4);
     ASSERT_NULL(result);
 }
 
 TEST("inode_ops_defaults: base mkdir returns nullptr") {
     InodeOps base;
-    Inode dummy{1, 0, InodeType::Directory, &base, nullptr};
-    Inode* result = base.mkdir(&dummy, "dir", 3);
+    Inode    dummy{1, 0, InodeType::Directory, &base, nullptr};
+    Inode*   result = base.mkdir(&dummy, "dir", 3);
     ASSERT_NULL(result);
 }
 
 TEST("inode_ops_defaults: base unlink returns -1") {
     InodeOps base;
-    Inode dummy{1, 0, InodeType::Directory, &base, nullptr};
-    int64_t result = base.unlink(&dummy, "file", 4);
+    Inode    dummy{1, 0, InodeType::Directory, &base, nullptr};
+    int64_t  result = base.unlink(&dummy, "file", 4);
     ASSERT_EQ(result, static_cast<int64_t>(-1));
 }
 
@@ -160,8 +156,8 @@ TEST("inode_ops_defaults: base unlink returns -1") {
 
 TEST("mock_file_ops: read override returns correct byte count") {
     MockFileOps file_ops;
-    Inode file{10, 100, InodeType::Regular, &file_ops, nullptr};
-    char buf[32] = {};
+    Inode       file{10, 100, InodeType::Regular, &file_ops, nullptr};
+    char        buf[32] = {};
 
     int64_t result = file_ops.read(&file, 0, buf, 32);
     ASSERT_EQ(result, 32);
@@ -174,8 +170,8 @@ TEST("mock_file_ops: read override returns correct byte count") {
 
 TEST("mock_file_ops: write override returns correct byte count") {
     MockFileOps file_ops;
-    Inode file{10, 100, InodeType::Regular, &file_ops, nullptr};
-    const char data[] = "Hello";
+    Inode       file{10, 100, InodeType::Regular, &file_ops, nullptr};
+    const char  data[] = "Hello";
 
     int64_t result = file_ops.write(&file, 0, data, 5);
     ASSERT_EQ(result, 5);
@@ -187,8 +183,8 @@ TEST("mock_file_ops: write override returns correct byte count") {
 
 TEST("mock_file_ops: readdir falls back to default (-1)") {
     MockFileOps file_ops;
-    Inode file{10, 100, InodeType::Regular, &file_ops, nullptr};
-    char name[64];
+    Inode       file{10, 100, InodeType::Regular, &file_ops, nullptr};
+    char        name[64];
 
     int64_t result = file_ops.readdir(&file, 0, name, 64);
     ASSERT_EQ(result, static_cast<int64_t>(-1));
@@ -196,7 +192,7 @@ TEST("mock_file_ops: readdir falls back to default (-1)") {
 
 TEST("mock_file_ops: create falls back to default (nullptr)") {
     MockFileOps file_ops;
-    Inode file{10, 100, InodeType::Regular, &file_ops, nullptr};
+    Inode       file{10, 100, InodeType::Regular, &file_ops, nullptr};
 
     Inode* result = file_ops.create(&file, "newfile", 7);
     ASSERT_NULL(result);
@@ -204,7 +200,7 @@ TEST("mock_file_ops: create falls back to default (nullptr)") {
 
 TEST("mock_file_ops: mkdir falls back to default (nullptr)") {
     MockFileOps file_ops;
-    Inode file{10, 100, InodeType::Regular, &file_ops, nullptr};
+    Inode       file{10, 100, InodeType::Regular, &file_ops, nullptr};
 
     Inode* result = file_ops.mkdir(&file, "newdir", 6);
     ASSERT_NULL(result);
@@ -212,7 +208,7 @@ TEST("mock_file_ops: mkdir falls back to default (nullptr)") {
 
 TEST("mock_file_ops: unlink falls back to default (-1)") {
     MockFileOps file_ops;
-    Inode file{10, 100, InodeType::Regular, &file_ops, nullptr};
+    Inode       file{10, 100, InodeType::Regular, &file_ops, nullptr};
 
     int64_t result = file_ops.unlink(&file, "somefile", 8);
     ASSERT_EQ(result, static_cast<int64_t>(-1));
@@ -224,8 +220,8 @@ TEST("mock_file_ops: unlink falls back to default (-1)") {
 
 TEST("mock_dir_ops: readdir override returns entry at index 0") {
     MockDirOps dir_ops;
-    Inode dir{2, 1024, InodeType::Directory, &dir_ops, nullptr};
-    char name[64] = {};
+    Inode      dir{2, 1024, InodeType::Directory, &dir_ops, nullptr};
+    char       name[64] = {};
 
     int64_t result = dir_ops.readdir(&dir, 0, name, 64);
     ASSERT_EQ(result, 0);
@@ -241,8 +237,8 @@ TEST("mock_dir_ops: readdir override returns entry at index 0") {
 
 TEST("mock_dir_ops: readdir returns -1 for index out of range") {
     MockDirOps dir_ops;
-    Inode dir{2, 1024, InodeType::Directory, &dir_ops, nullptr};
-    char name[64];
+    Inode      dir{2, 1024, InodeType::Directory, &dir_ops, nullptr};
+    char       name[64];
 
     int64_t result = dir_ops.readdir(&dir, 1, name, 64);
     ASSERT_EQ(result, static_cast<int64_t>(-1));
@@ -250,7 +246,7 @@ TEST("mock_dir_ops: readdir returns -1 for index out of range") {
 
 TEST("mock_dir_ops: create override returns non-null Inode") {
     MockDirOps dir_ops;
-    Inode dir{2, 1024, InodeType::Directory, &dir_ops, nullptr};
+    Inode      dir{2, 1024, InodeType::Directory, &dir_ops, nullptr};
 
     Inode* result = dir_ops.create(&dir, "newfile", 7);
     ASSERT_NOT_NULL(result);
@@ -260,7 +256,7 @@ TEST("mock_dir_ops: create override returns non-null Inode") {
 
 TEST("mock_dir_ops: mkdir override returns non-null Inode") {
     MockDirOps dir_ops;
-    Inode dir{2, 1024, InodeType::Directory, &dir_ops, nullptr};
+    Inode      dir{2, 1024, InodeType::Directory, &dir_ops, nullptr};
 
     Inode* result = dir_ops.mkdir(&dir, "newdir", 6);
     ASSERT_NOT_NULL(result);
@@ -270,7 +266,7 @@ TEST("mock_dir_ops: mkdir override returns non-null Inode") {
 
 TEST("mock_dir_ops: unlink override returns 0 (success)") {
     MockDirOps dir_ops;
-    Inode dir{2, 1024, InodeType::Directory, &dir_ops, nullptr};
+    Inode      dir{2, 1024, InodeType::Directory, &dir_ops, nullptr};
 
     int64_t result = dir_ops.unlink(&dir, "somefile", 8);
     ASSERT_EQ(result, static_cast<int64_t>(0));
@@ -282,8 +278,8 @@ TEST("mock_dir_ops: unlink override returns 0 (success)") {
 
 TEST("mock_dir_ops: read falls back to default (-1)") {
     MockDirOps dir_ops;
-    Inode dir{2, 1024, InodeType::Directory, &dir_ops, nullptr};
-    char buf[16];
+    Inode      dir{2, 1024, InodeType::Directory, &dir_ops, nullptr};
+    char       buf[16];
 
     int64_t result = dir_ops.read(&dir, 0, buf, 16);
     ASSERT_EQ(result, static_cast<int64_t>(-1));
@@ -291,7 +287,7 @@ TEST("mock_dir_ops: read falls back to default (-1)") {
 
 TEST("mock_dir_ops: write falls back to default (-1)") {
     MockDirOps dir_ops;
-    Inode dir{2, 1024, InodeType::Directory, &dir_ops, nullptr};
+    Inode      dir{2, 1024, InodeType::Directory, &dir_ops, nullptr};
     const char data[] = "test";
 
     int64_t result = dir_ops.write(&dir, 0, data, 4);
@@ -304,9 +300,9 @@ TEST("mock_dir_ops: write falls back to default (-1)") {
 
 TEST("virtual_dispatch: file ops via base pointer calls read override") {
     MockFileOps file_ops;
-    InodeOps* base_ptr = &file_ops;  // upcast to base
-    Inode file{10, 100, InodeType::Regular, base_ptr, nullptr};
-    char buf[16] = {};
+    InodeOps*   base_ptr = &file_ops;  // upcast to base
+    Inode       file{10, 100, InodeType::Regular, base_ptr, nullptr};
+    char        buf[16] = {};
 
     int64_t result = base_ptr->read(&file, 0, buf, 16);
     ASSERT_EQ(result, 16);
@@ -316,9 +312,9 @@ TEST("virtual_dispatch: file ops via base pointer calls read override") {
 
 TEST("virtual_dispatch: file ops via base pointer calls write override") {
     MockFileOps file_ops;
-    InodeOps* base_ptr = &file_ops;
-    Inode file{10, 100, InodeType::Regular, base_ptr, nullptr};
-    const char data[] = "test";
+    InodeOps*   base_ptr = &file_ops;
+    Inode       file{10, 100, InodeType::Regular, base_ptr, nullptr};
+    const char  data[] = "test";
 
     int64_t result = base_ptr->write(&file, 0, data, 4);
     ASSERT_EQ(result, 4);
@@ -326,9 +322,9 @@ TEST("virtual_dispatch: file ops via base pointer calls write override") {
 
 TEST("virtual_dispatch: dir ops via base pointer calls readdir override") {
     MockDirOps dir_ops;
-    InodeOps* base_ptr = &dir_ops;
-    Inode dir{2, 1024, InodeType::Directory, base_ptr, nullptr};
-    char name[64] = {};
+    InodeOps*  base_ptr = &dir_ops;
+    Inode      dir{2, 1024, InodeType::Directory, base_ptr, nullptr};
+    char       name[64] = {};
 
     int64_t result = base_ptr->readdir(&dir, 0, name, 64);
     ASSERT_EQ(result, 0);
@@ -336,8 +332,8 @@ TEST("virtual_dispatch: dir ops via base pointer calls readdir override") {
 
 TEST("virtual_dispatch: dir ops via base pointer calls create override") {
     MockDirOps dir_ops;
-    InodeOps* base_ptr = &dir_ops;
-    Inode dir{2, 1024, InodeType::Directory, base_ptr, nullptr};
+    InodeOps*  base_ptr = &dir_ops;
+    Inode      dir{2, 1024, InodeType::Directory, base_ptr, nullptr};
 
     Inode* result = base_ptr->create(&dir, "file", 4);
     ASSERT_NOT_NULL(result);
@@ -345,8 +341,8 @@ TEST("virtual_dispatch: dir ops via base pointer calls create override") {
 
 TEST("virtual_dispatch: dir ops via base pointer calls mkdir override") {
     MockDirOps dir_ops;
-    InodeOps* base_ptr = &dir_ops;
-    Inode dir{2, 1024, InodeType::Directory, base_ptr, nullptr};
+    InodeOps*  base_ptr = &dir_ops;
+    Inode      dir{2, 1024, InodeType::Directory, base_ptr, nullptr};
 
     Inode* result = base_ptr->mkdir(&dir, "dir", 3);
     ASSERT_NOT_NULL(result);
@@ -354,8 +350,8 @@ TEST("virtual_dispatch: dir ops via base pointer calls mkdir override") {
 
 TEST("virtual_dispatch: dir ops via base pointer calls unlink override") {
     MockDirOps dir_ops;
-    InodeOps* base_ptr = &dir_ops;
-    Inode dir{2, 1024, InodeType::Directory, base_ptr, nullptr};
+    InodeOps*  base_ptr = &dir_ops;
+    Inode      dir{2, 1024, InodeType::Directory, base_ptr, nullptr};
 
     int64_t result = base_ptr->unlink(&dir, "file", 4);
     ASSERT_EQ(result, 0);
@@ -367,12 +363,12 @@ TEST("virtual_dispatch: dir ops via base pointer calls unlink override") {
 
 TEST("inode_ops_assignment: file inode gets file ops") {
     MockFileOps file_ops;
-    MockDirOps dir_ops;
+    MockDirOps  dir_ops;
 
     Inode file_inode;
-    file_inode.ino = 10;
+    file_inode.ino  = 10;
     file_inode.type = InodeType::Regular;
-    file_inode.ops = &file_ops;
+    file_inode.ops  = &file_ops;
 
     // File ops should handle read/write
     char buf[16] = {};
@@ -382,45 +378,40 @@ TEST("inode_ops_assignment: file inode gets file ops") {
 
     // File ops should NOT handle dir operations
     char name[64];
-    ASSERT_EQ(file_inode.ops->readdir(&file_inode, 0, name, 64),
-              static_cast<int64_t>(-1));
+    ASSERT_EQ(file_inode.ops->readdir(&file_inode, 0, name, 64), static_cast<int64_t>(-1));
     ASSERT_NULL(file_inode.ops->create(&file_inode, "f", 1));
     ASSERT_NULL(file_inode.ops->mkdir(&file_inode, "d", 1));
-    ASSERT_EQ(file_inode.ops->unlink(&file_inode, "f", 1),
-              static_cast<int64_t>(-1));
+    ASSERT_EQ(file_inode.ops->unlink(&file_inode, "f", 1), static_cast<int64_t>(-1));
 }
 
 TEST("inode_ops_assignment: dir inode gets dir ops") {
     MockFileOps file_ops;
-    MockDirOps dir_ops;
+    MockDirOps  dir_ops;
 
     Inode dir_inode;
-    dir_inode.ino = 2;
+    dir_inode.ino  = 2;
     dir_inode.type = InodeType::Directory;
-    dir_inode.ops = &dir_ops;
+    dir_inode.ops  = &dir_ops;
 
     // Dir ops should handle readdir/create/mkdir/unlink
     char name[64] = {};
     ASSERT_EQ(dir_inode.ops->readdir(&dir_inode, 0, name, 64), 0);
     ASSERT_NOT_NULL(dir_inode.ops->create(&dir_inode, "f", 1));
     ASSERT_NOT_NULL(dir_inode.ops->mkdir(&dir_inode, "d", 1));
-    ASSERT_EQ(dir_inode.ops->unlink(&dir_inode, "f", 1),
-              static_cast<int64_t>(0));
+    ASSERT_EQ(dir_inode.ops->unlink(&dir_inode, "f", 1), static_cast<int64_t>(0));
 
     // Dir ops should NOT handle file read/write
     char buf[16];
-    ASSERT_EQ(dir_inode.ops->read(&dir_inode, 0, buf, 16),
-              static_cast<int64_t>(-1));
+    ASSERT_EQ(dir_inode.ops->read(&dir_inode, 0, buf, 16), static_cast<int64_t>(-1));
     const char data[] = "x";
-    ASSERT_EQ(dir_inode.ops->write(&dir_inode, 0, data, 1),
-              static_cast<int64_t>(-1));
+    ASSERT_EQ(dir_inode.ops->write(&dir_inode, 0, data, 1), static_cast<int64_t>(-1));
 }
 
 TEST("inode_ops_assignment: null ops pointer means no operations") {
     Inode inode;
-    inode.ino = 1;
+    inode.ino  = 1;
     inode.type = InodeType::Unknown;
-    inode.ops = nullptr;
+    inode.ops  = nullptr;
 
     ASSERT_NULL(inode.ops);
 }
@@ -431,20 +422,20 @@ TEST("inode_ops_assignment: null ops pointer means no operations") {
 
 TEST("class_hierarchy: MockFileOps is-a InodeOps") {
     MockFileOps file_ops;
-    InodeOps* base = &file_ops;
+    InodeOps*   base = &file_ops;
 
     // Should be able to call through base pointer
     Inode dummy{1, 0, InodeType::Regular, base, nullptr};
-    char buf[8] = {};
+    char  buf[8] = {};
     ASSERT_EQ(base->read(&dummy, 0, buf, 8), 8);
 }
 
 TEST("class_hierarchy: MockDirOps is-a InodeOps") {
     MockDirOps dir_ops;
-    InodeOps* base = &dir_ops;
+    InodeOps*  base = &dir_ops;
 
     Inode dummy{1, 0, InodeType::Directory, base, nullptr};
-    char name[64] = {};
+    char  name[64] = {};
     ASSERT_EQ(base->readdir(&dummy, 0, name, 64), 0);
 }
 
@@ -473,7 +464,7 @@ TEST("shared_ops: two file inodes share same file ops") {
 
 TEST("shared_ops: file and dir inodes use different ops instances") {
     MockFileOps file_ops;
-    MockDirOps dir_ops;
+    MockDirOps  dir_ops;
 
     Inode file{10, 100, InodeType::Regular, &file_ops, nullptr};
     Inode dir{2, 1024, InodeType::Directory, &dir_ops, nullptr};
@@ -483,8 +474,7 @@ TEST("shared_ops: file and dir inodes use different ops instances") {
     ASSERT_EQ(file.ops->read(&file, 0, buf, 4), 4);
 
     // Dir read returns -1 (default)
-    ASSERT_EQ(dir.ops->read(&dir, 0, buf, 4),
-              static_cast<int64_t>(-1));
+    ASSERT_EQ(dir.ops->read(&dir, 0, buf, 4), static_cast<int64_t>(-1));
 
     // Dir create succeeds
     ASSERT_NOT_NULL(dir.ops->create(&dir, "f", 1));

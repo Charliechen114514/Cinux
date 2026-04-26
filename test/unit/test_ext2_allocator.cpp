@@ -27,11 +27,11 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstddef>
-#include <cstring>
+#    include <cstddef>
+#    include <cstdint>
+#    include <cstring>
 
-#include "fs/ext2_types.hpp"
+#    include "fs/ext2_types.hpp"
 
 using namespace cinux::fs;
 
@@ -58,7 +58,7 @@ struct TestFsParams {
     uint16_t inode_size;
 
     // Mutable state
-    Ext2Superblock sb{};
+    Ext2Superblock           sb{};
     Ext2BlockGroupDescriptor bgdt[TEST_MAX_GROUPS]{};
 
     // In-memory bitmap storage (one block-size buffer per group for blocks,
@@ -72,27 +72,23 @@ struct TestFsParams {
  *
  * Sets up superblock, BGDT, and zeroed bitmaps.
  */
-static void init_test_fs(TestFsParams& fs,
-                         uint32_t groups = 1,
-                         uint32_t bpg = 8192,
-                         uint32_t ipg = 16,
-                         uint32_t total_blocks = 8192,
-                         uint32_t total_inodes = 16,
-                         uint32_t block_size = 1024,
+static void init_test_fs(TestFsParams& fs, uint32_t groups = 1, uint32_t bpg = 8192,
+                         uint32_t ipg = 16, uint32_t total_blocks = 8192,
+                         uint32_t total_inodes = 16, uint32_t block_size = 1024,
                          uint32_t first_data_block = 1) {
     fs = {};
 
     fs.blocks_per_group = bpg;
     fs.inodes_per_group = ipg;
     fs.first_data_block = first_data_block;
-    fs.group_count = groups;
-    fs.blocks_count = total_blocks;
-    fs.inodes_count = total_inodes;
-    fs.block_size = block_size;
-    fs.inode_size = 128;
+    fs.group_count      = groups;
+    fs.blocks_count     = total_blocks;
+    fs.inodes_count     = total_inodes;
+    fs.block_size       = block_size;
+    fs.inode_size       = 128;
 
-    fs.sb.s_blocks_count = total_blocks;
-    fs.sb.s_inodes_count = total_inodes;
+    fs.sb.s_blocks_count     = total_blocks;
+    fs.sb.s_inodes_count     = total_inodes;
     fs.sb.s_blocks_per_group = bpg;
     fs.sb.s_inodes_per_group = ipg;
     fs.sb.s_first_data_block = first_data_block;
@@ -107,10 +103,10 @@ static void init_test_fs(TestFsParams& fs,
         fs.bgdt[g].bg_block_bitmap = g * 10 + 3;  // arbitrary block numbers
         fs.bgdt[g].bg_inode_bitmap = g * 10 + 4;
         fs.bgdt[g].bg_inode_table  = g * 10 + 5;
-        fs.bgdt[g].bg_free_blocks_count = static_cast<uint16_t>(
-            (g < groups - 1) ? bpg : (total_blocks - g * bpg));
-        fs.bgdt[g].bg_free_inodes_count = static_cast<uint16_t>(
-            (g < groups - 1) ? ipg : (total_inodes - g * ipg));
+        fs.bgdt[g].bg_free_blocks_count =
+            static_cast<uint16_t>((g < groups - 1) ? bpg : (total_blocks - g * bpg));
+        fs.bgdt[g].bg_free_inodes_count =
+            static_cast<uint16_t>((g < groups - 1) ? ipg : (total_inodes - g * ipg));
     }
 
     // Bitmaps are already zero (all bits clear = all free)
@@ -131,7 +127,7 @@ static uint32_t host_alloc_block(TestFsParams& fs, uint32_t group) {
         return 0;
     }
 
-    uint32_t bpg = fs.blocks_per_group;
+    uint32_t bpg         = fs.blocks_per_group;
     uint32_t first_block = group * bpg + fs.first_data_block;
 
     // Last group may have fewer blocks
@@ -155,8 +151,7 @@ static uint32_t host_alloc_block(TestFsParams& fs, uint32_t group) {
 
             if ((fs.block_bitmaps[group][byte_idx] & (1U << bit)) == 0) {
                 // Found a free block -- mark it used
-                fs.block_bitmaps[group][byte_idx] |=
-                    static_cast<uint8_t>(1U << bit);
+                fs.block_bitmaps[group][byte_idx] |= static_cast<uint8_t>(1U << bit);
 
                 uint32_t global_block = first_block + local_block;
 
@@ -189,14 +184,12 @@ static bool host_free_block(TestFsParams& fs, uint32_t block_num) {
         return false;
     }
 
-    uint32_t local_block = block_num -
-        (group * fs.blocks_per_group + fs.first_data_block);
+    uint32_t local_block = block_num - (group * fs.blocks_per_group + fs.first_data_block);
 
     uint32_t byte_idx = local_block / 8;
-    uint32_t bit = local_block % 8;
+    uint32_t bit      = local_block % 8;
 
-    fs.block_bitmaps[group][byte_idx] &=
-        static_cast<uint8_t>(~(1U << bit));
+    fs.block_bitmaps[group][byte_idx] &= static_cast<uint8_t>(~(1U << bit));
 
     ++fs.sb.s_free_blocks_count;
     ++fs.bgdt[group].bg_free_blocks_count;
@@ -216,7 +209,7 @@ static uint32_t host_alloc_inode(TestFsParams& fs, uint32_t group) {
         return 0;
     }
 
-    uint32_t ipg = fs.inodes_per_group;
+    uint32_t ipg          = fs.inodes_per_group;
     uint32_t bytes_needed = (ipg + 7) / 8;
 
     for (uint32_t byte_idx = 0; byte_idx < bytes_needed; ++byte_idx) {
@@ -232,8 +225,7 @@ static uint32_t host_alloc_inode(TestFsParams& fs, uint32_t group) {
 
             if ((fs.inode_bitmaps[group][byte_idx] & (1U << bit)) == 0) {
                 // Found a free inode -- mark it used
-                fs.inode_bitmaps[group][byte_idx] |=
-                    static_cast<uint8_t>(1U << bit);
+                fs.inode_bitmaps[group][byte_idx] |= static_cast<uint8_t>(1U << bit);
 
                 // 1-based inode number
                 uint32_t global_ino = group * ipg + local_index + 1;
@@ -270,10 +262,9 @@ static bool host_free_inode(TestFsParams& fs, uint32_t ino) {
     uint32_t local_index = (ino - 1) % fs.inodes_per_group;
 
     uint32_t byte_idx = local_index / 8;
-    uint32_t bit = local_index % 8;
+    uint32_t bit      = local_index % 8;
 
-    fs.inode_bitmaps[group][byte_idx] &=
-        static_cast<uint8_t>(~(1U << bit));
+    fs.inode_bitmaps[group][byte_idx] &= static_cast<uint8_t>(~(1U << bit));
 
     ++fs.sb.s_free_inodes_count;
     ++fs.bgdt[group].bg_free_inodes_count;
@@ -379,7 +370,7 @@ TEST("alloc_block: group 0 full, allocates from group 1") {
     // Group 0: blocks 1-8, Group 1: blocks 9-16
 
     // Mark all bits in group 0 bitmap as used
-    fs.block_bitmaps[0][0] = 0xFF;  // 8 blocks -> 1 byte
+    fs.block_bitmaps[0][0]          = 0xFF;  // 8 blocks -> 1 byte
     fs.bgdt[0].bg_free_blocks_count = 0;
 
     // Alloc from group 0 should fail
@@ -400,8 +391,8 @@ TEST("alloc_block: returns 0 when all groups full") {
     init_test_fs(fs, 2, 8, 16, 16, 32, 1024, 1);
 
     // Mark everything used
-    fs.block_bitmaps[0][0] = 0xFF;
-    fs.block_bitmaps[1][0] = 0xFF;
+    fs.block_bitmaps[0][0]          = 0xFF;
+    fs.block_bitmaps[1][0]          = 0xFF;
     fs.bgdt[0].bg_free_blocks_count = 0;
     fs.bgdt[1].bg_free_blocks_count = 0;
 
@@ -424,7 +415,7 @@ TEST("alloc_block: last group has fewer blocks") {
     // Group 1: first_block=9, blocks_in_group=min(8,15-9)=6 -> blocks 9-14
 
     // Mark group 0 full
-    fs.block_bitmaps[0][0] = 0xFF;
+    fs.block_bitmaps[0][0]          = 0xFF;
     fs.bgdt[0].bg_free_blocks_count = 0;
 
     // Group 1 has 6 blocks (9-14), allocate 3 then verify exhaustion
@@ -503,7 +494,7 @@ TEST("free_block: rejects out-of-range group") {
 
     // Block number that would be in group 1 (but only group 0 exists)
     uint32_t bad_block = 1 + 8192 + 5;
-    bool ok = host_free_block(fs, bad_block);
+    bool     ok        = host_free_block(fs, bad_block);
     ASSERT_FALSE(ok);
 }
 
@@ -592,8 +583,8 @@ TEST("alloc_inode: returns 0 when all groups full") {
     init_test_fs(fs, 1, 8192, 16, 8192, 16, 1024, 1);
     // ipg=16, so 2 bytes of bitmap
 
-    fs.inode_bitmaps[0][0] = 0xFF;
-    fs.inode_bitmaps[0][1] = 0xFF;
+    fs.inode_bitmaps[0][0]          = 0xFF;
+    fs.inode_bitmaps[0][1]          = 0xFF;
     fs.bgdt[0].bg_free_inodes_count = 0;
 
     uint32_t ino = host_alloc_inode(fs, 0);
@@ -621,7 +612,7 @@ TEST("alloc_inode: group 0 full, allocates from group 1") {
     // Group 0: inodes 1-8, Group 1: inodes 9-16
 
     // Mark group 0 full
-    fs.inode_bitmaps[0][0] = 0xFF;
+    fs.inode_bitmaps[0][0]          = 0xFF;
     fs.bgdt[0].bg_free_inodes_count = 0;
 
     // Alloc from group 0 fails

@@ -36,7 +36,7 @@ int PidAllocator::alloc() {
         if (!in_use_[candidate]) {
             in_use_[candidate] = true;
             // Advance hint past this PID for next allocation
-            next_hint_ = (candidate >= PID_MAX) ? 1 : candidate + 1;
+            next_hint_         = (candidate >= PID_MAX) ? 1 : candidate + 1;
             return candidate;
         }
     }

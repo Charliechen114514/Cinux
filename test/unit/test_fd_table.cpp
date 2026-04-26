@@ -26,16 +26,16 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstring>
-#include <thread>
-#include <vector>
-#include <atomic>
-#include <set>
-#include <mutex>
+#    include <atomic>
+#    include <cstdint>
+#    include <cstring>
+#    include <mutex>
+#    include <set>
+#    include <thread>
+#    include <vector>
 
-#include "fs/file.hpp"
-#include "fs/inode.hpp"
+#    include "fs/file.hpp"
+#    include "fs/inode.hpp"
 
 using namespace cinux::fs;
 
@@ -58,19 +58,19 @@ TEST("fd_table: all slots are nullptr after construction") {
 // First alloc returns fd 3 (0-2 reserved for stdin/stdout/stderr).
 TEST("fd_table: first alloc returns fd 3") {
     FDTable table;
-    Inode dummy{};
-    int fd = table.alloc(&dummy, OpenFlags::RDONLY);
+    Inode   dummy{};
+    int     fd = table.alloc(&dummy, OpenFlags::RDONLY);
     ASSERT_EQ(fd, 3);
 }
 
 // Sequential allocs return monotonically increasing indices starting from 3.
 TEST("fd_table: sequential allocs return 3 4 5") {
     FDTable table;
-    Inode dummy{};
+    Inode   dummy{};
 
     ASSERT_EQ(table.alloc(&dummy, OpenFlags::RDONLY), 3);
     ASSERT_EQ(table.alloc(&dummy, OpenFlags::WRONLY), 4);
-    ASSERT_EQ(table.alloc(&dummy, OpenFlags::RDWR),   5);
+    ASSERT_EQ(table.alloc(&dummy, OpenFlags::RDWR), 5);
 }
 
 // ============================================================
@@ -80,7 +80,7 @@ TEST("fd_table: sequential allocs return 3 4 5") {
 // Filling all assignable slots (3-255) returns FD_NONE on next alloc.
 TEST("fd_table: alloc returns FD_NONE when table is full") {
     FDTable table;
-    Inode dummy{};
+    Inode   dummy{};
 
     for (uint32_t i = 3; i < FD_TABLE_SIZE; ++i) {
         int fd = table.alloc(&dummy, OpenFlags::RDWR);
@@ -99,7 +99,7 @@ TEST("fd_table: alloc returns FD_NONE when table is full") {
 // After closing fd 4, the next alloc should return 4 (lowest free).
 TEST("fd_table: alloc reuses lowest freed slot") {
     FDTable table;
-    Inode dummy{};
+    Inode   dummy{};
 
     // Allocate 3, 4, 5
     table.alloc(&dummy, OpenFlags::RDONLY);
@@ -117,7 +117,7 @@ TEST("fd_table: alloc reuses lowest freed slot") {
 // Closing fd 3 when 3,4 are open; next alloc returns 3.
 TEST("fd_table: alloc reuses slot 3 after closing it") {
     FDTable table;
-    Inode dummy{};
+    Inode   dummy{};
 
     table.alloc(&dummy, OpenFlags::RDONLY);
     table.alloc(&dummy, OpenFlags::RDONLY);
@@ -133,7 +133,7 @@ TEST("fd_table: alloc reuses slot 3 after closing it") {
 // Close a valid open fd returns 0 and the slot becomes nullptr.
 TEST("fd_table: close valid fd returns 0") {
     FDTable table;
-    Inode dummy{};
+    Inode   dummy{};
 
     int fd = table.alloc(&dummy, OpenFlags::RDONLY);
     ASSERT_EQ(table.close(fd), 0);
@@ -165,7 +165,7 @@ TEST("fd_table: close large fd returns -1") {
 // Already-closed fd returns -1.
 TEST("fd_table: close already closed fd returns -1") {
     FDTable table;
-    Inode dummy{};
+    Inode   dummy{};
 
     int fd = table.alloc(&dummy, OpenFlags::RDONLY);
     ASSERT_EQ(table.close(fd), 0);
@@ -185,11 +185,11 @@ TEST("fd_table: close never allocated fd returns -1") {
 // get() on a valid open fd returns a non-null File with correct fields.
 TEST("fd_table: get returns non-null for open fd") {
     FDTable table;
-    Inode inode{};
+    Inode   inode{};
     inode.ino = 42;
 
-    int fd = table.alloc(&inode, OpenFlags::RDWR);
-    File* f = table.get(fd);
+    int   fd = table.alloc(&inode, OpenFlags::RDWR);
+    File* f  = table.get(fd);
     ASSERT_NOT_NULL(f);
     ASSERT_TRUE(f->inode == &inode);
     ASSERT_EQ(f->offset, 0ULL);
@@ -199,7 +199,7 @@ TEST("fd_table: get returns non-null for open fd") {
 // Multiple open fds each return distinct File objects.
 TEST("fd_table: distinct fds have distinct File objects") {
     FDTable table;
-    Inode dummy{};
+    Inode   dummy{};
 
     int fd0 = table.alloc(&dummy, OpenFlags::RDONLY);
     int fd1 = table.alloc(&dummy, OpenFlags::WRONLY);
@@ -247,7 +247,7 @@ TEST("fd_table: get unallocated slot returns nullptr") {
 // After closing, get() returns nullptr.
 TEST("fd_table: get returns nullptr after close") {
     FDTable table;
-    Inode dummy{};
+    Inode   dummy{};
 
     int fd = table.alloc(&dummy, OpenFlags::RDONLY);
     ASSERT_NOT_NULL(table.get(fd));
@@ -263,52 +263,52 @@ TEST("fd_table: get returns nullptr after close") {
 // OpenFlags::RDONLY is stored correctly in the File.
 TEST("fd_table: File stores RDONLY flag") {
     FDTable table;
-    Inode dummy{};
+    Inode   dummy{};
 
-    int fd = table.alloc(&dummy, OpenFlags::RDONLY);
-    File* f = table.get(fd);
+    int   fd = table.alloc(&dummy, OpenFlags::RDONLY);
+    File* f  = table.get(fd);
     ASSERT_TRUE(f->flags == OpenFlags::RDONLY);
 }
 
 // OpenFlags::WRONLY is stored correctly in the File.
 TEST("fd_table: File stores WRONLY flag") {
     FDTable table;
-    Inode dummy{};
+    Inode   dummy{};
 
-    int fd = table.alloc(&dummy, OpenFlags::WRONLY);
-    File* f = table.get(fd);
+    int   fd = table.alloc(&dummy, OpenFlags::WRONLY);
+    File* f  = table.get(fd);
     ASSERT_TRUE(f->flags == OpenFlags::WRONLY);
 }
 
 // OpenFlags::RDWR is stored correctly in the File.
 TEST("fd_table: File stores RDWR flag") {
     FDTable table;
-    Inode dummy{};
+    Inode   dummy{};
 
-    int fd = table.alloc(&dummy, OpenFlags::RDWR);
-    File* f = table.get(fd);
+    int   fd = table.alloc(&dummy, OpenFlags::RDWR);
+    File* f  = table.get(fd);
     ASSERT_TRUE(f->flags == OpenFlags::RDWR);
 }
 
 // Inode pointer is stored correctly.
 TEST("fd_table: File stores correct inode pointer") {
     FDTable table;
-    Inode inode{};
-    inode.ino = 123;
+    Inode   inode{};
+    inode.ino  = 123;
     inode.size = 4096;
 
-    int fd = table.alloc(&inode, OpenFlags::RDONLY);
-    File* f = table.get(fd);
+    int   fd = table.alloc(&inode, OpenFlags::RDONLY);
+    File* f  = table.get(fd);
     ASSERT_TRUE(f->inode == &inode);
 }
 
 // Offset is initialised to 0.
 TEST("fd_table: File offset initialised to 0") {
     FDTable table;
-    Inode dummy{};
+    Inode   dummy{};
 
-    int fd = table.alloc(&dummy, OpenFlags::RDWR);
-    File* f = table.get(fd);
+    int   fd = table.alloc(&dummy, OpenFlags::RDWR);
+    File* f  = table.get(fd);
     ASSERT_EQ(f->offset, 0ULL);
 }
 
@@ -319,7 +319,7 @@ TEST("fd_table: File offset initialised to 0") {
 // Fill the assignable table, close every other descriptor, then realloc.
 TEST("fd_table: fill close_even then realloc") {
     FDTable table;
-    Inode dummy{};
+    Inode   dummy{};
 
     // Fill all assignable slots (3-255)
     for (uint32_t i = 3; i < FD_TABLE_SIZE; ++i) {
@@ -345,7 +345,7 @@ TEST("fd_table: fill close_even then realloc") {
 // Fill, close all, fill again -- entire lifecycle.
 TEST("fd_table: full lifecycle fill close refill") {
     FDTable table;
-    Inode dummy{};
+    Inode   dummy{};
 
     // Fill assignable slots (3-255)
     for (uint32_t i = 3; i < FD_TABLE_SIZE; ++i) {

@@ -10,9 +10,9 @@
 
 #include <stdint.h>
 
-#include "kernel/lib/kprintf.hpp"
-#include "kernel/fs/vfs_mount.hpp"
 #include "kernel/fs/file.hpp"
+#include "kernel/fs/vfs_mount.hpp"
+#include "kernel/lib/kprintf.hpp"
 
 namespace cinux::syscall {
 
@@ -22,8 +22,7 @@ using cinux::lib::kprintf;
 
 }  // anonymous namespace
 
-int64_t sys_write(uint64_t fd, uint64_t buf_virt, uint64_t count,
-                  uint64_t, uint64_t, uint64_t) {
+int64_t sys_write(uint64_t fd, uint64_t buf_virt, uint64_t count, uint64_t, uint64_t, uint64_t) {
     if (buf_virt == 0) {
         return -1;
     }
@@ -38,11 +37,11 @@ int64_t sys_write(uint64_t fd, uint64_t buf_virt, uint64_t count,
 
     // Check FDTable first -- if the fd has a valid VFS entry (e.g. pipe),
     // use the VFS write path regardless of fd number.
-    cinux::fs::FDTable& tbl = cinux::fs::current_fd_table();
-    cinux::fs::File* file = tbl.get(static_cast<int>(fd));
+    cinux::fs::FDTable& tbl  = cinux::fs::current_fd_table();
+    cinux::fs::File*    file = tbl.get(static_cast<int>(fd));
     if (file != nullptr && file->inode != nullptr && file->inode->ops != nullptr) {
         const auto* buf = reinterpret_cast<const void*>(buf_virt);
-        auto g = file->offset_lock_.guard();
+        auto        g   = file->offset_lock_.guard();
         (void)g;
         int64_t result = file->inode->ops->write(file->inode, file->offset, buf, count);
         if (result > 0) {

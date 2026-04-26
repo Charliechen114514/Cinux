@@ -84,14 +84,14 @@ void gdt_init() {
 
     // Step 5: Load GDTR and flush all segment registers
     // Inline assembly: lgdt -> far jmp (flush CS) -> reload DS/ES/FS/GS/SS
-    __asm__ volatile (
-        "lgdt %[gdtr]\n\t"                 // Load GDT register
+    __asm__ volatile(
+        "lgdt %[gdtr]\n\t"  // Load GDT register
 
         // Far jump to flush CS segment register
-        "pushq %[cs]\n\t"                  // Push new code segment selector
-        "leaq 1f(%%rip), %%rax\n\t"        // Get address of label 1 as return point
-        "pushq %%rax\n\t"                  // Push return address
-        "lretq\n\t"                        // Far return -> CS is flushed
+        "pushq %[cs]\n\t"            // Push new code segment selector
+        "leaq 1f(%%rip), %%rax\n\t"  // Get address of label 1 as return point
+        "pushq %%rax\n\t"            // Push return address
+        "lretq\n\t"                  // Far return -> CS is flushed
         "1:\n\t"
 
         // Reload data segment registers
@@ -102,11 +102,10 @@ void gdt_init() {
         "movw %%ax, %%gs\n\t"
         "movw %%ax, %%ss\n\t"
         :
-        : [gdtr] "m" (s_gdt_pointer),     // Memory operand, lgdt references directly
-          [cs]   "i" (SEGMENT_CODE64),      // Immediate, code segment selector
-          [ds]   "i" (SEGMENT_DATA64)       // Immediate, data segment selector
-        : "rax", "memory"
-    );
+        : [gdtr] "m"(s_gdt_pointer),  // Memory operand, lgdt references directly
+          [cs] "i"(SEGMENT_CODE64),   // Immediate, code segment selector
+          [ds] "i"(SEGMENT_DATA64)    // Immediate, data segment selector
+        : "rax", "memory");
 }
 
-} // namespace cinux::mini::arch
+}  // namespace cinux::mini::arch

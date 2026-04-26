@@ -40,30 +40,30 @@
 #include "boot/boot_info.h"
 #include "kernel/arch/x86_64/gdt.hpp"
 #include "kernel/arch/x86_64/idt.hpp"
-#include "kernel/arch/x86_64/paging_config.hpp"
 #include "kernel/arch/x86_64/memory_layout.hpp"
+#include "kernel/arch/x86_64/paging_config.hpp"
 #include "kernel/arch/x86_64/pic.hpp"
 #include "kernel/arch/x86_64/syscall.hpp"
 #include "kernel/arch/x86_64/usermode.hpp"
 #include "kernel/drivers/ahci/ahci.hpp"
+#include "kernel/drivers/keyboard/keyboard.hpp"
 #include "kernel/drivers/pci/pci.hpp"
+#include "kernel/drivers/pit/pit.hpp"
 #include "kernel/drivers/video/console.hpp"
 #include "kernel/drivers/video/font.hpp"
 #include "kernel/drivers/video/framebuffer.hpp"
-#include "kernel/drivers/pit/pit.hpp"
-#include "kernel/drivers/keyboard/keyboard.hpp"
 #ifdef CINUX_GUI
-#include "kernel/drivers/canvas.hpp"
-#include "kernel/gui/gui_init.hpp"
+#    include "kernel/drivers/canvas.hpp"
+#    include "kernel/gui/gui_init.hpp"
 #endif
 #include "kernel/lib/kprintf.hpp"
+#include "kernel/mm/address_space.hpp"
+#include "kernel/mm/heap.hpp"
 #include "kernel/mm/pmm.hpp"
 #include "kernel/mm/vmm.hpp"
-#include "kernel/mm/heap.hpp"
-#include "kernel/mm/address_space.hpp"
-#include "kernel/proc/scheduler.hpp"
 #include "kernel/proc/init.hpp"
 #include "kernel/proc/process.hpp"
+#include "kernel/proc/scheduler.hpp"
 
 using cinux::arch::PIC;
 using cinux::drivers::Console;
@@ -132,21 +132,20 @@ extern "C" void kernel_main() {
     cinux::mm::AddressSpace::init_kernel();
 
     // Step 12: Initialise kernel heap (64 KB initial region after kernel image)
-    constexpr uint64_t HEAP_VIRT_BASE = cinux::arch::KMEM_HEAP_BASE;
+    constexpr uint64_t HEAP_VIRT_BASE    = cinux::arch::KMEM_HEAP_BASE;
     constexpr uint64_t HEAP_INITIAL_SIZE = 64 * 1024;
     cinux::mm::g_heap.init(HEAP_VIRT_BASE, HEAP_INITIAL_SIZE);
 
     // Step 13: Initialise framebuffer from BootInfo
     Framebuffer fb;
     fb.init(*boot_info);
-    cinux::lib::kprintf("[BIG] Framebuffer initialised: %ux%u %ubpp\n",
-                        fb.width(), fb.height(), boot_info->fb_bpp);
+    cinux::lib::kprintf("[BIG] Framebuffer initialised: %ux%u %ubpp\n", fb.width(), fb.height(),
+                        boot_info->fb_bpp);
 
     // Step 14: Parse embedded PSF2 font
     static PSFFont font;
     font.init();
-    cinux::lib::kprintf("[BIG] PSF2 font loaded: %ux%u\n",
-                        font.width(), font.height());
+    cinux::lib::kprintf("[BIG] PSF2 font loaded: %ux%u\n", font.width(), font.height());
 
     // Step 15: Initialise text console and register as kprintf sink
     Console console;
@@ -190,7 +189,7 @@ extern "C" void kernel_main() {
 
     // Step 21: Find AHCI controller and initialise
     static cinux::drivers::ahci::AHCI ahci;
-    cinux::drivers::pci::PCIDevice ahci_dev;
+    cinux::drivers::pci::PCIDevice    ahci_dev;
     if (pci.find_ahci(ahci_dev)) {
         ahci.init(ahci_dev);
         cinux::drivers::ahci::AHCI::set_instance(&ahci);
@@ -198,9 +197,8 @@ extern "C" void kernel_main() {
         // Step 22: Read sector 0 (MBR) and check boot signature
         uint64_t buf_phys = cinux::mm::g_pmm.alloc_page();
         if (buf_phys != 0) {
-            constexpr uint64_t buf_virt = cinux::arch::KMEM_DMA_BASE;
-            constexpr uint64_t buf_flags = cinux::arch::FLAG_PRESENT
-                                         | cinux::arch::FLAG_WRITABLE;
+            constexpr uint64_t buf_virt  = cinux::arch::KMEM_DMA_BASE;
+            constexpr uint64_t buf_flags = cinux::arch::FLAG_PRESENT | cinux::arch::FLAG_WRITABLE;
             cinux::mm::g_vmm.map(buf_virt, buf_phys, buf_flags);
 
             auto* buf = reinterpret_cast<uint8_t*>(buf_virt);
@@ -209,8 +207,7 @@ extern "C" void kernel_main() {
             }
 
             if (ahci.read(0, 0, 1, buf_phys)) {
-                cinux::lib::kprintf("[AHCI] Read sector 0: %02x %02x\n",
-                                    buf[510], buf[511]);
+                cinux::lib::kprintf("[AHCI] Read sector 0: %02x %02x\n", buf[510], buf[511]);
             } else {
                 cinux::lib::kprintf("[AHCI] Failed to read sector 0.\n");
             }
@@ -223,21 +220,20 @@ extern "C" void kernel_main() {
     cinux::lib::kprintf("[BIG] ===== Scheduler & Init Thread =====\n");
     Scheduler::init();
 
-    auto* init_task = TaskBuilder()
-        .set_entry(cinux::proc::kernel_init_thread)
-        .set_name("kernel_init")
-        .build();
+    auto* init_task =
+        TaskBuilder().set_entry(cinux::proc::kernel_init_thread).set_name("kernel_init").build();
     if (init_task != nullptr) {
         Scheduler::add_task(init_task);
     }
 
     auto* boot_task = TaskBuilder()
-        .set_entry([]() {
-            cinux::lib::kprintf("[BOOT] boot_task_entry reached -- UNEXPECTED\n");
-            while (true) __asm__ volatile("hlt");
-        })
-        .set_name("boot")
-        .build();
+                          .set_entry([]() {
+                              cinux::lib::kprintf("[BOOT] boot_task_entry reached -- UNEXPECTED\n");
+                              while (true)
+                                  __asm__ volatile("hlt");
+                          })
+                          .set_name("boot")
+                          .build();
     if (boot_task != nullptr) {
         Scheduler::run_first(boot_task);
     }

@@ -12,8 +12,8 @@
 
 #pragma once
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 namespace cinux::fs {
 
@@ -74,27 +74,26 @@ static constexpr char USTAR_MAGIC[] = "ustar";
  *   500-511  padding[12]  Reserved / padding
  */
 struct [[gnu::packed]] UstarHeader {
-    char    name[100];     ///< 0:   Entry pathname (null-terminated)
-    char    mode[8];       ///< 100: File mode in octal ASCII
-    char    uid[8];        ///< 108: Owner user ID in octal ASCII
-    char    gid[8];        ///< 116: Owner group ID in octal ASCII
-    char    size[12];      ///< 124: File size in octal ASCII
-    char    mtime[12];     ///< 136: Modification timestamp in octal ASCII
-    char    checksum[8];   ///< 148: Header checksum in octal ASCII
-    char    typeflag;      ///< 156: Entry type flag
-    char    linkname[100]; ///< 157: Link target name
-    char    magic[6];      ///< 257: "ustar\0"
-    char    version[2];    ///< 263: Version "00"
-    char    uname[32];     ///< 265: Owner user name
-    char    gname[32];     ///< 297: Owner group name
-    char    devmajor[8];   ///< 329: Device major number (octal)
-    char    devminor[8];   ///< 337: Device minor number (octal)
-    char    prefix[155];   ///< 345: Path prefix for long names
-    char    padding[12];   ///< 500: Reserved / padding
+    char name[100];      ///< 0:   Entry pathname (null-terminated)
+    char mode[8];        ///< 100: File mode in octal ASCII
+    char uid[8];         ///< 108: Owner user ID in octal ASCII
+    char gid[8];         ///< 116: Owner group ID in octal ASCII
+    char size[12];       ///< 124: File size in octal ASCII
+    char mtime[12];      ///< 136: Modification timestamp in octal ASCII
+    char checksum[8];    ///< 148: Header checksum in octal ASCII
+    char typeflag;       ///< 156: Entry type flag
+    char linkname[100];  ///< 157: Link target name
+    char magic[6];       ///< 257: "ustar\0"
+    char version[2];     ///< 263: Version "00"
+    char uname[32];      ///< 265: Owner user name
+    char gname[32];      ///< 297: Owner group name
+    char devmajor[8];    ///< 329: Device major number (octal)
+    char devminor[8];    ///< 337: Device minor number (octal)
+    char prefix[155];    ///< 345: Path prefix for long names
+    char padding[12];    ///< 500: Reserved / padding
 };
 
-static_assert(sizeof(UstarHeader) == USTAR_BLOCK_SIZE,
-              "UstarHeader must be exactly 512 bytes");
+static_assert(sizeof(UstarHeader) == USTAR_BLOCK_SIZE, "UstarHeader must be exactly 512 bytes");
 
 // ============================================================
 // Conversion Helpers

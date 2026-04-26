@@ -103,11 +103,11 @@ void vkprintf_impl(OutputFn&& putc, const char* format, va_list args) {
         }
 
         case 'd': {
-            int len = format_decimal(static_cast<int64_t>(va_arg(args, int)),
-                                     buffer, sizeof(buffer));
+            int len =
+                format_decimal(static_cast<int64_t>(va_arg(args, int)), buffer, sizeof(buffer));
             // determine if buffer starts with a sign character
-            bool has_sign = (len > 0 && buffer[0] == '-');
-            int digits_len = has_sign ? len - 1 : len;
+            bool has_sign   = (len > 0 && buffer[0] == '-');
+            int  digits_len = has_sign ? len - 1 : len;
 
             if (!left_align && zero_pad && has_sign) {
                 // sign first, then zero-pad, then digits
@@ -140,9 +140,8 @@ void vkprintf_impl(OutputFn&& putc, const char* format, va_list args) {
         }
 
         case 'u': {
-            int len = format_decimal(
-                static_cast<int64_t>(va_arg(args, unsigned int)),
-                buffer, sizeof(buffer));
+            int  len = format_decimal(static_cast<int64_t>(va_arg(args, unsigned int)), buffer,
+                                      sizeof(buffer));
             char pad = zero_pad ? '0' : ' ';
             if (!left_align) {
                 for (int i = len; i < width; i++) {
@@ -161,8 +160,7 @@ void vkprintf_impl(OutputFn&& putc, const char* format, va_list args) {
         }
 
         case 'x': {
-            int len = format_hex(va_arg(args, uint64_t), buffer,
-                                 sizeof(buffer), true);
+            int  len = format_hex(va_arg(args, uint64_t), buffer, sizeof(buffer), true);
             char pad = zero_pad ? '0' : ' ';
             if (!left_align) {
                 for (int i = len; i < width; i++) {
@@ -181,8 +179,7 @@ void vkprintf_impl(OutputFn&& putc, const char* format, va_list args) {
         }
 
         case 'X': {
-            int len = format_hex(va_arg(args, uint64_t), buffer,
-                                 sizeof(buffer), false);
+            int  len = format_hex(va_arg(args, uint64_t), buffer, sizeof(buffer), false);
             char pad = zero_pad ? '0' : ' ';
             if (!left_align) {
                 for (int i = len; i < width; i++) {
@@ -204,8 +201,7 @@ void vkprintf_impl(OutputFn&& putc, const char* format, va_list args) {
             // always output "0x" + 16-digit zero-padded uppercase hex
             putc('0');
             putc('x');
-            int len = format_hex(va_arg(args, uint64_t), buffer,
-                                 sizeof(buffer), false);
+            int len = format_hex(va_arg(args, uint64_t), buffer, sizeof(buffer), false);
             // pad to 16 digits
             for (int i = len; i < 16; i++) {
                 putc('0');
@@ -217,8 +213,7 @@ void vkprintf_impl(OutputFn&& putc, const char* format, va_list args) {
         }
 
         case 'b': {
-            int len = format_binary(va_arg(args, uint64_t), buffer,
-                                    sizeof(buffer));
+            int  len = format_binary(va_arg(args, uint64_t), buffer, sizeof(buffer));
             char pad = zero_pad ? '0' : ' ';
             if (!left_align) {
                 for (int i = len; i < width; i++) {

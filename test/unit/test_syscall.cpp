@@ -24,9 +24,9 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
+#    include <cstddef>
+#    include <cstdint>
+#    include <cstring>
 
 // ============================================================
 // Mock / reimplementation layer
@@ -48,8 +48,7 @@ enum class SyscallNr : uint64_t {
 
 constexpr uint64_t SYSCALL_TABLE_SIZE = 256;
 
-using SyscallFn = int64_t(*)(uint64_t, uint64_t, uint64_t,
-                             uint64_t, uint64_t, uint64_t);
+using SyscallFn = int64_t (*)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 
 // Mirror of TaskState from kernel/proc/process.hpp
 enum class TaskState : uint8_t {
@@ -61,8 +60,8 @@ enum class TaskState : uint8_t {
 
 // Minimal Task mirror (only the fields sys_exit cares about)
 struct Task {
-    TaskState state;
-    uint64_t tid;
+    TaskState   state;
+    uint64_t    tid;
     const char* name;
 };
 
@@ -83,9 +82,8 @@ void syscall_register(SyscallNr nr, SyscallFn handler) {
 }
 
 // Mirror of syscall_dispatch
-int64_t syscall_dispatch(uint64_t nr,
-                         uint64_t a1, uint64_t a2, uint64_t a3,
-                         uint64_t a4, uint64_t a5, uint64_t a6) {
+int64_t syscall_dispatch(uint64_t nr, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4,
+                         uint64_t a5, uint64_t a6) {
     if (nr >= SYSCALL_TABLE_SIZE) {
         return -1;
     }
@@ -97,8 +95,7 @@ int64_t syscall_dispatch(uint64_t nr,
 }
 
 // Mirror of sys_write logic (without kprintf output)
-int64_t sys_write(uint64_t fd, uint64_t buf_virt, uint64_t count,
-                  uint64_t, uint64_t, uint64_t) {
+int64_t sys_write(uint64_t fd, uint64_t buf_virt, uint64_t count, uint64_t, uint64_t, uint64_t) {
     if (buf_virt == 0) {
         return -1;
     }
@@ -109,8 +106,7 @@ int64_t sys_write(uint64_t fd, uint64_t buf_virt, uint64_t count,
 }
 
 // Mirror of sys_exit logic (without Scheduler::yield)
-int64_t sys_exit(Task* task, uint64_t code, uint64_t, uint64_t,
-                 uint64_t, uint64_t, uint64_t) {
+int64_t sys_exit(Task* task, uint64_t code, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) {
     if (task != nullptr) {
         task->state = TaskState::Dead;
     }
@@ -119,14 +115,13 @@ int64_t sys_exit(Task* task, uint64_t code, uint64_t, uint64_t,
 }
 
 // Mirror of sys_yield (returns 0 on success)
-int64_t sys_yield(uint64_t, uint64_t, uint64_t,
-                  uint64_t, uint64_t, uint64_t) {
+int64_t sys_yield(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) {
     return 0;
 }
 
 // Capture buffer for mock kprintf in sys_write integration
 char kprintf_capture[4096];
-int kprintf_capture_len = 0;
+int  kprintf_capture_len = 0;
 
 void reset_capture() {
     memset(kprintf_capture, 0, sizeof(kprintf_capture));
@@ -220,8 +215,8 @@ TEST("syscall: register overwrites previous handler") {
 TEST("syscall: dispatch calls registered handler with correct args") {
     mock::reset_table();
 
-    auto handler = [](uint64_t a1, uint64_t a2, uint64_t a3,
-                      uint64_t a4, uint64_t a5, uint64_t a6) -> int64_t {
+    auto handler = [](uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5,
+                      uint64_t a6) -> int64_t {
         return static_cast<int64_t>(a1 + a2 + a3 + a4 + a5 + a6);
     };
 
@@ -233,8 +228,8 @@ TEST("syscall: dispatch calls registered handler with correct args") {
 TEST("syscall: dispatch unregistered syscall returns -1") {
     mock::reset_table();
 
-    int64_t result = mock::syscall_dispatch(static_cast<uint64_t>(mock::SyscallNr::SYS_write),
-                                            0, 0, 0, 0, 0, 0);
+    int64_t result =
+        mock::syscall_dispatch(static_cast<uint64_t>(mock::SyscallNr::SYS_write), 0, 0, 0, 0, 0, 0);
     ASSERT_EQ(result, -1);
 }
 
@@ -299,7 +294,7 @@ TEST("syscall: sys_write with count=0 returns 0") {
 
 TEST("syscall: sys_write returns count as int64_t") {
     uint64_t large_count = 0x7FFFFFFFFFFFFFFFULL;
-    int64_t result = mock::sys_write(1, 0x1000, large_count, 0, 0, 0);
+    int64_t  result      = mock::sys_write(1, 0x1000, large_count, 0, 0, 0);
     ASSERT_EQ(result, static_cast<int64_t>(large_count));
 }
 
@@ -310,8 +305,8 @@ TEST("syscall: sys_write returns count as int64_t") {
 TEST("syscall: sys_exit marks task as Dead") {
     mock::Task task;
     task.state = mock::TaskState::Running;
-    task.tid = 1;
-    task.name = "test_task";
+    task.tid   = 1;
+    task.name  = "test_task";
 
     mock::sys_exit(&task, 0, 0, 0, 0, 0, 0);
     ASSERT_TRUE(task.state == mock::TaskState::Dead);
@@ -320,8 +315,8 @@ TEST("syscall: sys_exit marks task as Dead") {
 TEST("syscall: sys_exit with non-zero exit code still marks Dead") {
     mock::Task task;
     task.state = mock::TaskState::Ready;
-    task.tid = 2;
-    task.name = "test_task2";
+    task.tid   = 2;
+    task.name  = "test_task2";
 
     mock::sys_exit(&task, 1, 0, 0, 0, 0, 0);
     ASSERT_TRUE(task.state == mock::TaskState::Dead);
@@ -335,8 +330,8 @@ TEST("syscall: sys_exit with null task does not crash") {
 TEST("syscall: sys_exit transitions from Blocked to Dead") {
     mock::Task task;
     task.state = mock::TaskState::Blocked;
-    task.tid = 3;
-    task.name = "blocked_task";
+    task.tid   = 3;
+    task.name  = "blocked_task";
 
     mock::sys_exit(&task, 0, 0, 0, 0, 0, 0);
     ASSERT_TRUE(task.state == mock::TaskState::Dead);
@@ -366,15 +361,15 @@ TEST("syscall: STAR MSR index constants") {
 TEST("syscall: STAR value with kernel CS 0x08") {
     // From syscall.cpp: star_val = (GDT_KERNEL_CODE << 32) | (GDT_KERNEL_CODE << 48)
     constexpr uint16_t GDT_KERNEL_CODE = 0x08;
-    uint64_t star_val = (static_cast<uint64_t>(GDT_KERNEL_CODE) << 32)
-                      | (static_cast<uint64_t>(GDT_KERNEL_CODE) << 48);
+    uint64_t           star_val        = (static_cast<uint64_t>(GDT_KERNEL_CODE) << 32) |
+                        (static_cast<uint64_t>(GDT_KERNEL_CODE) << 48);
     ASSERT_EQ(star_val, 0x0008000800000000ULL);
 }
 
 TEST("syscall: STAR high 32 bits encode SYSRET and SYSCALL CS") {
     constexpr uint16_t GDT_KERNEL_CODE = 0x08;
-    uint64_t star_val = (static_cast<uint64_t>(GDT_KERNEL_CODE) << 32)
-                      | (static_cast<uint64_t>(GDT_KERNEL_CODE) << 48);
+    uint64_t           star_val        = (static_cast<uint64_t>(GDT_KERNEL_CODE) << 32) |
+                        (static_cast<uint64_t>(GDT_KERNEL_CODE) << 48);
 
     // STAR[47:32] = SYSCALL CS base = 0x08
     uint16_t syscall_cs = static_cast<uint16_t>((star_val >> 32) & 0xFFFF);
@@ -396,8 +391,8 @@ TEST("syscall: SFMASK value 0x200 clears IF on SYSCALL entry") {
 // ============================================================
 
 TEST("syscall: SyscallFn is 6-arg function pointer returning int64_t") {
-    mock::SyscallFn fn = [](uint64_t a1, uint64_t a2, uint64_t a3,
-                            uint64_t a4, uint64_t a5, uint64_t a6) -> int64_t {
+    mock::SyscallFn fn = [](uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, uint64_t a5,
+                            uint64_t a6) -> int64_t {
         return static_cast<int64_t>(a1 + a2 + a3 + a4 + a5 + a6);
     };
     ASSERT_TRUE(fn != nullptr);
@@ -411,11 +406,13 @@ TEST("syscall: SyscallFn is 6-arg function pointer returning int64_t") {
 TEST("syscall: full register-dispatch lifecycle for SYS_write") {
     mock::reset_table();
 
-    char buf[] = "hello";
-    auto handler = [](uint64_t fd, uint64_t buf_virt, uint64_t count,
-                      uint64_t, uint64_t, uint64_t) -> int64_t {
-        if (fd != 1) return -1;
-        if (buf_virt == 0) return -1;
+    char buf[]   = "hello";
+    auto handler = [](uint64_t fd, uint64_t buf_virt, uint64_t count, uint64_t, uint64_t,
+                      uint64_t) -> int64_t {
+        if (fd != 1)
+            return -1;
+        if (buf_virt == 0)
+            return -1;
         return static_cast<int64_t>(count);
     };
 
@@ -439,11 +436,10 @@ TEST("syscall: full register-dispatch lifecycle for SYS_exit") {
 
     static mock::Task exit_lifecycle_task;
     exit_lifecycle_task.state = mock::TaskState::Running;
-    exit_lifecycle_task.tid = 42;
-    exit_lifecycle_task.name = "exit_test";
+    exit_lifecycle_task.tid   = 42;
+    exit_lifecycle_task.name  = "exit_test";
 
-    auto handler = [](uint64_t, uint64_t, uint64_t,
-                      uint64_t, uint64_t, uint64_t) -> int64_t {
+    auto handler = [](uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) -> int64_t {
         exit_lifecycle_task.state = mock::TaskState::Dead;
         return 0;
     };
@@ -458,8 +454,7 @@ TEST("syscall: full register-dispatch lifecycle for SYS_exit") {
 TEST("syscall: full register-dispatch lifecycle for SYS_yield") {
     mock::reset_table();
 
-    auto handler = [](uint64_t, uint64_t, uint64_t,
-                      uint64_t, uint64_t, uint64_t) -> int64_t {
+    auto handler = [](uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) -> int64_t {
         return 0;
     };
 

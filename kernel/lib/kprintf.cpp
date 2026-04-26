@@ -30,12 +30,12 @@ using cinux::lib::detail::vkprintf_impl;
 
 struct Sink {
     cinux::lib::OutputSink fn;
-    void* ctx;
-    bool enabled;
+    void*                  ctx;
+    bool                   enabled;
 };
 
-static Sink g_sinks[cinux::lib::KPRINTF_MAX_SINKS] = {};
-static uint32_t g_sink_count = 0;
+static Sink     g_sinks[cinux::lib::KPRINTF_MAX_SINKS] = {};
+static uint32_t g_sink_count                           = 0;
 
 // ============================================================
 // Serial sink adapter
@@ -56,7 +56,8 @@ namespace cinux::lib {
 // ============================================================
 
 void kprintf_register_sink(OutputSink fn, void* ctx) {
-    if (fn == nullptr) return;
+    if (fn == nullptr)
+        return;
     for (uint32_t i = 0; i < g_sink_count; i++) {
         if (!g_sinks[i].enabled) {
             g_sinks[i] = {fn, ctx, true};
@@ -84,13 +85,15 @@ void kprintf_init() {
 void kprintf(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    vkprintf_impl([&](char c) {
-        for (uint32_t i = 0; i < g_sink_count; i++) {
-            if (g_sinks[i].enabled) {
-                g_sinks[i].fn(c, g_sinks[i].ctx);
+    vkprintf_impl(
+        [&](char c) {
+            for (uint32_t i = 0; i < g_sink_count; i++) {
+                if (g_sinks[i].enabled) {
+                    g_sinks[i].fn(c, g_sinks[i].ctx);
+                }
             }
-        }
-    }, fmt, args);
+        },
+        fmt, args);
     va_end(args);
 }
 
@@ -99,13 +102,15 @@ void kprintf(const char* fmt, ...) {
 // ============================================================
 
 void kvprintf(const char* fmt, va_list args) {
-    vkprintf_impl([&](char c) {
-        for (uint32_t i = 0; i < g_sink_count; i++) {
-            if (g_sinks[i].enabled) {
-                g_sinks[i].fn(c, g_sinks[i].ctx);
+    vkprintf_impl(
+        [&](char c) {
+            for (uint32_t i = 0; i < g_sink_count; i++) {
+                if (g_sinks[i].enabled) {
+                    g_sinks[i].fn(c, g_sinks[i].ctx);
+                }
             }
-        }
-    }, fmt, args);
+        },
+        fmt, args);
 }
 
 // ============================================================
@@ -115,13 +120,15 @@ void kvprintf(const char* fmt, va_list args) {
 void kpanic(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    vkprintf_impl([&](char c) {
-        for (uint32_t i = 0; i < g_sink_count; i++) {
-            if (g_sinks[i].enabled) {
-                g_sinks[i].fn(c, g_sinks[i].ctx);
+    vkprintf_impl(
+        [&](char c) {
+            for (uint32_t i = 0; i < g_sink_count; i++) {
+                if (g_sinks[i].enabled) {
+                    g_sinks[i].fn(c, g_sinks[i].ctx);
+                }
             }
-        }
-    }, fmt, args);
+        },
+        fmt, args);
     va_end(args);
 
     while (1) {

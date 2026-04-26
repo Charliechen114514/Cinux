@@ -8,6 +8,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "kernel/arch/x86_64/syscall.hpp"
 
 namespace cinux::syscall {
@@ -21,7 +22,6 @@ namespace cinux::syscall {
  * @param size      Size of the output buffer in bytes
  * @return Number of bytes written (including NUL), or -1 on error
  */
-int64_t sys_getcwd(uint64_t buf_virt, uint64_t size, uint64_t,
-                   uint64_t, uint64_t, uint64_t);
+int64_t sys_getcwd(uint64_t buf_virt, uint64_t size, uint64_t, uint64_t, uint64_t, uint64_t);
 
 }  // namespace cinux::syscall

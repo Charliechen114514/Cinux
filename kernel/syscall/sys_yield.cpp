@@ -11,8 +11,7 @@
 
 namespace cinux::syscall {
 
-int64_t sys_yield(uint64_t, uint64_t, uint64_t,
-                  uint64_t, uint64_t, uint64_t) {
+int64_t sys_yield(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) {
     cinux::proc::Scheduler::yield();
     return 0;
 }

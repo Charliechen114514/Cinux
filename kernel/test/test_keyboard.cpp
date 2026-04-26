@@ -35,7 +35,6 @@
 #include <stdint.h>
 
 #include "big_kernel_test.h"
-
 #include "kernel/arch/x86_64/io.hpp"
 #include "kernel/arch/x86_64/pic.hpp"
 #include "kernel/drivers/keyboard/keyboard.hpp"
@@ -73,7 +72,8 @@ void inject_scancode(uint8_t sc) {
     // Wait for input buffer to be clear
     uint32_t timeout = 100'000;
     while ((io_inb(0x64) & 0x02) != 0) {
-        if (--timeout == 0) return;
+        if (--timeout == 0)
+            return;
         __asm__ volatile("pause");
     }
 
@@ -83,7 +83,8 @@ void inject_scancode(uint8_t sc) {
     // Wait for input buffer to be clear
     timeout = 100'000;
     while ((io_inb(0x64) & 0x02) != 0) {
-        if (--timeout == 0) return;
+        if (--timeout == 0)
+            return;
         __asm__ volatile("pause");
     }
 
@@ -215,7 +216,7 @@ void test_shift_a_produces_uppercase() {
     // Drain the two release events
     TEST_ASSERT_TRUE(Keyboard::poll(ev));  // 'a' release
     TEST_ASSERT_TRUE(Keyboard::poll(ev));  // LShift release
-    TEST_ASSERT_FALSE(ev.shift);  // shift released
+    TEST_ASSERT_FALSE(ev.shift);           // shift released
 }
 
 }  // namespace test_kbd_shift

@@ -64,15 +64,15 @@ void irq15_stub();
 // ============================================================
 
 struct IRQRoute {
-	uint8_t	  vector;
-	IDT::Stub stub;
+    uint8_t   vector;
+    IDT::Stub stub;
 };
 
 static constexpr IRQRoute k_irq_routes[] = {
-	{0x20, irq0_stub},	{0x21, irq1_stub},	{0x22, irq2_stub},	{0x23, irq3_stub},
-	{0x24, irq4_stub},	{0x25, irq5_stub},	{0x26, irq6_stub},	{0x27, irq7_stub},
-	{0x28, irq8_stub},	{0x29, irq9_stub},	{0x2A, irq10_stub}, {0x2B, irq11_stub},
-	{0x2C, irq12_stub}, {0x2D, irq13_stub}, {0x2E, irq14_stub}, {0x2F, irq15_stub},
+    {0x20, irq0_stub},  {0x21, irq1_stub},  {0x22, irq2_stub},  {0x23, irq3_stub},
+    {0x24, irq4_stub},  {0x25, irq5_stub},  {0x26, irq6_stub},  {0x27, irq7_stub},
+    {0x28, irq8_stub},  {0x29, irq9_stub},  {0x2A, irq10_stub}, {0x2B, irq11_stub},
+    {0x2C, irq12_stub}, {0x2D, irq13_stub}, {0x2E, irq14_stub}, {0x2F, irq15_stub},
 };
 
 static constexpr uint8_t kIRQAttr = make_idt_attr(IDTPrivilege::Kernel, IDTGateType::Interrupt);
@@ -93,7 +93,7 @@ extern "C" {
  * @param frame  Interrupt stack frame (unused)
  */
 void irq_default_handler(InterruptFrame* /*frame*/) {
-	PIC::send_eoi(0);
+    PIC::send_eoi(0);
 }
 
 #ifndef CINUX_GUI
@@ -107,7 +107,7 @@ void irq_default_handler(InterruptFrame* /*frame*/) {
  * @param frame  Interrupt stack frame (unused)
  */
 void mouse_irq12_handler(InterruptFrame* /*frame*/) {
-	PIC::send_eoi(12);
+    PIC::send_eoi(12);
 }
 #endif
 
@@ -126,12 +126,12 @@ void mouse_irq12_handler(InterruptFrame* /*frame*/) {
  * Must be called after idt_init() and pic_init().
  */
 extern "C" void irq_init() {
-	kprintf("[IRQ] Registering IRQ handlers (0x20-0x2F)...\n");
+    kprintf("[IRQ] Registering IRQ handlers (0x20-0x2F)...\n");
 
-	for (const auto& route : k_irq_routes) {
-		g_idt.set_handler(static_cast<ExceptionVector>(route.vector), route.stub, GDT_KERNEL_CODE,
-						  kIRQAttr, 0);
-	}
+    for (const auto& route : k_irq_routes) {
+        g_idt.set_handler(static_cast<ExceptionVector>(route.vector), route.stub, GDT_KERNEL_CODE,
+                          kIRQAttr, 0);
+    }
 
-	kprintf("[IRQ] All IRQ handlers registered.\n");
+    kprintf("[IRQ] All IRQ handlers registered.\n");
 }

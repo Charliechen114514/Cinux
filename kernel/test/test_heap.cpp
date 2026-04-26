@@ -14,18 +14,18 @@
  *   - Heap initialised (g_heap.init called)
  */
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 namespace {
 void kmemset(void* dst, int val, size_t n) {
     auto* p = static_cast<uint8_t*>(dst);
-    for (size_t i = 0; i < n; i++) p[i] = static_cast<uint8_t>(val);
+    for (size_t i = 0; i < n; i++)
+        p[i] = static_cast<uint8_t>(val);
 }
 }  // anonymous namespace
 
 #include "big_kernel_test.h"
-
 #include "kernel/mm/heap.hpp"
 
 using cinux::mm::g_heap;
@@ -206,9 +206,12 @@ void test_odd_sizes_aligned() {
     auto* ba = static_cast<uint8_t*>(a);
     auto* bb = static_cast<uint8_t*>(b);
     auto* bc = static_cast<uint8_t*>(c);
-    for (int i = 0; i < 37; i++) TEST_ASSERT_EQ(ba[i], 0x11u);
-    for (int i = 0; i < 23; i++) TEST_ASSERT_EQ(bb[i], 0x22u);
-    for (int i = 0; i < 41; i++) TEST_ASSERT_EQ(bc[i], 0x33u);
+    for (int i = 0; i < 37; i++)
+        TEST_ASSERT_EQ(ba[i], 0x11u);
+    for (int i = 0; i < 23; i++)
+        TEST_ASSERT_EQ(bb[i], 0x22u);
+    for (int i = 0; i < 41; i++)
+        TEST_ASSERT_EQ(bc[i], 0x33u);
 
     g_heap.free(a);
     g_heap.free(b);
@@ -225,18 +228,18 @@ namespace test_heap_stress {
 
 void test_many_cycles() {
     constexpr int N = 50;
-    void* ptrs[N];
-    size_t sizes[N];
+    void*         ptrs[N];
+    size_t        sizes[N];
 
     // Phase 1: allocate N blocks of varying sizes
     for (int i = 0; i < N; i++) {
         sizes[i] = static_cast<size_t>((i * 7 + 16) % 256 + 1);
-        ptrs[i] = g_heap.alloc(sizes[i]);
+        ptrs[i]  = g_heap.alloc(sizes[i]);
         TEST_ASSERT_NOT_NULL(ptrs[i]);
 
         // Write a marker
-        auto* buf = static_cast<uint8_t*>(ptrs[i]);
-        buf[0] = static_cast<uint8_t>(i);
+        auto* buf         = static_cast<uint8_t*>(ptrs[i]);
+        buf[0]            = static_cast<uint8_t>(i);
         buf[sizes[i] - 1] = static_cast<uint8_t>(i ^ 0xFF);
     }
 
@@ -308,17 +311,17 @@ namespace test_heap_lock_stress {
 
 void test_lock_stress_cycles() {
     constexpr int N = 30;
-    void* ptrs[N];
-    size_t sizes[N];
+    void*         ptrs[N];
+    size_t        sizes[N];
 
     for (int round = 0; round < 5; round++) {
         for (int i = 0; i < N; i++) {
             sizes[i] = static_cast<size_t>((i * 11 + 16 + round * 3) % 256 + 1);
-            ptrs[i] = g_heap.alloc(sizes[i]);
+            ptrs[i]  = g_heap.alloc(sizes[i]);
             TEST_ASSERT_NOT_NULL(ptrs[i]);
 
-            auto* buf = static_cast<uint8_t*>(ptrs[i]);
-            buf[0] = static_cast<uint8_t>(i + round);
+            auto* buf         = static_cast<uint8_t*>(ptrs[i]);
+            buf[0]            = static_cast<uint8_t>(i + round);
             buf[sizes[i] - 1] = static_cast<uint8_t>((i + round) ^ 0xFF);
         }
 

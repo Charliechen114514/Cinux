@@ -20,21 +20,20 @@
  * Compile condition: CINUX_GUI
  */
 
-#include "big_kernel_test.h"
-
 #include <stdint.h>
 
+#include "big_kernel_test.h"
 #include "boot/boot_info.h"
 #include "kernel/drivers/video/font.hpp"
 #include "kernel/drivers/video/framebuffer.hpp"
 
 #ifdef CINUX_GUI
 
-#include "kernel/drivers/canvas.hpp"
-#include "kernel/gui/desktop_icon.hpp"
-#include "kernel/gui/event.hpp"
-#include "kernel/gui/window.hpp"
-#include "kernel/gui/window_manager.hpp"
+#    include "kernel/drivers/canvas.hpp"
+#    include "kernel/gui/desktop_icon.hpp"
+#    include "kernel/gui/event.hpp"
+#    include "kernel/gui/window.hpp"
+#    include "kernel/gui/window_manager.hpp"
 
 using cinux::drivers::Canvas;
 using cinux::drivers::Framebuffer;
@@ -49,11 +48,11 @@ using cinux::gui::WindowManager;
 namespace {
 
 Framebuffer g_fb;
-PSFFont g_font;
-Canvas g_screen;
+PSFFont     g_font;
+Canvas      g_screen;
 
 /// Icon size constant (mirrors cinux::gui::icons::ICON_SIZE)
-constexpr uint32_t ICON_SIZE = 32;
+constexpr uint32_t ICON_SIZE   = 32;
 constexpr uint32_t ICON_PIXELS = ICON_SIZE * ICON_SIZE;
 
 /// Solid-colour pixel buffer for test icons
@@ -70,11 +69,11 @@ void fill_icon_solid(uint32_t pixels[ICON_PIXELS], uint32_t colour) {
 /// Build a DesktopIcon for the "Shell" shortcut at the given position.
 DesktopIcon make_shell_icon(int32_t x, int32_t y) {
     return DesktopIcon{
-        .x = x,
-        .y = y,
+        .x      = x,
+        .y      = y,
         .bitmap = g_icon_shell,
-        .label = "Shell",
-        .width = ICON_SIZE,
+        .label  = "Shell",
+        .width  = ICON_SIZE,
         .height = ICON_SIZE,
         .action = IconAction::OpenShell,
     };
@@ -83,11 +82,11 @@ DesktopIcon make_shell_icon(int32_t x, int32_t y) {
 /// Build a DesktopIcon for the "Calculator" shortcut at the given position.
 DesktopIcon make_calc_icon(int32_t x, int32_t y) {
     return DesktopIcon{
-        .x = x,
-        .y = y,
+        .x      = x,
+        .y      = y,
         .bitmap = g_icon_calc,
-        .label = "Calc",
-        .width = ICON_SIZE,
+        .label  = "Calc",
+        .width  = ICON_SIZE,
         .height = ICON_SIZE,
         .action = IconAction::OpenCalculator,
     };
@@ -121,8 +120,7 @@ void test_desktop_icon_capacity_limit() {
     wm.init(&g_screen, &g_font);
 
     for (uint32_t i = 0; i < WindowManager::MAX_ICONS; i++) {
-        bool ok = wm.add_desktop_icon(make_shell_icon(
-            static_cast<int32_t>(i * 40), 10));
+        bool ok = wm.add_desktop_icon(make_shell_icon(static_cast<int32_t>(i * 40), 10));
         TEST_ASSERT_TRUE(ok);
     }
 
@@ -230,11 +228,11 @@ void test_desktop_click_sets_and_consumes_action() {
 
     // Simulate mouse click on the icon
     Event ev{};
-    ev.type_ = EventType::MouseDown;
-    ev.mouse.x = 20;
-    ev.mouse.y = 20;
-    ev.mouse.left = true;
-    ev.mouse.right = false;
+    ev.type_        = EventType::MouseDown;
+    ev.mouse.x      = 20;
+    ev.mouse.y      = 20;
+    ev.mouse.left   = true;
+    ev.mouse.right  = false;
     ev.mouse.middle = false;
 
     g_fb.clear(0);
@@ -242,13 +240,11 @@ void test_desktop_click_sets_and_consumes_action() {
 
     // consume should return OpenShell
     IconAction action = wm.consume_pending_icon_action();
-    TEST_ASSERT_EQ(static_cast<uint8_t>(action),
-                   static_cast<uint8_t>(IconAction::OpenShell));
+    TEST_ASSERT_EQ(static_cast<uint8_t>(action), static_cast<uint8_t>(IconAction::OpenShell));
 
     // Second consume should return None (already consumed)
     IconAction action2 = wm.consume_pending_icon_action();
-    TEST_ASSERT_EQ(static_cast<uint8_t>(action2),
-                   static_cast<uint8_t>(IconAction::None));
+    TEST_ASSERT_EQ(static_cast<uint8_t>(action2), static_cast<uint8_t>(IconAction::None));
 }
 
 /// Verify clicking desktop (no icon, no window) clears focus, no icon action
@@ -262,11 +258,11 @@ void test_desktop_click_no_icon_no_action() {
 
     // Click on desktop (far from icon)
     Event ev{};
-    ev.type_ = EventType::MouseDown;
-    ev.mouse.x = 500;
-    ev.mouse.y = 500;
-    ev.mouse.left = true;
-    ev.mouse.right = false;
+    ev.type_        = EventType::MouseDown;
+    ev.mouse.x      = 500;
+    ev.mouse.y      = 500;
+    ev.mouse.left   = true;
+    ev.mouse.right  = false;
     ev.mouse.middle = false;
 
     wm.handle_mouse(ev);
@@ -291,11 +287,11 @@ void test_desktop_click_window_no_icon_action() {
 
     // Click on the window's content area (not on icon)
     Event ev{};
-    ev.type_ = EventType::MouseDown;
-    ev.mouse.x = 50;
-    ev.mouse.y = 30;
-    ev.mouse.left = true;
-    ev.mouse.right = false;
+    ev.type_        = EventType::MouseDown;
+    ev.mouse.x      = 50;
+    ev.mouse.y      = 30;
+    ev.mouse.left   = true;
+    ev.mouse.right  = false;
     ev.mouse.middle = false;
 
     g_fb.clear(0);
@@ -398,19 +394,18 @@ void test_desktop_full_scenario() {
 
     // Click on shell icon (should set pending action, not raise window)
     Event icon_click{};
-    icon_click.type_ = EventType::MouseDown;
-    icon_click.mouse.x = 20;
-    icon_click.mouse.y = 210;
-    icon_click.mouse.left = true;
-    icon_click.mouse.right = false;
+    icon_click.type_        = EventType::MouseDown;
+    icon_click.mouse.x      = 20;
+    icon_click.mouse.y      = 210;
+    icon_click.mouse.left   = true;
+    icon_click.mouse.right  = false;
     icon_click.mouse.middle = false;
 
     g_fb.clear(0);
     wm.handle_mouse(icon_click);
 
     IconAction action = wm.consume_pending_icon_action();
-    TEST_ASSERT_EQ(static_cast<uint8_t>(action),
-                   static_cast<uint8_t>(IconAction::OpenShell));
+    TEST_ASSERT_EQ(static_cast<uint8_t>(action), static_cast<uint8_t>(IconAction::OpenShell));
 
     // Icon click goes through the "desktop click" path in handle_mouse,
     // which clears focus.
@@ -419,11 +414,11 @@ void test_desktop_full_scenario() {
     // Click on window A title bar to raise it
     // Window A at (0,0), B at (30,30). Click (10,10) is A-only territory.
     Event win_click{};
-    win_click.type_ = EventType::MouseDown;
-    win_click.mouse.x = 10;
-    win_click.mouse.y = 10;
-    win_click.mouse.left = true;
-    win_click.mouse.right = false;
+    win_click.type_        = EventType::MouseDown;
+    win_click.mouse.x      = 10;
+    win_click.mouse.y      = 10;
+    win_click.mouse.left   = true;
+    win_click.mouse.right  = false;
     win_click.mouse.middle = false;
 
     wm.handle_mouse(win_click);
@@ -459,11 +454,11 @@ void test_desktop_hit_test_zero_size_icon() {
     wm.init(&g_screen, &g_font);
 
     DesktopIcon tiny{
-        .x = 100,
-        .y = 100,
+        .x      = 100,
+        .y      = 100,
         .bitmap = g_icon_shell,
-        .label = "Tiny",
-        .width = 0,
+        .label  = "Tiny",
+        .width  = 0,
         .height = 0,
         .action = IconAction::None,
     };
@@ -484,7 +479,7 @@ extern "C" void run_desktop_tests() {
 
     // Initialise framebuffer, font, and off-screen canvas
     static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
-    auto* bi = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
+    auto*                      bi             = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
     g_fb.init(*bi);
     g_font.init();
     g_fb.clear(0);

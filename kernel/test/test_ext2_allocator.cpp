@@ -19,13 +19,12 @@
  *   - Heap initialised (needed for new/delete)
  */
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "big_kernel_test.h"
-
-#include "kernel/drivers/pci/pci.hpp"
 #include "kernel/drivers/ahci/ahci.hpp"
+#include "kernel/drivers/pci/pci.hpp"
 #include "kernel/fs/ext2.hpp"
 #include "kernel/mm/pmm.hpp"
 #include "kernel/mm/vmm.hpp"
@@ -268,8 +267,8 @@ void test_free_block_clears_bitmap() {
     pair.ext2->free_block(b2);
     pair.ext2->free_block(b3);
 
-    cinux::lib::kprintf("[EXT2_ALLOC] free_block clears bitmap: alloc %u, free, realloc %u\n",
-                        b1, b3);
+    cinux::lib::kprintf("[EXT2_ALLOC] free_block clears bitmap: alloc %u, free, realloc %u\n", b1,
+                        b3);
 
     teardown_ext2(pair);
 }
@@ -432,8 +431,8 @@ void test_free_inode_clears_bitmap() {
     uint32_t i4 = pair.ext2->alloc_inode();
     TEST_ASSERT_EQ(i4, i2);
 
-    cinux::lib::kprintf("[EXT2_ALLOC] free_inode middle: alloc %u,%u,%u, free %u, realloc %u\n",
-                        i1, i2, i3, i2, i4);
+    cinux::lib::kprintf("[EXT2_ALLOC] free_inode middle: alloc %u,%u,%u, free %u, realloc %u\n", i1,
+                        i2, i3, i2, i4);
 
     // Clean up
     pair.ext2->free_inode(i1);
@@ -486,10 +485,9 @@ void test_mixed_alloc_free_cycle() {
     TEST_ASSERT_EQ(b4, b2);
     TEST_ASSERT_EQ(i4, i2);
 
-    cinux::lib::kprintf("[EXT2_ALLOC] Mixed cycle: blocks %u,%u,%u inodes %u,%u,%u\n",
-                        b1, b2, b3, i1, i2, i3);
-    cinux::lib::kprintf("[EXT2_ALLOC] Freed %u,%u -> realloc %u,%u\n",
-                        b2, i2, b4, i4);
+    cinux::lib::kprintf("[EXT2_ALLOC] Mixed cycle: blocks %u,%u,%u inodes %u,%u,%u\n", b1, b2, b3,
+                        i1, i2, i3);
+    cinux::lib::kprintf("[EXT2_ALLOC] Freed %u,%u -> realloc %u,%u\n", b2, i2, b4, i4);
 
     // Clean up all
     pair.ext2->free_block(b1);

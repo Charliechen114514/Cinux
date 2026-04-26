@@ -26,13 +26,13 @@ namespace cinux::mini::arch {
 constexpr uint8_t GDT_ENTRIES = 3;
 
 /// GDT entry indices (also serve as the TI=0 portion of segment selectors, in units of 8 bytes)
-constexpr uint8_t GDT_NULL_INDEX  = 0;
+constexpr uint8_t GDT_NULL_INDEX   = 0;
 constexpr uint8_t GDT_CODE64_INDEX = 1;
 constexpr uint8_t GDT_DATA64_INDEX = 2;
 
 /// Segment selectors: index * 8 + RPL (Requested Privilege Level)
 /// All selectors use RPL=0 (ring 0 kernel mode)
-constexpr uint16_t SEGMENT_NULL  = GDT_NULL_INDEX  * 8;
+constexpr uint16_t SEGMENT_NULL   = GDT_NULL_INDEX * 8;
 constexpr uint16_t SEGMENT_CODE64 = GDT_CODE64_INDEX * 8;
 constexpr uint16_t SEGMENT_DATA64 = GDT_DATA64_INDEX * 8;
 
@@ -49,12 +49,12 @@ constexpr uint16_t SEGMENT_DATA64 = GDT_DATA64_INDEX * 8;
  * and the granularity/size bits in Flags.
  */
 struct GdtEntry {
-    uint16_t limit_low;   ///< Segment limit low 16 bits
-    uint16_t base_low;    ///< Base address low 16 bits
-    uint8_t  base_middle; ///< Base address middle 8 bits
-    uint8_t  access;      ///< Access byte (Type + DPL + P, etc.)
-    uint8_t  flags_limit_high; ///< High 4 bits flags + low 4 bits limit high 4 bits
-    uint8_t  base_high;   ///< Base address high 8 bits
+    uint16_t limit_low;         ///< Segment limit low 16 bits
+    uint16_t base_low;          ///< Base address low 16 bits
+    uint8_t  base_middle;       ///< Base address middle 8 bits
+    uint8_t  access;            ///< Access byte (Type + DPL + P, etc.)
+    uint8_t  flags_limit_high;  ///< High 4 bits flags + low 4 bits limit high 4 bits
+    uint8_t  base_high;         ///< Base address high 8 bits
 } __attribute__((packed));
 
 /**
@@ -64,8 +64,8 @@ struct GdtEntry {
  * 2-byte limit + 8-byte base address. limit = total GDT bytes - 1.
  */
 struct GdtPointer {
-    uint16_t limit; ///< GDT byte size - 1
-    uint64_t base;  ///< Linear address of the GDT
+    uint16_t limit;  ///< GDT byte size - 1
+    uint64_t base;   ///< Linear address of the GDT
 } __attribute__((packed));
 
 // ============================================================
@@ -84,4 +84,4 @@ struct GdtPointer {
  */
 void gdt_init();
 
-} // namespace cinux::mini::arch
+}  // namespace cinux::mini::arch

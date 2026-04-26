@@ -37,8 +37,8 @@ static constexpr uint32_t MOUNT_PATH_MAX = 256;
  */
 struct MountPoint {
     char        path[MOUNT_PATH_MAX];  ///< Absolute path prefix (e.g. "/")
-    FileSystem* fs;                     ///< Concrete filesystem backend
-    bool        in_use;                 ///< Whether this slot is occupied
+    FileSystem* fs;                    ///< Concrete filesystem backend
+    bool        in_use;                ///< Whether this slot is occupied
 };
 
 // ============================================================

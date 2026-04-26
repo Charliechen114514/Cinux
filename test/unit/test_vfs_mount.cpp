@@ -26,13 +26,13 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstring>
+#    include <cstdint>
+#    include <cstring>
 
-#include "fs/vfs_mount.hpp"
-#include "fs/vfs_filesystem.hpp"
-#include "fs/inode.hpp"
-#include "fs/file.hpp"
+#    include "fs/file.hpp"
+#    include "fs/inode.hpp"
+#    include "fs/vfs_filesystem.hpp"
+#    include "fs/vfs_mount.hpp"
 
 using namespace cinux::fs;
 
@@ -67,7 +67,7 @@ TEST("vfs_mount: add single mount point") {
     MockFileSystem fs;
     ASSERT_TRUE(vfs_mount_add("/", &fs));
 
-    const char* rel = nullptr;
+    const char* rel    = nullptr;
     FileSystem* result = vfs_resolve("/", &rel);
     ASSERT_NOT_NULL(result);
     ASSERT_TRUE(result == &fs);
@@ -171,7 +171,7 @@ TEST("vfs_mount: resolve exact match on root") {
     MockFileSystem fs;
     vfs_mount_add("/", &fs);
 
-    const char* rel = nullptr;
+    const char* rel    = nullptr;
     FileSystem* result = vfs_resolve("/hello.txt", &rel);
     ASSERT_NOT_NULL(result);
     ASSERT_TRUE(result == &fs);
@@ -192,7 +192,7 @@ TEST("vfs_mount: resolve longest prefix /mnt wins over /") {
     vfs_mount_add("/", &fs_root);
     vfs_mount_add("/mnt", &fs_mnt);
 
-    const char* rel = nullptr;
+    const char* rel    = nullptr;
     FileSystem* result = vfs_resolve("/mnt/file.txt", &rel);
     ASSERT_NOT_NULL(result);
     ASSERT_TRUE(result == &fs_mnt);
@@ -208,7 +208,7 @@ TEST("vfs_mount: resolve falls back to root for non-mnt paths") {
     vfs_mount_add("/", &fs_root);
     vfs_mount_add("/mnt", &fs_mnt);
 
-    const char* rel = nullptr;
+    const char* rel    = nullptr;
     FileSystem* result = vfs_resolve("/home/user.txt", &rel);
     ASSERT_NOT_NULL(result);
     ASSERT_TRUE(result == &fs_root);
@@ -226,7 +226,7 @@ TEST("vfs_mount: resolve three-level longest prefix") {
     vfs_mount_add("/mnt", &fs_mnt);
     vfs_mount_add("/mnt/data", &fs_data);
 
-    const char* rel = nullptr;
+    const char* rel    = nullptr;
     FileSystem* result = vfs_resolve("/mnt/data/README", &rel);
     ASSERT_NOT_NULL(result);
     ASSERT_TRUE(result == &fs_data);
@@ -279,7 +279,7 @@ TEST("vfs_mount: remove then re-add works") {
     ASSERT_TRUE(vfs_mount_remove("/cycle"));
     ASSERT_TRUE(vfs_mount_add("/cycle", &fs2));
 
-    const char* rel = nullptr;
+    const char* rel    = nullptr;
     FileSystem* result = vfs_resolve("/cycle/file", &rel);
     ASSERT_NOT_NULL(result);
     ASSERT_TRUE(result == &fs2);

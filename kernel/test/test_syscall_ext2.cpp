@@ -21,21 +21,20 @@
  *   - Heap initialised (needed for new/delete)
  */
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "big_kernel_test.h"
-
-#include "kernel/drivers/pit/pit.hpp"
-#include "kernel/drivers/pci/pci.hpp"
 #include "kernel/drivers/ahci/ahci.hpp"
+#include "kernel/drivers/pci/pci.hpp"
+#include "kernel/drivers/pit/pit.hpp"
 #include "kernel/fs/ext2.hpp"
 #include "kernel/fs/vfs_mount.hpp"
+#include "kernel/lib/string.hpp"
 #include "kernel/syscall/sys_creat.hpp"
 #include "kernel/syscall/sys_mkdir.hpp"
-#include "kernel/syscall/sys_unlink.hpp"
 #include "kernel/syscall/sys_rmdir.hpp"
-#include "kernel/lib/string.hpp"
+#include "kernel/syscall/sys_unlink.hpp"
 
 using cinux::drivers::pci::PCI;
 using cinux::drivers::pci::PCIDevice;
@@ -100,14 +99,16 @@ void teardown_syscall_ext2(AhciExt2Pair& pair) {
 static uint32_t g_name_seq = 0;
 
 void gen_name(char* buf, uint32_t buf_len, const char* prefix) {
-    uint32_t seed = static_cast<uint32_t>(
-        cinux::drivers::PIT::get_ticks() ^ (++g_name_seq));
+    uint32_t seed = static_cast<uint32_t>(cinux::drivers::PIT::get_ticks() ^ (++g_name_seq));
     seed ^= seed << 13;
     seed ^= seed >> 17;
     seed ^= seed << 5;
     uint32_t off = 0;
-    while (prefix[off] && off < buf_len - 9) { buf[off] = prefix[off]; ++off; }
-    buf[off++] = '_';
+    while (prefix[off] && off < buf_len - 9) {
+        buf[off] = prefix[off];
+        ++off;
+    }
+    buf[off++]       = '_';
     const char hex[] = "0123456789abcdef";
     for (int d = 6; d >= 0 && off < buf_len - 1; --d)
         buf[off++] = hex[(seed >> (d * 4)) & 0xf];
@@ -115,7 +116,10 @@ void gen_name(char* buf, uint32_t buf_len, const char* prefix) {
 }
 
 uint32_t name_len(const char* s) {
-    uint32_t n = 0; while (s[n]) ++n; return n;
+    uint32_t n = 0;
+    while (s[n])
+        ++n;
+    return n;
 }
 
 }  // anonymous namespace
@@ -134,9 +138,16 @@ void test_creat_creates_file() {
     TEST_ASSERT_NOT_NULL(pair.ext2);
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
-    char name[32]; gen_name(name, 32, "sc");
+    char name[32];
+    gen_name(name, 32, "sc");
     char path[64];
-    path[0] = '/'; uint32_t i = 0; while (name[i]) { path[i+1] = name[i]; ++i; } path[i+1] = '\0';
+    path[0]    = '/';
+    uint32_t i = 0;
+    while (name[i]) {
+        path[i + 1] = name[i];
+        ++i;
+    }
+    path[i + 1]    = '\0';
     auto path_addr = reinterpret_cast<uint64_t>(path);
 
     int64_t result = cinux::syscall::sys_creat(path_addr, 0, 0, 0, 0, 0);
@@ -145,8 +156,7 @@ void test_creat_creates_file() {
     // Verify the file exists via lookup
     Inode* found = pair.ext2->lookup(name);
     TEST_ASSERT_NOT_NULL(found);
-    TEST_ASSERT_EQ(static_cast<uint32_t>(found->type),
-                   static_cast<uint32_t>(InodeType::Regular));
+    TEST_ASSERT_EQ(static_cast<uint32_t>(found->type), static_cast<uint32_t>(InodeType::Regular));
 
     cinux::lib::kprintf("[SYSCALL_EXT2] creat /%s OK (ino=%lu)\n", name, found->ino);
 
@@ -172,9 +182,16 @@ void test_mkdir_creates_directory() {
     TEST_ASSERT_NOT_NULL(pair.ext2);
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
-    char name[32]; gen_name(name, 32, "sd");
+    char name[32];
+    gen_name(name, 32, "sd");
     char path[64];
-    path[0] = '/'; uint32_t i = 0; while (name[i]) { path[i+1] = name[i]; ++i; } path[i+1] = '\0';
+    path[0]    = '/';
+    uint32_t i = 0;
+    while (name[i]) {
+        path[i + 1] = name[i];
+        ++i;
+    }
+    path[i + 1]    = '\0';
     auto path_addr = reinterpret_cast<uint64_t>(path);
 
     int64_t result = cinux::syscall::sys_mkdir(path_addr, 0, 0, 0, 0, 0);
@@ -183,8 +200,7 @@ void test_mkdir_creates_directory() {
     // Verify the directory exists via lookup
     Inode* found = pair.ext2->lookup(name);
     TEST_ASSERT_NOT_NULL(found);
-    TEST_ASSERT_EQ(static_cast<uint32_t>(found->type),
-                   static_cast<uint32_t>(InodeType::Directory));
+    TEST_ASSERT_EQ(static_cast<uint32_t>(found->type), static_cast<uint32_t>(InodeType::Directory));
 
     cinux::lib::kprintf("[SYSCALL_EXT2] mkdir /%s OK (ino=%lu)\n", name, found->ino);
 
@@ -212,9 +228,16 @@ void test_unlink_removes_file() {
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
     // First create the file
-    char name[32]; gen_name(name, 32, "su");
+    char name[32];
+    gen_name(name, 32, "su");
     char path[64];
-    path[0] = '/'; uint32_t i = 0; while (name[i]) { path[i+1] = name[i]; ++i; } path[i+1] = '\0';
+    path[0]    = '/';
+    uint32_t i = 0;
+    while (name[i]) {
+        path[i + 1] = name[i];
+        ++i;
+    }
+    path[i + 1]    = '\0';
     auto path_addr = reinterpret_cast<uint64_t>(path);
 
     int64_t creat_result = cinux::syscall::sys_creat(path_addr, 0, 0, 0, 0, 0);
@@ -256,9 +279,16 @@ void test_rmdir_removes_directory() {
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
     // First create the directory
-    char name[32]; gen_name(name, 32, "sr");
+    char name[32];
+    gen_name(name, 32, "sr");
     char path[64];
-    path[0] = '/'; uint32_t i = 0; while (name[i]) { path[i+1] = name[i]; ++i; } path[i+1] = '\0';
+    path[0]    = '/';
+    uint32_t i = 0;
+    while (name[i]) {
+        path[i + 1] = name[i];
+        ++i;
+    }
+    path[i + 1]    = '\0';
     auto path_addr = reinterpret_cast<uint64_t>(path);
 
     int64_t mkdir_result = cinux::syscall::sys_mkdir(path_addr, 0, 0, 0, 0, 0);
@@ -302,32 +332,39 @@ void test_full_syscall_flow() {
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
     // Step 1: mkdir random dir
-    char dirname[32]; gen_name(dirname, 32, "sf");
+    char dirname[32];
+    gen_name(dirname, 32, "sf");
     char dir_path[64];
-    dir_path[0] = '/'; uint32_t di = 0; while (dirname[di]) { dir_path[di+1] = dirname[di]; ++di; } dir_path[di+1] = '\0';
-    auto dir_addr = reinterpret_cast<uint64_t>(dir_path);
+    dir_path[0] = '/';
+    uint32_t di = 0;
+    while (dirname[di]) {
+        dir_path[di + 1] = dirname[di];
+        ++di;
+    }
+    dir_path[di + 1] = '\0';
+    auto dir_addr    = reinterpret_cast<uint64_t>(dir_path);
 
     int64_t mkdir_result = cinux::syscall::sys_mkdir(dir_addr, 0, 0, 0, 0, 0);
     TEST_ASSERT_EQ(mkdir_result, 0);
 
     Inode* dir = pair.ext2->lookup(dirname);
     TEST_ASSERT_NOT_NULL(dir);
-    TEST_ASSERT_EQ(static_cast<uint32_t>(dir->type),
-                   static_cast<uint32_t>(InodeType::Directory));
+    TEST_ASSERT_EQ(static_cast<uint32_t>(dir->type), static_cast<uint32_t>(InodeType::Directory));
 
     cinux::lib::kprintf("[SYSCALL_EXT2] full flow: mkdir /%s OK\n", dirname);
 
     // Step 2: creat file inside the dir
-    char fname[32]; gen_name(fname, 32, "ff");
-    char file_path[96];
-    uint32_t fi = 0;
+    char fname[32];
+    gen_name(fname, 32, "ff");
+    char     file_path[96];
+    uint32_t fi     = 0;
     file_path[fi++] = '/';
     for (uint32_t j = 0; dirname[j] && fi < sizeof(file_path) - 2; ++j)
         file_path[fi++] = dirname[j];
     file_path[fi++] = '/';
     for (uint32_t j = 0; fname[j] && fi < sizeof(file_path) - 1; ++j)
         file_path[fi++] = fname[j];
-    file_path[fi] = '\0';
+    file_path[fi]  = '\0';
     auto file_addr = reinterpret_cast<uint64_t>(file_path);
 
     int64_t creat_result = cinux::syscall::sys_creat(file_addr, 0, 0, 0, 0, 0);
@@ -363,10 +400,17 @@ void test_creat_duplicate_name() {
     auto pair = setup_syscall_ext2();
     TEST_ASSERT_NOT_NULL(pair.ext2);
 
-    char name[32]; gen_name(name, 32, "dup");
+    char name[32];
+    gen_name(name, 32, "dup");
     char path[64];
     // 拼接 "/" + name
-    path[0] = '/'; uint32_t i = 0; while (name[i]) { path[i+1] = name[i]; ++i; } path[i+1] = '\0';
+    path[0]    = '/';
+    uint32_t i = 0;
+    while (name[i]) {
+        path[i + 1] = name[i];
+        ++i;
+    }
+    path[i + 1]    = '\0';
     auto path_addr = reinterpret_cast<uint64_t>(path);
 
     // 第一次创建应该成功

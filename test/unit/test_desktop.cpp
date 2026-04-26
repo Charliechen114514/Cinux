@@ -15,9 +15,9 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstring>
-#include <vector>
+#    include <cstdint>
+#    include <cstring>
+#    include <vector>
 
 // ============================================================
 // IconAction enum (mirrors kernel/gui/desktop_icon.hpp)
@@ -34,17 +34,17 @@ enum class IconAction : uint8_t {
 // ============================================================
 
 struct DesktopIcon {
-    int32_t      x;
-    int32_t      y;
+    int32_t         x;
+    int32_t         y;
     const uint32_t* bitmap;
-    const char*  label;
-    uint32_t     width;
-    uint32_t     height;
-    IconAction   action;
+    const char*     label;
+    uint32_t        width;
+    uint32_t        height;
+    IconAction      action;
 
     [[nodiscard]] bool contains(int32_t mx, int32_t my) const {
-        return mx >= x && mx < static_cast<int32_t>(x + width)
-            && my >= y && my < static_cast<int32_t>(y + height);
+        return mx >= x && mx < static_cast<int32_t>(x + width) && my >= y &&
+               my < static_cast<int32_t>(y + height);
     }
 };
 
@@ -61,14 +61,14 @@ enum class EventType : uint8_t {
 };
 
 struct MouseEvent {
-    int32_t  x;
-    int32_t  y;
-    int32_t  dx;
-    int32_t  dy;
-    uint8_t  buttons;
-    bool     left;
-    bool     right;
-    bool     middle;
+    int32_t x;
+    int32_t y;
+    int32_t dx;
+    int32_t dy;
+    uint8_t buttons;
+    bool    left;
+    bool    right;
+    bool    middle;
 };
 
 struct KeyEvent {
@@ -103,7 +103,8 @@ public:
     }
 
     void draw_pixel(uint32_t x, uint32_t y, uint32_t color) {
-        if (x >= width_ || y >= height_) return;
+        if (x >= width_ || y >= height_)
+            return;
         back_buf_[y * width_ + x] = color;
     }
 
@@ -115,21 +116,23 @@ public:
         }
     }
 
-    void blit(int32_t dst_x, int32_t dst_y, MockCanvas& src,
-              uint32_t sx, uint32_t sy, uint32_t w, uint32_t h) {
+    void blit(int32_t dst_x, int32_t dst_y, MockCanvas& src, uint32_t sx, uint32_t sy, uint32_t w,
+              uint32_t h) {
         for (uint32_t row = 0; row < h; row++) {
             uint32_t src_row = sy + row;
             int32_t  dst_row = dst_y + static_cast<int32_t>(row);
-            if (dst_row < 0) continue;
-            if (src_row >= src.height_ || dst_row >= static_cast<int32_t>(height_)) break;
+            if (dst_row < 0)
+                continue;
+            if (src_row >= src.height_ || dst_row >= static_cast<int32_t>(height_))
+                break;
 
-            int32_t  col_skip   = 0;
-            int32_t  eff_dst_x  = dst_x;
-            uint32_t eff_sx     = sx;
+            int32_t  col_skip  = 0;
+            int32_t  eff_dst_x = dst_x;
+            uint32_t eff_sx    = sx;
             if (eff_dst_x < 0) {
                 col_skip  = -eff_dst_x;
                 eff_dst_x = 0;
-                eff_sx   += static_cast<uint32_t>(col_skip);
+                eff_sx += static_cast<uint32_t>(col_skip);
             }
 
             uint32_t dst_col_start = static_cast<uint32_t>(eff_dst_x);
@@ -138,7 +141,8 @@ public:
             for (uint32_t i = 0; i < col_count; i++) {
                 uint32_t src_col = eff_sx + i;
                 uint32_t dst_col = dst_col_start + i;
-                if (src_col >= src.width_ || dst_col >= width_) break;
+                if (src_col >= src.width_ || dst_col >= width_)
+                    break;
                 back_buf_[dst_row * width_ + dst_col] =
                     src.back_buf_[src_row * src.width_ + src_col];
             }
@@ -149,9 +153,9 @@ public:
         // No-op in mock -- we only care about icon logic here
     }
 
-    void draw_bitmap(uint32_t bx, uint32_t by, uint32_t bw, uint32_t bh,
-                     const uint32_t* data) {
-        if (data == nullptr) return;
+    void draw_bitmap(uint32_t bx, uint32_t by, uint32_t bw, uint32_t bh, const uint32_t* data) {
+        if (data == nullptr)
+            return;
         for (uint32_t row = 0; row < bh; row++) {
             for (uint32_t col = 0; col < bw; col++) {
                 uint32_t px = bx + col;
@@ -164,23 +168,25 @@ public:
     }
 
     void clear(uint32_t color = 0) {
-        for (auto& p : back_buf_) p = color;
+        for (auto& p : back_buf_)
+            p = color;
     }
 
     void flip() { /* no-op */ }
 
-    uint32_t width()  const { return width_; }
+    uint32_t width() const { return width_; }
     uint32_t height() const { return height_; }
 
     uint32_t pixel(uint32_t x, uint32_t y) const {
-        if (x >= width_ || y >= height_) return 0xDEAD;
+        if (x >= width_ || y >= height_)
+            return 0xDEAD;
         return back_buf_[y * width_ + x];
     }
 
 private:
     std::vector<uint32_t> back_buf_;
-    uint32_t width_  = 0;
-    uint32_t height_ = 0;
+    uint32_t              width_  = 0;
+    uint32_t              height_ = 0;
 };
 
 // ============================================================
@@ -189,11 +195,14 @@ private:
 
 class MockPSFFont {
 public:
-    void init(uint32_t w, uint32_t h) { width_ = w; height_ = h; }
-    void set_glyph(uint8_t, const uint8_t*, uint32_t) { /* no-op */ }
+    void init(uint32_t w, uint32_t h) {
+        width_  = w;
+        height_ = h;
+    }
+    void           set_glyph(uint8_t, const uint8_t*, uint32_t) { /* no-op */ }
     const uint8_t* glyph(uint8_t) const { return nullptr; }
-    uint32_t width()  const { return width_; }
-    uint32_t height() const { return height_; }
+    uint32_t       width() const { return width_; }
+    uint32_t       height() const { return height_; }
 
 private:
     uint32_t width_  = 0;
@@ -206,18 +215,17 @@ private:
 
 class MockWindow {
 public:
-    static constexpr uint32_t TITLE_BAR_HEIGHT = 20;
+    static constexpr uint32_t TITLE_BAR_HEIGHT  = 20;
     static constexpr uint32_t CLOSE_BUTTON_SIZE = 14;
-    static constexpr uint32_t TITLE_MAX_LEN    = 63;
+    static constexpr uint32_t TITLE_MAX_LEN     = 63;
 
     static uint32_t next_id_;
 
-    MockWindow(const char* title = "Untitled",
-               int32_t x = 0, int32_t y = 0,
-               uint32_t w = 320, uint32_t h = 240)
-        : id_(next_id_++), x_(x), y_(y), w_(w), h_(h),
-          visible_(true), focused_(false) {
-        for (uint32_t i = 0; i <= TITLE_MAX_LEN; i++) title_[i] = '\0';
+    MockWindow(const char* title = "Untitled", int32_t x = 0, int32_t y = 0, uint32_t w = 320,
+               uint32_t h = 240)
+        : id_(next_id_++), x_(x), y_(y), w_(w), h_(h), visible_(true), focused_(false) {
+        for (uint32_t i = 0; i <= TITLE_MAX_LEN; i++)
+            title_[i] = '\0';
         if (title != nullptr) {
             uint32_t i = 0;
             while (i < TITLE_MAX_LEN && title[i] != '\0') {
@@ -230,27 +238,28 @@ public:
     bool is_close_button_hit(int32_t mx, int32_t my) const {
         int32_t cb_x = x_ + static_cast<int32_t>(w_) - CLOSE_BUTTON_SIZE - 3;
         int32_t cb_y = y_ + static_cast<int32_t>((TITLE_BAR_HEIGHT - CLOSE_BUTTON_SIZE) / 2);
-        return mx >= cb_x && mx < cb_x + static_cast<int32_t>(CLOSE_BUTTON_SIZE)
-            && my >= cb_y && my < cb_y + static_cast<int32_t>(CLOSE_BUTTON_SIZE);
+        return mx >= cb_x && mx < cb_x + static_cast<int32_t>(CLOSE_BUTTON_SIZE) && my >= cb_y &&
+               my < cb_y + static_cast<int32_t>(CLOSE_BUTTON_SIZE);
     }
 
     bool contains(int32_t mx, int32_t my) const {
-        return mx >= x_
-            && mx < x_ + static_cast<int32_t>(w_)
-            && my >= y_
-            && my < y_ + static_cast<int32_t>(h_ + TITLE_BAR_HEIGHT);
+        return mx >= x_ && mx < x_ + static_cast<int32_t>(w_) && my >= y_ &&
+               my < y_ + static_cast<int32_t>(h_ + TITLE_BAR_HEIGHT);
     }
 
-    uint32_t    id()      const { return id_; }
-    int32_t     x()       const { return x_; }
-    int32_t     y()       const { return y_; }
-    uint32_t    width()   const { return w_; }
-    uint32_t    height()  const { return h_; }
-    bool        visible() const { return visible_; }
-    bool        focused() const { return focused_; }
-    void        set_visible(bool v) { visible_ = v; }
-    void        set_focused(bool f) { focused_ = f; }
-    void        set_position(int32_t x, int32_t y) { x_ = x; y_ = y; }
+    uint32_t id() const { return id_; }
+    int32_t  x() const { return x_; }
+    int32_t  y() const { return y_; }
+    uint32_t width() const { return w_; }
+    uint32_t height() const { return h_; }
+    bool     visible() const { return visible_; }
+    bool     focused() const { return focused_; }
+    void     set_visible(bool v) { visible_ = v; }
+    void     set_focused(bool f) { focused_ = f; }
+    void     set_position(int32_t x, int32_t y) {
+        x_ = x;
+        y_ = y;
+    }
 
     static void reset_id() { next_id_ = 1; }
 
@@ -274,9 +283,9 @@ uint32_t MockWindow::next_id_ = 1;
 
 class MockWindowManager {
 public:
-    static constexpr uint32_t MAX_WINDOWS    = 64;
-    static constexpr uint32_t MAX_ICONS      = 16;
-    static constexpr uint32_t DESKTOP_COLOR  = 0x00224466;
+    static constexpr uint32_t MAX_WINDOWS   = 64;
+    static constexpr uint32_t MAX_ICONS     = 16;
+    static constexpr uint32_t DESKTOP_COLOR = 0x00224466;
 
     MockWindowManager() = default;
 
@@ -285,31 +294,32 @@ public:
             delete windows_[i];
             windows_[i] = nullptr;
         }
-        count_  = 0;
+        count_   = 0;
         focused_ = nullptr;
     }
 
-    MockWindowManager(const MockWindowManager&) = delete;
+    MockWindowManager(const MockWindowManager&)            = delete;
     MockWindowManager& operator=(const MockWindowManager&) = delete;
 
     void init(MockCanvas* screen, MockPSFFont* font) {
-        screen_  = screen;
-        font_    = font;
-        count_   = 0;
-        focused_ = nullptr;
-        dragging_ = false;
-        mouse_x_  = 0;
-        mouse_y_  = 0;
-        icon_count_ = 0;
+        screen_              = screen;
+        font_                = font;
+        count_               = 0;
+        focused_             = nullptr;
+        dragging_            = false;
+        mouse_x_             = 0;
+        mouse_y_             = 0;
+        icon_count_          = 0;
         pending_icon_action_ = IconAction::None;
     }
 
     // ---- Window management (minimal) ----
 
     uint32_t create(const char* title, uint32_t w, uint32_t h) {
-        if (count_ >= MAX_WINDOWS) return 0;
-        int32_t ox = static_cast<int32_t>(count_ * 30);
-        int32_t oy = static_cast<int32_t>(count_ * 30);
+        if (count_ >= MAX_WINDOWS)
+            return 0;
+        int32_t ox       = static_cast<int32_t>(count_ * 30);
+        int32_t oy       = static_cast<int32_t>(count_ * 30);
         windows_[count_] = new MockWindow(title, ox, oy, w, h);
         count_++;
         update_focus();
@@ -318,13 +328,18 @@ public:
 
     void destroy(uint32_t id) {
         uint32_t idx = find_index(id);
-        if (idx < MAX_WINDOWS) remove_at(idx);
+        if (idx < MAX_WINDOWS)
+            remove_at(idx);
     }
 
     void raise(uint32_t id) {
         uint32_t idx = find_index(id);
-        if (idx >= MAX_WINDOWS) return;
-        if (idx == count_ - 1) { update_focus(); return; }
+        if (idx >= MAX_WINDOWS)
+            return;
+        if (idx == count_ - 1) {
+            update_focus();
+            return;
+        }
         MockWindow* win = windows_[idx];
         for (uint32_t i = idx; i < count_ - 1; i++) {
             windows_[i] = windows_[i + 1];
@@ -336,7 +351,8 @@ public:
     // ---- Desktop icon management ----
 
     bool add_desktop_icon(const DesktopIcon& icon) {
-        if (icon_count_ >= MAX_ICONS) return false;
+        if (icon_count_ >= MAX_ICONS)
+            return false;
         icons_[icon_count_] = icon;
         icon_count_++;
         return true;
@@ -353,7 +369,7 @@ public:
     }
 
     IconAction consume_pending_icon_action() {
-        IconAction action = pending_icon_action_;
+        IconAction action    = pending_icon_action_;
         pending_icon_action_ = IconAction::None;
         return action;
     }
@@ -361,7 +377,8 @@ public:
     // ---- Compositing ----
 
     void composite() {
-        if (screen_ == nullptr) return;
+        if (screen_ == nullptr)
+            return;
         screen_->clear(DESKTOP_COLOR);
         draw_desktop_icons(*screen_);
         for (uint32_t i = 0; i < count_; i++) {
@@ -379,7 +396,8 @@ public:
 
         switch (ev.type_) {
         case EventType::MouseDown: {
-            if (!ev.mouse.left) break;
+            if (!ev.mouse.left)
+                break;
 
             MockWindow* hit = hit_test(ev.mouse.x, ev.mouse.y);
 
@@ -408,9 +426,8 @@ public:
             raise(hit->id());
 
             int32_t local_y = ev.mouse.y - hit->y();
-            if (local_y >= 0 &&
-                local_y < static_cast<int32_t>(MockWindow::TITLE_BAR_HEIGHT)) {
-                dragging_ = true;
+            if (local_y >= 0 && local_y < static_cast<int32_t>(MockWindow::TITLE_BAR_HEIGHT)) {
+                dragging_      = true;
                 drag_offset_x_ = ev.mouse.x - hit->x();
                 drag_offset_y_ = ev.mouse.y - hit->y();
             }
@@ -421,16 +438,15 @@ public:
 
         case EventType::MouseMove: {
             if (dragging_ && focused_ != nullptr) {
-                focused_->set_position(
-                    ev.mouse.x - drag_offset_x_,
-                    ev.mouse.y - drag_offset_y_);
+                focused_->set_position(ev.mouse.x - drag_offset_x_, ev.mouse.y - drag_offset_y_);
                 composite();
             }
             break;
         }
 
         case EventType::MouseUp: {
-            if (dragging_) dragging_ = false;
+            if (dragging_)
+                dragging_ = false;
             break;
         }
 
@@ -448,28 +464,30 @@ public:
     // ---- State accessors ----
 
     uint32_t    window_count() const { return count_; }
-    MockWindow* focused()      const { return focused_; }
-    int32_t     mouse_x()      const { return mouse_x_; }
-    int32_t     mouse_y()      const { return mouse_y_; }
-    uint32_t    icon_count()   const { return icon_count_; }
-    bool        dragging()     const { return dragging_; }
+    MockWindow* focused() const { return focused_; }
+    int32_t     mouse_x() const { return mouse_x_; }
+    int32_t     mouse_y() const { return mouse_y_; }
+    uint32_t    icon_count() const { return icon_count_; }
+    bool        dragging() const { return dragging_; }
 
     // Expose pending_icon_action_ for direct inspection
-    IconAction  pending_icon_action() const { return pending_icon_action_; }
+    IconAction pending_icon_action() const { return pending_icon_action_; }
 
 private:
     void on_key(KeyEvent&) { /* no-op base */ }
 
     MockWindow* find_window(uint32_t id) {
         for (uint32_t i = 0; i < count_; i++) {
-            if (windows_[i]->id() == id) return windows_[i];
+            if (windows_[i]->id() == id)
+                return windows_[i];
         }
         return nullptr;
     }
 
     uint32_t find_index(uint32_t id) const {
         for (uint32_t i = 0; i < count_; i++) {
-            if (windows_[i]->id() == id) return i;
+            if (windows_[i]->id() == id)
+                return i;
         }
         return MAX_WINDOWS;
     }
@@ -485,9 +503,9 @@ private:
     }
 
     void remove_at(uint32_t idx) {
-        if (idx >= count_) return;
-        bool was_focused = (focused_ != nullptr &&
-                            focused_->id() == windows_[idx]->id());
+        if (idx >= count_)
+            return;
+        bool was_focused = (focused_ != nullptr && focused_->id() == windows_[idx]->id());
         delete windows_[idx];
         windows_[idx] = nullptr;
         for (uint32_t i = idx; i < count_ - 1; i++) {
@@ -495,7 +513,8 @@ private:
         }
         windows_[count_ - 1] = nullptr;
         count_--;
-        if (was_focused) update_focus();
+        if (was_focused)
+            update_focus();
     }
 
     void update_focus() {
@@ -514,19 +533,15 @@ private:
         for (uint32_t i = 0; i < icon_count_; i++) {
             const DesktopIcon& icon = icons_[i];
             if (icon.bitmap != nullptr) {
-                screen.draw_bitmap(
-                    static_cast<uint32_t>(icon.x),
-                    static_cast<uint32_t>(icon.y),
-                    icon.width,
-                    icon.height,
-                    icon.bitmap);
+                screen.draw_bitmap(static_cast<uint32_t>(icon.x), static_cast<uint32_t>(icon.y),
+                                   icon.width, icon.height, icon.bitmap);
             }
         }
     }
 
-    MockWindow*  windows_[MAX_WINDOWS] = {};
-    uint32_t    count_ = 0;
-    MockWindow* focused_ = nullptr;
+    MockWindow* windows_[MAX_WINDOWS] = {};
+    uint32_t    count_                = 0;
+    MockWindow* focused_              = nullptr;
 
     int32_t mouse_x_ = 0;
     int32_t mouse_y_ = 0;
@@ -535,8 +550,8 @@ private:
     int32_t drag_offset_x_ = 0;
     int32_t drag_offset_y_ = 0;
 
-    DesktopIcon icons_[MAX_ICONS] = {};
-    uint32_t    icon_count_       = 0;
+    DesktopIcon icons_[MAX_ICONS]    = {};
+    uint32_t    icon_count_          = 0;
     IconAction  pending_icon_action_ = IconAction::None;
 
     MockCanvas*  screen_ = nullptr;
@@ -564,9 +579,8 @@ static std::vector<uint32_t> make_solid_bitmap(uint32_t size, uint32_t color) {
 }
 
 /// Helper to create a DesktopIcon at a given position with a solid bitmap
-static DesktopIcon make_icon(int32_t x, int32_t y, uint32_t size,
-                             IconAction action, const char* label,
-                             std::vector<uint32_t>& storage) {
+static DesktopIcon make_icon(int32_t x, int32_t y, uint32_t size, IconAction action,
+                             const char* label, std::vector<uint32_t>& storage) {
     storage = make_solid_bitmap(size, 0xFF00FF00);  // Green bitmap
     return DesktopIcon{
         .x      = x,
@@ -595,7 +609,7 @@ TEST("desktop: add_desktop_icon increments icon count") {
     ASSERT_EQ(wm.icon_count(), 0u);
 
     std::vector<uint32_t> bmp;
-    DesktopIcon icon = make_icon(10, 10, 32, IconAction::OpenShell, "Shell", bmp);
+    DesktopIcon           icon = make_icon(10, 10, 32, IconAction::OpenShell, "Shell", bmp);
 
     bool ok = wm.add_desktop_icon(icon);
     ASSERT_TRUE(ok);
@@ -612,9 +626,9 @@ TEST("desktop: add multiple desktop icons") {
     init_wm(wm, &screen, &font);
 
     std::vector<uint32_t> bmp1, bmp2, bmp3;
-    DesktopIcon icon1 = make_icon(10,  10, 32, IconAction::OpenShell,      "Shell",      bmp1);
-    DesktopIcon icon2 = make_icon(60,  10, 32, IconAction::OpenCalculator,  "Calculator", bmp2);
-    DesktopIcon icon3 = make_icon(110, 10, 32, IconAction::None,            "Info",       bmp3);
+    DesktopIcon           icon1 = make_icon(10, 10, 32, IconAction::OpenShell, "Shell", bmp1);
+    DesktopIcon icon2 = make_icon(60, 10, 32, IconAction::OpenCalculator, "Calculator", bmp2);
+    DesktopIcon icon3 = make_icon(110, 10, 32, IconAction::None, "Info", bmp3);
 
     ASSERT_TRUE(wm.add_desktop_icon(icon1));
     ASSERT_EQ(wm.icon_count(), 1u);
@@ -636,7 +650,7 @@ TEST("desktop: add_desktop_icon returns false at MAX_ICONS") {
     init_wm(wm, &screen, &font);
 
     std::vector<uint32_t> bmp;
-    DesktopIcon icon = make_icon(10, 10, 16, IconAction::None, "X", bmp);
+    DesktopIcon           icon = make_icon(10, 10, 16, IconAction::None, "X", bmp);
 
     for (uint32_t i = 0; i < MockWindowManager::MAX_ICONS; i++) {
         bool ok = wm.add_desktop_icon(icon);
@@ -660,7 +674,7 @@ TEST("desktop: init resets icon state") {
     init_wm(wm, &screen, &font);
 
     std::vector<uint32_t> bmp;
-    DesktopIcon icon = make_icon(10, 10, 32, IconAction::OpenShell, "Shell", bmp);
+    DesktopIcon           icon = make_icon(10, 10, 32, IconAction::OpenShell, "Shell", bmp);
     wm.add_desktop_icon(icon);
     ASSERT_EQ(wm.icon_count(), 1u);
 
@@ -684,7 +698,7 @@ TEST("desktop: hit_test_icon returns icon on hit") {
     init_wm(wm, &screen, &font);
 
     std::vector<uint32_t> bmp;
-    DesktopIcon icon = make_icon(50, 50, 32, IconAction::OpenShell, "Shell", bmp);
+    DesktopIcon           icon = make_icon(50, 50, 32, IconAction::OpenShell, "Shell", bmp);
     wm.add_desktop_icon(icon);
 
     // Click at (60, 60) -- inside the 32x32 icon at (50,50)
@@ -703,7 +717,7 @@ TEST("desktop: hit_test_icon returns nullptr on miss") {
     init_wm(wm, &screen, &font);
 
     std::vector<uint32_t> bmp;
-    DesktopIcon icon = make_icon(50, 50, 32, IconAction::OpenShell, "Shell", bmp);
+    DesktopIcon           icon = make_icon(50, 50, 32, IconAction::OpenShell, "Shell", bmp);
     wm.add_desktop_icon(icon);
 
     // Click far away from the icon
@@ -735,7 +749,7 @@ TEST("desktop: hit_test_icon later icon takes priority on overlap") {
 
     std::vector<uint32_t> bmp1, bmp2;
     // Two icons overlapping at (50,50)-(81,81)
-    DesktopIcon icon1 = make_icon(50, 50, 32, IconAction::OpenShell,      "Shell",      bmp1);
+    DesktopIcon           icon1 = make_icon(50, 50, 32, IconAction::OpenShell, "Shell", bmp1);
     DesktopIcon icon2 = make_icon(60, 60, 32, IconAction::OpenCalculator, "Calculator", bmp2);
     wm.add_desktop_icon(icon1);
     wm.add_desktop_icon(icon2);
@@ -756,7 +770,7 @@ TEST("desktop: hit_test_icon boundary edge is miss") {
     init_wm(wm, &screen, &font);
 
     std::vector<uint32_t> bmp;
-    DesktopIcon icon = make_icon(50, 50, 32, IconAction::None, "X", bmp);
+    DesktopIcon           icon = make_icon(50, 50, 32, IconAction::None, "X", bmp);
     wm.add_desktop_icon(icon);
 
     // Click at (82, 60) -- x=50+32=82, which is outside [50, 82)
@@ -782,7 +796,7 @@ TEST("desktop: hit_test_icon works at screen origin") {
     init_wm(wm, &screen, &font);
 
     std::vector<uint32_t> bmp;
-    DesktopIcon icon = make_icon(0, 0, 32, IconAction::OpenShell, "Shell", bmp);
+    DesktopIcon           icon = make_icon(0, 0, 32, IconAction::OpenShell, "Shell", bmp);
     wm.add_desktop_icon(icon);
 
     const DesktopIcon* hit = wm.hit_test_icon(0, 0);
@@ -821,16 +835,16 @@ TEST("desktop: consume_pending_icon_action resets to None") {
     // Manually set a pending action (simulating what handle_mouse does)
     // We use handle_mouse to trigger this path instead
     std::vector<uint32_t> bmp;
-    DesktopIcon icon = make_icon(50, 50, 32, IconAction::OpenShell, "Shell", bmp);
+    DesktopIcon           icon = make_icon(50, 50, 32, IconAction::OpenShell, "Shell", bmp);
     wm.add_desktop_icon(icon);
 
     // Click on the icon to set pending action
     Event ev{};
-    ev.type_ = EventType::MouseDown;
-    ev.mouse.x = 60;
-    ev.mouse.y = 60;
-    ev.mouse.left = true;
-    ev.mouse.right = false;
+    ev.type_        = EventType::MouseDown;
+    ev.mouse.x      = 60;
+    ev.mouse.y      = 60;
+    ev.mouse.left   = true;
+    ev.mouse.right  = false;
     ev.mouse.middle = false;
     wm.handle_mouse(ev);
 
@@ -872,7 +886,7 @@ TEST("desktop: icon click sets pending_icon_action") {
     init_wm(wm, &screen, &font);
 
     std::vector<uint32_t> bmp;
-    DesktopIcon icon = make_icon(50, 50, 32, IconAction::OpenShell, "Shell", bmp);
+    DesktopIcon           icon = make_icon(50, 50, 32, IconAction::OpenShell, "Shell", bmp);
     wm.add_desktop_icon(icon);
 
     // Before click, no pending action
@@ -880,11 +894,11 @@ TEST("desktop: icon click sets pending_icon_action") {
 
     // Click on the icon
     Event ev{};
-    ev.type_ = EventType::MouseDown;
-    ev.mouse.x = 60;
-    ev.mouse.y = 60;
-    ev.mouse.left = true;
-    ev.mouse.right = false;
+    ev.type_        = EventType::MouseDown;
+    ev.mouse.x      = 60;
+    ev.mouse.y      = 60;
+    ev.mouse.left   = true;
+    ev.mouse.right  = false;
     ev.mouse.middle = false;
     wm.handle_mouse(ev);
 
@@ -902,16 +916,16 @@ TEST("desktop: different icons set different actions") {
     init_wm(wm, &screen, &font);
 
     std::vector<uint32_t> bmp1, bmp2;
-    DesktopIcon icon1 = make_icon(10,  10, 32, IconAction::OpenShell,      "Shell",      bmp1);
-    DesktopIcon icon2 = make_icon(60,  10, 32, IconAction::OpenCalculator, "Calculator", bmp2);
+    DesktopIcon           icon1 = make_icon(10, 10, 32, IconAction::OpenShell, "Shell", bmp1);
+    DesktopIcon icon2 = make_icon(60, 10, 32, IconAction::OpenCalculator, "Calculator", bmp2);
     wm.add_desktop_icon(icon1);
     wm.add_desktop_icon(icon2);
 
     // Click on icon1 (Shell)
     Event ev1{};
-    ev1.type_ = EventType::MouseDown;
-    ev1.mouse.x = 20;
-    ev1.mouse.y = 20;
+    ev1.type_      = EventType::MouseDown;
+    ev1.mouse.x    = 20;
+    ev1.mouse.y    = 20;
     ev1.mouse.left = true;
     wm.handle_mouse(ev1);
     ASSERT_EQ(wm.pending_icon_action(), IconAction::OpenShell);
@@ -921,9 +935,9 @@ TEST("desktop: different icons set different actions") {
 
     // Click on icon2 (Calculator)
     Event ev2{};
-    ev2.type_ = EventType::MouseDown;
-    ev2.mouse.x = 70;
-    ev2.mouse.y = 20;
+    ev2.type_      = EventType::MouseDown;
+    ev2.mouse.x    = 70;
+    ev2.mouse.y    = 20;
     ev2.mouse.left = true;
     wm.handle_mouse(ev2);
     ASSERT_EQ(wm.pending_icon_action(), IconAction::OpenCalculator);
@@ -939,13 +953,13 @@ TEST("desktop: icon click with None action sets None") {
     init_wm(wm, &screen, &font);
 
     std::vector<uint32_t> bmp;
-    DesktopIcon icon = make_icon(10, 10, 32, IconAction::None, "Info", bmp);
+    DesktopIcon           icon = make_icon(10, 10, 32, IconAction::None, "Info", bmp);
     wm.add_desktop_icon(icon);
 
     Event ev{};
-    ev.type_ = EventType::MouseDown;
-    ev.mouse.x = 20;
-    ev.mouse.y = 20;
+    ev.type_      = EventType::MouseDown;
+    ev.mouse.x    = 20;
+    ev.mouse.y    = 20;
     ev.mouse.left = true;
     wm.handle_mouse(ev);
 
@@ -967,11 +981,11 @@ TEST("desktop: desktop blank click does not set action") {
 
     // No icons, no windows -- just desktop
     Event ev{};
-    ev.type_ = EventType::MouseDown;
-    ev.mouse.x = 400;
-    ev.mouse.y = 300;
-    ev.mouse.left = true;
-    ev.mouse.right = false;
+    ev.type_        = EventType::MouseDown;
+    ev.mouse.x      = 400;
+    ev.mouse.y      = 300;
+    ev.mouse.left   = true;
+    ev.mouse.right  = false;
     ev.mouse.middle = false;
     wm.handle_mouse(ev);
 
@@ -988,16 +1002,16 @@ TEST("desktop: clicking empty area near icons does not set action") {
     init_wm(wm, &screen, &font);
 
     std::vector<uint32_t> bmp;
-    DesktopIcon icon = make_icon(10, 10, 32, IconAction::OpenShell, "Shell", bmp);
+    DesktopIcon           icon = make_icon(10, 10, 32, IconAction::OpenShell, "Shell", bmp);
     wm.add_desktop_icon(icon);
 
     // Click between icons (far from the icon at (10,10)-(41,41))
     Event ev{};
-    ev.type_ = EventType::MouseDown;
-    ev.mouse.x = 400;
-    ev.mouse.y = 300;
-    ev.mouse.left = true;
-    ev.mouse.right = false;
+    ev.type_        = EventType::MouseDown;
+    ev.mouse.x      = 400;
+    ev.mouse.y      = 300;
+    ev.mouse.left   = true;
+    ev.mouse.right  = false;
     ev.mouse.middle = false;
     wm.handle_mouse(ev);
 
@@ -1019,7 +1033,7 @@ TEST("desktop: window on top of icon prevents icon click") {
 
     // Add an icon at (50, 50)
     std::vector<uint32_t> bmp;
-    DesktopIcon icon = make_icon(50, 50, 32, IconAction::OpenShell, "Shell", bmp);
+    DesktopIcon           icon = make_icon(50, 50, 32, IconAction::OpenShell, "Shell", bmp);
     wm.add_desktop_icon(icon);
 
     // Create a window that overlaps the icon region
@@ -1028,11 +1042,11 @@ TEST("desktop: window on top of icon prevents icon click") {
 
     // Click at (60, 60) -- inside both window and icon, but window is on top
     Event ev{};
-    ev.type_ = EventType::MouseDown;
-    ev.mouse.x = 60;
-    ev.mouse.y = 60;
-    ev.mouse.left = true;
-    ev.mouse.right = false;
+    ev.type_        = EventType::MouseDown;
+    ev.mouse.x      = 60;
+    ev.mouse.y      = 60;
+    ev.mouse.left   = true;
+    ev.mouse.right  = false;
     ev.mouse.middle = false;
     wm.handle_mouse(ev);
 
@@ -1060,14 +1074,14 @@ TEST("desktop: icon click preserves window focus") {
 
     // Add an icon at (400, 400) -- outside the window at (0,0)
     std::vector<uint32_t> bmp;
-    DesktopIcon icon = make_icon(400, 400, 32, IconAction::OpenShell, "Shell", bmp);
+    DesktopIcon           icon = make_icon(400, 400, 32, IconAction::OpenShell, "Shell", bmp);
     wm.add_desktop_icon(icon);
 
     // Click on the icon (no window hit -> icon hit path)
     Event ev{};
-    ev.type_ = EventType::MouseDown;
-    ev.mouse.x = 410;
-    ev.mouse.y = 410;
+    ev.type_      = EventType::MouseDown;
+    ev.mouse.x    = 410;
+    ev.mouse.y    = 410;
     ev.mouse.left = true;
     wm.handle_mouse(ev);
 
@@ -1089,16 +1103,16 @@ TEST("desktop: composite renders icon bitmap") {
     MockWindowManager wm;
     init_wm(wm, &screen, &font);
 
-    uint32_t icon_color = 0xFF00FF00;
+    uint32_t              icon_color = 0xFF00FF00;
     std::vector<uint32_t> bmp(32 * 32, icon_color);
-    DesktopIcon icon{
-        .x      = 10,
-        .y      = 10,
-        .bitmap = bmp.data(),
-        .label  = "Test",
-        .width  = 32,
-        .height = 32,
-        .action = IconAction::None,
+    DesktopIcon           icon{
+                  .x      = 10,
+                  .y      = 10,
+                  .bitmap = bmp.data(),
+                  .label  = "Test",
+                  .width  = 32,
+                  .height = 32,
+                  .action = IconAction::None,
     };
     wm.add_desktop_icon(icon);
 

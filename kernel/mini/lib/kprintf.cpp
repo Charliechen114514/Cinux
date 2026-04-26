@@ -3,12 +3,12 @@
  * ============================================================== */
 
 #include "kprintf.h"
-#include "private/vkprintf_impl.h"
 
 #include <stdarg.h>
 #include <stdint.h>
 
 #include "driver/serial.h"
+#include "private/vkprintf_impl.h"
 
 
 namespace {

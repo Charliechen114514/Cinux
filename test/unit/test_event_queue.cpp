@@ -23,8 +23,8 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstring>
+#    include <cstdint>
+#    include <cstring>
 
 // ============================================================
 // Replicate event types from kernel/gui/event.hpp
@@ -39,14 +39,14 @@ enum class EventType : uint8_t {
 };
 
 struct MouseEvent {
-    int32_t  x;
-    int32_t  y;
-    int32_t  dx;
-    int32_t  dy;
-    uint8_t  buttons;
-    bool     left;
-    bool     right;
-    bool     middle;
+    int32_t x;
+    int32_t y;
+    int32_t dx;
+    int32_t dy;
+    uint8_t buttons;
+    bool    left;
+    bool    right;
+    bool    middle;
 };
 
 struct KeyEvent {
@@ -83,21 +83,19 @@ struct EventQueue {
             return;  // drop on full
         }
         buf_[tail_] = ev;
-        tail_ = next;
+        tail_       = next;
     }
 
     bool dequeue(Event& out) {
         if (head_ == tail_) {
             return false;
         }
-        out = buf_[head_];
+        out   = buf_[head_];
         head_ = (head_ + 1) % BUF_SIZE;
         return true;
     }
 
-    bool empty() const {
-        return head_ == tail_;
-    }
+    bool empty() const { return head_ == tail_; }
 
     void clear() {
         head_ = 0;
@@ -111,41 +109,41 @@ struct EventQueue {
 
 static Event make_mouse_move(int32_t x, int32_t y, int32_t dx, int32_t dy) {
     Event ev{};
-    ev.type_ = EventType::MouseMove;
-    ev.mouse.x = x;
-    ev.mouse.y = y;
-    ev.mouse.dx = dx;
-    ev.mouse.dy = dy;
+    ev.type_         = EventType::MouseMove;
+    ev.mouse.x       = x;
+    ev.mouse.y       = y;
+    ev.mouse.dx      = dx;
+    ev.mouse.dy      = dy;
     ev.mouse.buttons = 0;
-    ev.mouse.left = false;
-    ev.mouse.right = false;
-    ev.mouse.middle = false;
+    ev.mouse.left    = false;
+    ev.mouse.right   = false;
+    ev.mouse.middle  = false;
     return ev;
 }
 
 static Event make_mouse_down(int32_t x, int32_t y, uint8_t buttons) {
     Event ev{};
-    ev.type_ = EventType::MouseDown;
-    ev.mouse.x = x;
-    ev.mouse.y = y;
-    ev.mouse.dx = 0;
-    ev.mouse.dy = 0;
+    ev.type_         = EventType::MouseDown;
+    ev.mouse.x       = x;
+    ev.mouse.y       = y;
+    ev.mouse.dx      = 0;
+    ev.mouse.dy      = 0;
     ev.mouse.buttons = buttons;
-    ev.mouse.left = (buttons & 0x01) != 0;
-    ev.mouse.right = (buttons & 0x02) != 0;
-    ev.mouse.middle = (buttons & 0x04) != 0;
+    ev.mouse.left    = (buttons & 0x01) != 0;
+    ev.mouse.right   = (buttons & 0x02) != 0;
+    ev.mouse.middle  = (buttons & 0x04) != 0;
     return ev;
 }
 
 static Event make_key_down(char ascii, uint8_t scancode) {
     Event ev{};
-    ev.type_ = EventType::KeyDown;
-    ev.key.ascii = ascii;
+    ev.type_        = EventType::KeyDown;
+    ev.key.ascii    = ascii;
     ev.key.scancode = scancode;
-    ev.key.pressed = true;
-    ev.key.shift = false;
-    ev.key.ctrl = false;
-    ev.key.alt = false;
+    ev.key.pressed  = true;
+    ev.key.shift    = false;
+    ev.key.ctrl     = false;
+    ev.key.alt      = false;
     return ev;
 }
 
@@ -156,14 +154,14 @@ static Event make_key_down(char ascii, uint8_t scancode) {
 /// Verify empty queue returns false on dequeue
 TEST("event_queue: empty queue dequeue returns false") {
     EventQueue q;
-    Event ev;
+    Event      ev;
     ASSERT_FALSE(q.dequeue(ev));
 }
 
 /// Verify enqueue then dequeue retrieves the event
 TEST("event_queue: enqueue then dequeue retrieves event") {
     EventQueue q;
-    Event in = make_mouse_move(10, 20, 5, 3);
+    Event      in = make_mouse_move(10, 20, 5, 3);
     q.enqueue(in);
 
     Event out;
@@ -233,7 +231,7 @@ TEST("event_queue: full buffer drops event") {
 
     // Drain and count
     uint32_t count = 0;
-    Event ev;
+    Event    ev;
     while (q.dequeue(ev)) {
         count++;
     }
@@ -332,10 +330,11 @@ TEST("event_queue: multiple wrap-around cycles") {
     for (int cycle = 0; cycle < 3; cycle++) {
         uint32_t capacity = BUF_SIZE - 1;
         for (uint32_t i = 0; i < capacity; i++) {
-            q.enqueue(make_mouse_move(static_cast<int32_t>(cycle * 100 + static_cast<int>(i)), 0, 1, 0));
+            q.enqueue(
+                make_mouse_move(static_cast<int32_t>(cycle * 100 + static_cast<int>(i)), 0, 1, 0));
         }
 
-        Event ev;
+        Event    ev;
         uint32_t count = 0;
         while (q.dequeue(ev)) {
             count++;

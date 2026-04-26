@@ -25,8 +25,7 @@ using cinux::lib::kprintf;
 
 }  // anonymous namespace
 
-int64_t sys_chdir(uint64_t path_virt, uint64_t, uint64_t,
-                  uint64_t, uint64_t, uint64_t) {
+int64_t sys_chdir(uint64_t path_virt, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) {
     // Step 1: Resolve the path (cwd-aware)
     char resolved[cinux::fs::PATH_MAX];
     if (!resolve_user_path(path_virt, resolved)) {
@@ -34,8 +33,8 @@ int64_t sys_chdir(uint64_t path_virt, uint64_t, uint64_t,
     }
 
     // Step 2: Resolve through the VFS mount table
-    const char* rel_path = nullptr;
-    cinux::fs::FileSystem* fs = cinux::fs::vfs_resolve(resolved, &rel_path);
+    const char*            rel_path = nullptr;
+    cinux::fs::FileSystem* fs       = cinux::fs::vfs_resolve(resolved, &rel_path);
 
     if (fs == nullptr) {
         kprintf("[SYS_CHDIR] No filesystem mounted for '%s'\n", resolved);

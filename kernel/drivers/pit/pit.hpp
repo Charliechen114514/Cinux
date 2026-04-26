@@ -38,24 +38,24 @@ namespace cinux::drivers {
 // ============================================================
 
 namespace PitHW {
-constexpr uint16_t CHANNEL_0    = 0x40;  ///< Channel 0 data port
-constexpr uint16_t CHANNEL_1    = 0x41;  ///< Channel 1 data port (unused)
-constexpr uint16_t CHANNEL_2    = 0x42;  ///< Channel 2 data port (speaker)
-constexpr uint16_t COMMAND      = 0x43;  ///< Mode/Command register
+constexpr uint16_t CHANNEL_0 = 0x40;  ///< Channel 0 data port
+constexpr uint16_t CHANNEL_1 = 0x41;  ///< Channel 1 data port (unused)
+constexpr uint16_t CHANNEL_2 = 0x42;  ///< Channel 2 data port (speaker)
+constexpr uint16_t COMMAND   = 0x43;  ///< Mode/Command register
 
-constexpr uint32_t BASE_FREQ    = 1193182;  ///< Input clock frequency (Hz)
+constexpr uint32_t BASE_FREQ = 1193182;  ///< Input clock frequency (Hz)
 
 // Command byte bits
-constexpr uint8_t CMD_BINARY     = 0x00;  ///< Binary counter mode
-constexpr uint8_t CMD_BCD        = 0x01;  ///< BCD counter mode
-constexpr uint8_t CMD_MODE_0     = 0x00;  ///< Interrupt on terminal count
-constexpr uint8_t CMD_MODE_2     = 0x04;  ///< Rate generator
-constexpr uint8_t CMD_MODE_3     = 0x06;  ///< Square wave generator
-constexpr uint8_t CMD_LATCH      = 0x00;  ///< Latch count value
-constexpr uint8_t CMD_LSB_ONLY   = 0x10;  ///< LSB only
-constexpr uint8_t CMD_MSB_ONLY   = 0x20;  ///< MSB only
-constexpr uint8_t CMD_LSB_MSB    = 0x30;  ///< LSB then MSB
-constexpr uint8_t CMD_CHANNEL_0  = 0x00;  ///< Select channel 0
+constexpr uint8_t CMD_BINARY    = 0x00;  ///< Binary counter mode
+constexpr uint8_t CMD_BCD       = 0x01;  ///< BCD counter mode
+constexpr uint8_t CMD_MODE_0    = 0x00;  ///< Interrupt on terminal count
+constexpr uint8_t CMD_MODE_2    = 0x04;  ///< Rate generator
+constexpr uint8_t CMD_MODE_3    = 0x06;  ///< Square wave generator
+constexpr uint8_t CMD_LATCH     = 0x00;  ///< Latch count value
+constexpr uint8_t CMD_LSB_ONLY  = 0x10;  ///< LSB only
+constexpr uint8_t CMD_MSB_ONLY  = 0x20;  ///< MSB only
+constexpr uint8_t CMD_LSB_MSB   = 0x30;  ///< LSB then MSB
+constexpr uint8_t CMD_CHANNEL_0 = 0x00;  ///< Select channel 0
 }  // namespace PitHW
 
 // ============================================================

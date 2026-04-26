@@ -34,8 +34,8 @@ using cinux::lib::kprintf;
  * @param namelen_out Pointer to receive the length of the leaf name
  * @return true on success, false if path is empty or ends with '/'
  */
-bool split_pathname(const char* path, char* parent_out,
-                    const char** name_out, uint32_t* namelen_out) {
+bool split_pathname(const char* path, char* parent_out, const char** name_out,
+                    uint32_t* namelen_out) {
     uint32_t len = static_cast<uint32_t>(strlen(path));
 
     if (len == 0) {
@@ -58,15 +58,15 @@ bool split_pathname(const char* path, char* parent_out,
     if (last_sep < 0) {
         // No separator: parent is root (empty string)
         parent_out[0] = '\0';
-        *name_out = path;
-        *namelen_out = len;
+        *name_out     = path;
+        *namelen_out  = len;
     } else {
         // Copy parent portion
         uint32_t parent_len = static_cast<uint32_t>(last_sep);
         memcpy(parent_out, path, parent_len);
         parent_out[parent_len] = '\0';
 
-        *name_out = path + last_sep + 1;
+        *name_out    = path + last_sep + 1;
         *namelen_out = len - parent_len - 1;
     }
 
@@ -79,8 +79,7 @@ bool split_pathname(const char* path, char* parent_out,
 
 }  // anonymous namespace
 
-int64_t sys_creat(uint64_t path_virt, uint64_t, uint64_t,
-                  uint64_t, uint64_t, uint64_t) {
+int64_t sys_creat(uint64_t path_virt, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) {
     // Step 1: Resolve the path (cwd-aware)
     char resolved[cinux::fs::PATH_MAX];
     if (!resolve_user_path(path_virt, resolved)) {
@@ -88,8 +87,8 @@ int64_t sys_creat(uint64_t path_virt, uint64_t, uint64_t,
     }
 
     // Step 2: Resolve through the VFS mount table
-    const char* rel_path = nullptr;
-    cinux::fs::FileSystem* fs = cinux::fs::vfs_resolve(resolved, &rel_path);
+    const char*            rel_path = nullptr;
+    cinux::fs::FileSystem* fs       = cinux::fs::vfs_resolve(resolved, &rel_path);
 
     if (fs == nullptr) {
         kprintf("[SYS_CREAT] No filesystem mounted for '%s'\n", resolved);
@@ -97,9 +96,9 @@ int64_t sys_creat(uint64_t path_virt, uint64_t, uint64_t,
     }
 
     // Step 3: Split relative path into parent dir and leaf name
-    char parent_buf[cinux::fs::PATH_MAX];
+    char        parent_buf[cinux::fs::PATH_MAX];
     const char* leaf_name = nullptr;
-    uint32_t name_len = 0;
+    uint32_t    name_len  = 0;
 
     if (!split_pathname(rel_path, parent_buf, &leaf_name, &name_len)) {
         kprintf("[SYS_CREAT] Invalid path: '%s'\n", resolved);

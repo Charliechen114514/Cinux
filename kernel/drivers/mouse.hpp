@@ -138,20 +138,20 @@ private:
     // Packet assembly state
     static constexpr uint8_t PACKET_SIZE = 3;
 
-    static uint8_t  packet_[PACKET_SIZE];
-    static uint8_t  packet_idx_;
+    static uint8_t packet_[PACKET_SIZE];
+    static uint8_t packet_idx_;
 
     // Cursor state
-    static int32_t  mouse_x_;
-    static int32_t  mouse_y_;
-    static uint8_t  buttons_;
+    static int32_t mouse_x_;
+    static int32_t mouse_y_;
+    static uint8_t buttons_;
 
     // Screen bounds for clamping
     static uint32_t screen_width_;
     static uint32_t screen_height_;
 
     // Previous button state for edge detection (press/release)
-    static uint8_t  prev_buttons_;
+    static uint8_t prev_buttons_;
 
     // Global event queue
     static cinux::gui::EventQueue g_event_queue_;

@@ -43,29 +43,21 @@ public:
     void release();
 
     /** RAII guard -- acquires on construction, releases on destruction. */
-    [[nodiscard]] auto guard() {
-        return Guard(this);
-    }
+    [[nodiscard]] auto guard() { return Guard(this); }
 
     /** IRQ-safe RAII guard -- disables interrupts then acquires. */
-    [[nodiscard]] auto irq_guard() {
-        return IrqGuard(this);
-    }
+    [[nodiscard]] auto irq_guard() { return IrqGuard(this); }
 
 private:
     volatile bool locked_ = false;
 
     class Guard {
     public:
-        explicit Guard(Spinlock* lock) : lock_(lock) {
-            lock_->acquire();
-        }
+        explicit Guard(Spinlock* lock) : lock_(lock) { lock_->acquire(); }
 
-        ~Guard() {
-            lock_->release();
-        }
+        ~Guard() { lock_->release(); }
 
-        Guard(const Guard&) = delete;
+        Guard(const Guard&)            = delete;
         Guard& operator=(const Guard&) = delete;
 
     private:
@@ -77,12 +69,12 @@ private:
         explicit IrqGuard(Spinlock* lock);
         ~IrqGuard();
 
-        IrqGuard(const IrqGuard&) = delete;
+        IrqGuard(const IrqGuard&)            = delete;
         IrqGuard& operator=(const IrqGuard&) = delete;
 
     private:
         Spinlock* lock_;
-        uint64_t saved_flags_;
+        uint64_t  saved_flags_;
     };
 };
 
@@ -135,14 +127,12 @@ public:
      * unlocks on destruction.  Marked [[nodiscard]] to prevent
      * accidental discard of the guard.
      */
-    [[nodiscard]] auto guard() {
-        return Guard(this);
-    }
+    [[nodiscard]] auto guard() { return Guard(this); }
 
 private:
     Spinlock spin_;
-    Task* owner_ = nullptr;
-    Task* wait_head_ = nullptr;
+    Task*    owner_     = nullptr;
+    Task*    wait_head_ = nullptr;
 
     /** Append a task to the tail of the wait queue. */
     void enqueue_waiter(Task* task);
@@ -152,15 +142,11 @@ private:
 
     class Guard {
     public:
-        explicit Guard(Mutex* mtx) : mtx_(mtx) {
-            mtx_->lock();
-        }
+        explicit Guard(Mutex* mtx) : mtx_(mtx) { mtx_->lock(); }
 
-        ~Guard() {
-            mtx_->unlock();
-        }
+        ~Guard() { mtx_->unlock(); }
 
-        Guard(const Guard&) = delete;
+        Guard(const Guard&)            = delete;
         Guard& operator=(const Guard&) = delete;
 
     private:
@@ -220,8 +206,8 @@ public:
 
 private:
     Spinlock spin_;
-    int64_t count_;
-    Task* wait_head_ = nullptr;
+    int64_t  count_;
+    Task*    wait_head_ = nullptr;
 
     /** Append a task to the tail of the wait queue. */
     void enqueue_waiter(Task* task);
@@ -247,7 +233,7 @@ public:
     InterruptGuard();
     ~InterruptGuard();
 
-    InterruptGuard(const InterruptGuard&) = delete;
+    InterruptGuard(const InterruptGuard&)            = delete;
     InterruptGuard& operator=(const InterruptGuard&) = delete;
 
 private:

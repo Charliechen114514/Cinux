@@ -22,16 +22,15 @@
  *   - AddressSpace kernel PML4 initialised
  */
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "big_kernel_test.h"
-
 #include "kernel/arch/x86_64/gdt.hpp"
-#include "kernel/arch/x86_64/usermode.hpp"
 #include "kernel/arch/x86_64/paging_config.hpp"
-#include "kernel/mm/pmm.hpp"
+#include "kernel/arch/x86_64/usermode.hpp"
 #include "kernel/mm/address_space.hpp"
+#include "kernel/mm/pmm.hpp"
 
 using cinux::arch::GDT;
 using cinux::arch::g_gdt;
@@ -102,14 +101,14 @@ uint64_t read_msr(uint32_t msr) {
 
 void test_star_msr_sysret_base() {
     // STAR[63:48] should be GDT_SYSRET_BASE (0x23)
-    uint64_t star = read_msr(0xC0000081);
+    uint64_t star    = read_msr(0xC0000081);
     uint16_t star_hi = static_cast<uint16_t>(star >> 48);
     TEST_ASSERT_EQ(star_hi, GDT_SYSRET_BASE);
 }
 
 void test_star_msr_syscall_cs() {
     // STAR[47:32] should be 0x10 (SYSCALL CS base — kernel code)
-    uint64_t star = read_msr(0xC0000081);
+    uint64_t star    = read_msr(0xC0000081);
     uint16_t star_lo = static_cast<uint16_t>((star >> 32) & 0xFFFF);
     TEST_ASSERT_EQ(star_lo, 0x10);
 }
@@ -131,9 +130,8 @@ void test_sfmask_if_bit() {
         "movl $0xC0000084, %%ecx\n\t"
         "xorl %%edx, %%edx\n\t"
         "movl $0x200, %%eax\n\t"
-        "wrmsr\n\t"
-        ::: "rax", "rcx", "rdx"
-    );
+        "wrmsr\n\t" ::
+            : "rax", "rcx", "rdx");
     // If we reach here, wrmsr accepted 0x200 without #GP — instruction is correct.
 }
 
@@ -148,18 +146,18 @@ namespace test_user_address_space {
 void test_create_user_space() {
     // Create an isolated address space for a user process
     AddressSpace user_space;
-    uint64_t pml4 = user_space.pml4_phys();
+    uint64_t     pml4 = user_space.pml4_phys();
     TEST_ASSERT_NE(pml4, 0ULL);
 }
 
 void test_map_user_code_page() {
     // Allocate a physical page and map it at USER_ENTRY_BASE
     AddressSpace user_space;
-    uint64_t code_phys = g_pmm.alloc_page();
+    uint64_t     code_phys = g_pmm.alloc_page();
     TEST_ASSERT_NE(code_phys, 0ULL);
 
     uint64_t flags = FLAG_PRESENT | FLAG_WRITABLE | FLAG_USER;
-    bool ok = user_space.map(USER_ENTRY_BASE, code_phys, flags);
+    bool     ok    = user_space.map(USER_ENTRY_BASE, code_phys, flags);
     TEST_ASSERT_TRUE(ok);
 
     // Verify the mapping exists
@@ -170,22 +168,22 @@ void test_map_user_code_page() {
 void test_map_user_stack_pages() {
     // Map USER_STACK_PAGES stack pages below USER_STACK_TOP
     AddressSpace user_space;
-    uint64_t stack_size = USER_STACK_PAGES * PAGE_SIZE;
-    uint64_t stack_base = USER_STACK_TOP - stack_size;
-    uint64_t flags = FLAG_PRESENT | FLAG_WRITABLE | FLAG_USER;
+    uint64_t     stack_size = USER_STACK_PAGES * PAGE_SIZE;
+    uint64_t     stack_base = USER_STACK_TOP - stack_size;
+    uint64_t     flags      = FLAG_PRESENT | FLAG_WRITABLE | FLAG_USER;
 
     for (uint64_t i = 0; i < USER_STACK_PAGES; i++) {
         uint64_t phys = g_pmm.alloc_page();
         TEST_ASSERT_NE(phys, 0ULL);
 
         uint64_t virt = stack_base + i * PAGE_SIZE;
-        bool ok = user_space.map(virt, phys, flags);
+        bool     ok   = user_space.map(virt, phys, flags);
         TEST_ASSERT_TRUE(ok);
     }
 
     // Verify all stack pages are mapped
     for (uint64_t i = 0; i < USER_STACK_PAGES; i++) {
-        uint64_t virt = stack_base + i * PAGE_SIZE;
+        uint64_t virt       = stack_base + i * PAGE_SIZE;
         uint64_t translated = user_space.translate(virt);
         TEST_ASSERT_NE(translated, 0ULL);
     }

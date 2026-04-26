@@ -32,44 +32,44 @@ using cinux::mini::lib::kprintf;
 // Test State Management
 // ============================================================
 namespace test {
-    inline int tests_passed = 0;
-    inline int tests_failed = 0;
+inline int tests_passed = 0;
+inline int tests_failed = 0;
 
-    // Reset test counters (useful for test isolation)
-    inline void reset() {
-        tests_passed = 0;
-        tests_failed = 0;
-    }
-
-    // Get total tests run
-    inline int total() {
-        return tests_passed + tests_failed;
-    }
-
-    // Check if all tests passed
-    inline bool all_passed() {
-        return tests_failed == 0;
-    }
-
-    // Get total failed tests
-    inline int get_total_failed() {
-        return tests_failed;
-    }
+// Reset test counters (useful for test isolation)
+inline void reset() {
+    tests_passed = 0;
+    tests_failed = 0;
 }
+
+// Get total tests run
+inline int total() {
+    return tests_passed + tests_failed;
+}
+
+// Check if all tests passed
+inline bool all_passed() {
+    return tests_failed == 0;
+}
+
+// Get total failed tests
+inline int get_total_failed() {
+    return tests_failed;
+}
+}  // namespace test
 
 // ============================================================
 // Assertion Macros
 // ============================================================
 
 // Basic assertion - fails if condition is false
-#define TEST_ASSERT(cond) \
-    do { \
-        if (!(cond)) { \
-            kprintf("[FAIL] %s at %s:%d\n", #cond, __FILE__, __LINE__); \
-            test::tests_failed++; \
-            return; \
-        } \
-    } while(0)
+#define TEST_ASSERT(cond)                                                                          \
+    do {                                                                                           \
+        if (!(cond)) {                                                                             \
+            kprintf("[FAIL] %s at %s:%d\n", #cond, __FILE__, __LINE__);                            \
+            test::tests_failed++;                                                                  \
+            return;                                                                                \
+        }                                                                                          \
+    } while (0)
 
 // Equality assertion
 #define TEST_ASSERT_EQ(a, b) TEST_ASSERT((a) == (b))
@@ -106,26 +106,26 @@ namespace test {
 // ============================================================
 
 // Run a single test function
-#define RUN_TEST(fn) \
-    do { \
-        kprintf("[RUN] %s\n", #fn); \
-        int _failed_before = test::tests_failed; \
-        fn(); \
-        if (test::tests_failed == _failed_before) { \
-            test::tests_passed++; \
-            kprintf("[PASS] %s\n", #fn); \
-        } \
-    } while(0)
+#define RUN_TEST(fn)                                                                               \
+    do {                                                                                           \
+        kprintf("[RUN] %s\n", #fn);                                                                \
+        int _failed_before = test::tests_failed;                                                   \
+        fn();                                                                                      \
+        if (test::tests_failed == _failed_before) {                                                \
+            test::tests_passed++;                                                                  \
+            kprintf("[PASS] %s\n", #fn);                                                           \
+        }                                                                                          \
+    } while (0)
 
 // Print test summary
-#define TEST_SUMMARY() \
-    do { \
-        kprintf("\n=== Tests: %d passed, %d failed ===\n", \
-                test::tests_passed, test::tests_failed); \
-    } while(0)
+#define TEST_SUMMARY()                                                                             \
+    do {                                                                                           \
+        kprintf("\n=== Tests: %d passed, %d failed ===\n", test::tests_passed,                     \
+                test::tests_failed);                                                               \
+    } while (0)
 
 // Print test section header
-#define TEST_SECTION(name) \
-    do { \
-        kprintf("\n=== %s ===\n", name); \
-    } while(0)
+#define TEST_SECTION(name)                                                                         \
+    do {                                                                                           \
+        kprintf("\n=== %s ===\n", name);                                                           \
+    } while (0)

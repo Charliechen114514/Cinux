@@ -15,11 +15,12 @@
  */
 
 #define TEST_FRAMEWORK_IMPL
-#include "test_framework.h"
-
 #include <stdint.h>
 #include <string.h>
+
 #include <utility>
+
+#include "test_framework.h"
 
 // ============================================================
 // Paging constants (mirrored from paging_config.hpp)
@@ -27,8 +28,8 @@
 
 namespace {
 
-constexpr uint64_t PAGE_SIZE   = 4096;
-constexpr uint32_t PT_ENTRIES  = 512;
+constexpr uint64_t PAGE_SIZE  = 4096;
+constexpr uint32_t PT_ENTRIES = 512;
 
 constexpr uint32_t PML4_SHIFT = 39;
 
@@ -41,7 +42,9 @@ constexpr uint64_t FLAG_WRITABLE = 1ULL << 1;
 constexpr uint32_t USER_PML4_START = 0;
 constexpr uint32_t USER_PML4_END   = 256;
 
-uint64_t PML4_INDEX(uint64_t virt) { return (virt >> PML4_SHIFT) & 0x1FF; }
+uint64_t PML4_INDEX(uint64_t virt) {
+    return (virt >> PML4_SHIFT) & 0x1FF;
+}
 
 // ============================================================
 // Simulated physical memory pool (mock PMM)
@@ -52,12 +55,10 @@ constexpr uint64_t MOCK_POOL_BASE  = 0x2000000ULL;
 
 struct MockPMM {
     uint8_t  bitmap[MOCK_POOL_PAGES / 8];
-    uint32_t alloc_count;   // track outstanding allocations
-    uint32_t free_count;    // track total frees
+    uint32_t alloc_count;  // track outstanding allocations
+    uint32_t free_count;   // track total frees
 
-    MockPMM() : alloc_count(0), free_count(0) {
-        memset(bitmap, 0, sizeof(bitmap));
-    }
+    MockPMM() : alloc_count(0), free_count(0) { memset(bitmap, 0, sizeof(bitmap)); }
 
     uint64_t alloc_page() {
         for (uint32_t i = 0; i < MOCK_POOL_PAGES; i++) {
@@ -73,9 +74,11 @@ struct MockPMM {
     }
 
     void free_page(uint64_t phys) {
-        if (phys < MOCK_POOL_BASE) return;
+        if (phys < MOCK_POOL_BASE)
+            return;
         uint32_t idx = static_cast<uint32_t>((phys - MOCK_POOL_BASE) / PAGE_SIZE);
-        if (idx >= MOCK_POOL_PAGES) return;
+        if (idx >= MOCK_POOL_PAGES)
+            return;
         uint32_t byte = idx / 8;
         uint32_t bit  = idx % 8;
         if (bitmap[byte] & (1U << bit)) {
@@ -85,9 +88,11 @@ struct MockPMM {
     }
 
     bool is_allocated(uint64_t phys) const {
-        if (phys < MOCK_POOL_BASE) return false;
+        if (phys < MOCK_POOL_BASE)
+            return false;
         uint32_t idx = static_cast<uint32_t>((phys - MOCK_POOL_BASE) / PAGE_SIZE);
-        if (idx >= MOCK_POOL_PAGES) return false;
+        if (idx >= MOCK_POOL_PAGES)
+            return false;
         return (bitmap[idx / 8] & (1U << (idx % 8))) != 0;
     }
 };
@@ -100,9 +105,11 @@ constexpr uint32_t SIM_PAGES = 256;
 alignas(4096) uint8_t sim_memory[SIM_PAGES][PAGE_SIZE];
 
 uint8_t* sim_virt_of(uint64_t phys) {
-    if (phys < MOCK_POOL_BASE) return nullptr;
+    if (phys < MOCK_POOL_BASE)
+        return nullptr;
     uint64_t idx = (phys - MOCK_POOL_BASE) / PAGE_SIZE;
-    if (idx >= SIM_PAGES) return nullptr;
+    if (idx >= SIM_PAGES)
+        return nullptr;
     return &sim_memory[idx][0];
 }
 
@@ -110,19 +117,19 @@ union PageEntry {
     uint64_t raw;
 
     struct {
-        uint64_t present  : 1;
+        uint64_t present : 1;
         uint64_t writable : 1;
-        uint64_t user     : 1;
-        uint64_t pwt      : 1;
-        uint64_t pcd      : 1;
+        uint64_t user : 1;
+        uint64_t pwt : 1;
+        uint64_t pcd : 1;
         uint64_t accessed : 1;
-        uint64_t dirty    : 1;
-        uint64_t huge     : 1;
-        uint64_t global   : 1;
-        uint64_t _avail   : 3;
-        uint64_t addr     : 40;
-        uint64_t _avail2  : 11;
-        uint64_t nx       : 1;
+        uint64_t dirty : 1;
+        uint64_t huge : 1;
+        uint64_t global : 1;
+        uint64_t _avail : 3;
+        uint64_t addr : 40;
+        uint64_t _avail2 : 11;
+        uint64_t nx : 1;
     };
 
     uint64_t phys_addr() const { return raw & ADDR_MASK; }
@@ -135,17 +142,17 @@ union PageEntry {
 
 class TestVMM {
 public:
-    void init(uint64_t kernel_pml4) {
-        kernel_pml4_ = kernel_pml4;
-    }
+    void init(uint64_t kernel_pml4) { kernel_pml4_ = kernel_pml4; }
 
     bool map(uint64_t virt, uint64_t phys, uint64_t flags, uint64_t* pml4_out) {
         uint64_t pml4_phys = (pml4_out != nullptr) ? *pml4_out : kernel_pml4_;
-        auto* pml4 = reinterpret_cast<PageEntry*>(sim_virt_of(pml4_phys));
-        if (!pml4) return false;
+        auto*    pml4      = reinterpret_cast<PageEntry*>(sim_virt_of(pml4_phys));
+        if (!pml4)
+            return false;
 
         PageEntry* pdpt = walk_or_alloc(pml4, PML4_INDEX(virt));
-        if (!pdpt) return false;
+        if (!pdpt)
+            return false;
 
         // For brevity, the TestVMM only does a 1-level walk for PML4
         // (sufficient for isolation tests).  For deeper walks we'd need
@@ -159,11 +166,13 @@ public:
 
     void unmap(uint64_t virt, uint64_t* pml4_out) {
         uint64_t pml4_phys = (pml4_out != nullptr) ? *pml4_out : kernel_pml4_;
-        auto* pml4 = reinterpret_cast<PageEntry*>(sim_virt_of(pml4_phys));
-        if (!pml4) return;
+        auto*    pml4      = reinterpret_cast<PageEntry*>(sim_virt_of(pml4_phys));
+        if (!pml4)
+            return;
 
         PageEntry* pdpt = walk_only(pml4, PML4_INDEX(virt));
-        if (!pdpt) return;
+        if (!pdpt)
+            return;
 
         // Simplified: just clear the PML4 entry for isolation tests
         // (full implementation would walk to PT level)
@@ -173,11 +182,13 @@ public:
 
     uint64_t translate(uint64_t virt, uint64_t* pml4_out) {
         uint64_t pml4_phys = (pml4_out != nullptr) ? *pml4_out : kernel_pml4_;
-        auto* pml4 = reinterpret_cast<PageEntry*>(sim_virt_of(pml4_phys));
-        if (!pml4) return 0;
+        auto*    pml4      = reinterpret_cast<PageEntry*>(sim_virt_of(pml4_phys));
+        if (!pml4)
+            return 0;
 
         PageEntry& pml4e = pml4[PML4_INDEX(virt)];
-        if (!pml4e.is_present()) return 0;
+        if (!pml4e.is_present())
+            return 0;
 
         // For host testing of AddressSpace isolation, we only need to
         // check whether the PML4 entry is present and points somewhere.
@@ -190,18 +201,20 @@ public:
 private:
     bool map_full_walk(uint64_t virt, uint64_t phys, uint64_t flags, uint64_t pml4_phys) {
         auto* pml4 = reinterpret_cast<PageEntry*>(sim_virt_of(pml4_phys));
-        if (!pml4) return false;
+        if (!pml4)
+            return false;
 
         // Walk: PML4 -> PDPT -> PD -> PT (using mock PMM for intermediates)
         PageEntry* table = pml4;
 
         constexpr uint32_t shifts[] = {39, 30, 21, 12};
         for (int level = 0; level < 3; level++) {
-            uint64_t idx = (virt >> shifts[level]) & 0x1FF;
+            uint64_t   idx   = (virt >> shifts[level]) & 0x1FF;
             PageEntry& entry = table[idx];
             if (!entry.is_present()) {
                 uint64_t new_page = pmm_.alloc_page();
-                if (new_page == 0) return false;
+                if (new_page == 0)
+                    return false;
                 auto* new_table = reinterpret_cast<PageEntry*>(sim_virt_of(new_page));
                 memset(new_table, 0, PAGE_SIZE);
                 entry.raw = new_page | FLAG_PRESENT | FLAG_WRITABLE;
@@ -210,7 +223,7 @@ private:
         }
 
         // Final level: PT entry
-        uint64_t pt_idx = (virt >> 12) & 0x1FF;
+        uint64_t pt_idx   = (virt >> 12) & 0x1FF;
         table[pt_idx].raw = (phys & ADDR_MASK) | (flags & ~ADDR_MASK);
         return true;
     }
@@ -221,7 +234,8 @@ private:
             return reinterpret_cast<PageEntry*>(sim_virt_of(entry.phys_addr()));
         }
         uint64_t new_page = pmm_.alloc_page();
-        if (new_page == 0) return nullptr;
+        if (new_page == 0)
+            return nullptr;
         auto* new_table = reinterpret_cast<PageEntry*>(sim_virt_of(new_page));
         memset(new_table, 0, PAGE_SIZE);
         entry.raw = new_page | FLAG_PRESENT | FLAG_WRITABLE;
@@ -230,12 +244,13 @@ private:
 
     PageEntry* walk_only(PageEntry* table, uint64_t index) {
         PageEntry& entry = table[index];
-        if (!entry.is_present()) return nullptr;
+        if (!entry.is_present())
+            return nullptr;
         return reinterpret_cast<PageEntry*>(sim_virt_of(entry.phys_addr()));
     }
 
     uint64_t kernel_pml4_{};
-    MockPMM  pmm_;   // for intermediate table allocation in map
+    MockPMM  pmm_;  // for intermediate table allocation in map
 };
 
 // ============================================================
@@ -246,19 +261,17 @@ class TestAddressSpace {
 public:
     // --- Static init (mirrors AddressSpace::init_kernel) ---
 
-    static void init_kernel(uint64_t cr3_val) {
-        kernel_pml4_ = cr3_val;
-    }
+    static void init_kernel(uint64_t cr3_val) { kernel_pml4_ = cr3_val; }
 
     static uint64_t kernel_pml4() { return kernel_pml4_; }
 
     // --- Construction ---
 
-    TestAddressSpace(MockPMM& pmm)
-        : pmm_(pmm) {
+    TestAddressSpace(MockPMM& pmm) : pmm_(pmm) {
         // Allocate a fresh PML4 page
         pml4_phys_ = pmm_.alloc_page();
-        if (pml4_phys_ == 0) return;
+        if (pml4_phys_ == 0)
+            return;
 
         // Zero the entire PML4
         auto* pml4 = reinterpret_cast<PageEntry*>(sim_virt_of(pml4_phys_));
@@ -276,7 +289,8 @@ public:
     // --- Destruction ---
 
     ~TestAddressSpace() {
-        if (pml4_phys_ == 0) return;
+        if (pml4_phys_ == 0)
+            return;
 
         // Recursively free all user-space page table pages
         auto* pml4 = reinterpret_cast<PageEntry*>(sim_virt_of(pml4_phys_));
@@ -292,7 +306,7 @@ public:
     }
 
     // Disable copy
-    TestAddressSpace(const TestAddressSpace&) = delete;
+    TestAddressSpace(const TestAddressSpace&)            = delete;
     TestAddressSpace& operator=(const TestAddressSpace&) = delete;
 
     // Allow move
@@ -313,7 +327,7 @@ public:
                 }
                 pmm_.free_page(pml4_phys_);
             }
-            pml4_phys_ = other.pml4_phys_;
+            pml4_phys_       = other.pml4_phys_;
             other.pml4_phys_ = 0;
         }
         return *this;
@@ -325,13 +339,9 @@ public:
         return vmm_.map(virt, phys, flags, &pml4_phys_);
     }
 
-    void unmap(uint64_t virt) {
-        vmm_.unmap(virt, &pml4_phys_);
-    }
+    void unmap(uint64_t virt) { vmm_.unmap(virt, &pml4_phys_); }
 
-    uint64_t translate(uint64_t virt) {
-        return vmm_.translate(virt, &pml4_phys_);
-    }
+    uint64_t translate(uint64_t virt) { return vmm_.translate(virt, &pml4_phys_); }
 
     void activate() {
         // In host test, just record the activation
@@ -347,10 +357,12 @@ public:
 private:
     void free_subtree(uint64_t table_phys, int level) {
         auto* table = reinterpret_cast<PageEntry*>(sim_virt_of(table_phys));
-        if (!table) return;
+        if (!table)
+            return;
 
         for (uint32_t i = 0; i < PT_ENTRIES; i++) {
-            if (!table[i].is_present()) continue;
+            if (!table[i].is_present())
+                continue;
 
             // Stop recursion at PT level (level 1) -- PT entries point
             // to data pages not owned by the address space infrastructure
@@ -370,7 +382,7 @@ private:
     static uint64_t last_activated_pml4_;
 };
 
-uint64_t TestAddressSpace::kernel_pml4_ = 0;
+uint64_t TestAddressSpace::kernel_pml4_         = 0;
 uint64_t TestAddressSpace::last_activated_pml4_ = 0;
 
 // ============================================================
@@ -380,20 +392,18 @@ uint64_t TestAddressSpace::last_activated_pml4_ = 0;
 struct TestFixture {
     MockPMM pmm;
 
-    TestFixture() {
-        memset(sim_memory, 0, sizeof(sim_memory));
-    }
+    TestFixture() { memset(sim_memory, 0, sizeof(sim_memory)); }
 
     void setup_kernel_pml4() {
         uint64_t kpml4 = pmm.alloc_page();
-        auto* pml4 = reinterpret_cast<PageEntry*>(sim_virt_of(kpml4));
+        auto*    pml4  = reinterpret_cast<PageEntry*>(sim_virt_of(kpml4));
         memset(pml4, 0, PAGE_SIZE);
 
         // Simulate a kernel entry at index 256 (kernel space start)
         // Mark a few kernel entries as present for copy verification
         uint64_t fake_phys = pmm.alloc_page();
-        pml4[256].raw = fake_phys | FLAG_PRESENT | FLAG_WRITABLE;
-        pml4[511].raw = pmm.alloc_page() | FLAG_PRESENT | FLAG_WRITABLE;
+        pml4[256].raw      = fake_phys | FLAG_PRESENT | FLAG_WRITABLE;
+        pml4[511].raw      = pmm.alloc_page() | FLAG_PRESENT | FLAG_WRITABLE;
 
         TestAddressSpace::init_kernel(kpml4);
     }
@@ -424,7 +434,7 @@ TEST("address_space: construction zeroes user-space PML4 entries") {
     fx.setup_kernel_pml4();
 
     TestAddressSpace as(fx.pmm);
-    auto* pml4 = reinterpret_cast<PageEntry*>(sim_virt_of(as.pml4_phys()));
+    auto*            pml4 = reinterpret_cast<PageEntry*>(sim_virt_of(as.pml4_phys()));
 
     for (uint32_t i = USER_PML4_START; i < USER_PML4_END; i++) {
         ASSERT_EQ(pml4[i].raw, 0u);
@@ -437,7 +447,7 @@ TEST("address_space: construction copies kernel PML4 entries 256-511") {
     fx.setup_kernel_pml4();
 
     TestAddressSpace as(fx.pmm);
-    auto* pml4 = reinterpret_cast<PageEntry*>(sim_virt_of(as.pml4_phys()));
+    auto*            pml4 = reinterpret_cast<PageEntry*>(sim_virt_of(as.pml4_phys()));
     auto* kern = reinterpret_cast<PageEntry*>(sim_virt_of(TestAddressSpace::kernel_pml4()));
 
     for (uint32_t i = USER_PML4_END; i < PT_ENTRIES; i++) {
@@ -502,7 +512,7 @@ TEST("address_space: move constructor transfers ownership") {
     fx.setup_kernel_pml4();
 
     TestAddressSpace as1(fx.pmm);
-    uint64_t pml4 = as1.pml4_phys();
+    uint64_t         pml4 = as1.pml4_phys();
     ASSERT_NE(pml4, 0u);
 
     TestAddressSpace as2(std::move(as1));
@@ -551,12 +561,12 @@ TEST("address_space: self-move-assignment is safe") {
     fx.setup_kernel_pml4();
 
     TestAddressSpace as(fx.pmm);
-    uint64_t pml4 = as.pml4_phys();
+    uint64_t         pml4 = as.pml4_phys();
 
     // Explicitly call operator= with *this to verify the self-assignment guard.
     // Using a reference to avoid the -Wself-move warning from std::move.
     auto& ref = as;
-    as = std::move(ref);
+    as        = std::move(ref);
     // The if (this != &other) guard should prevent double-free
     ASSERT_EQ(as.pml4_phys(), pml4);
 }
@@ -587,8 +597,8 @@ TEST("address_space: map then translate shows mapped") {
     fx.setup_kernel_pml4();
 
     TestAddressSpace as(fx.pmm);
-    uint64_t virt = 0x100000ULL;   // 1 MB, user-space
-    uint64_t phys = 0x500000ULL;
+    uint64_t         virt = 0x100000ULL;  // 1 MB, user-space
+    uint64_t         phys = 0x500000ULL;
 
     bool ok = as.map(virt, phys, FLAG_PRESENT | FLAG_WRITABLE);
     ASSERT_TRUE(ok);
@@ -603,8 +613,8 @@ TEST("address_space: unmap causes translate to return 0") {
     fx.setup_kernel_pml4();
 
     TestAddressSpace as(fx.pmm);
-    uint64_t virt = 0x100000ULL;
-    uint64_t phys = 0x500000ULL;
+    uint64_t         virt = 0x100000ULL;
+    uint64_t         phys = 0x500000ULL;
 
     as.map(virt, phys, FLAG_PRESENT | FLAG_WRITABLE);
     ASSERT_NE(as.translate(virt), 0u);
@@ -656,7 +666,7 @@ TEST("address_space: different AS map same virtual to different physical") {
     TestAddressSpace as1(fx.pmm);
     TestAddressSpace as2(fx.pmm);
 
-    uint64_t virt = 0x200000ULL;
+    uint64_t virt  = 0x200000ULL;
     uint64_t phys1 = 0x600000ULL;
     uint64_t phys2 = 0x700000ULL;
 
@@ -722,7 +732,7 @@ TEST("address_space: user unmap does not affect kernel entries") {
     fx.setup_kernel_pml4();
 
     TestAddressSpace as(fx.pmm);
-    auto* pml4 = reinterpret_cast<PageEntry*>(sim_virt_of(as.pml4_phys()));
+    auto*            pml4 = reinterpret_cast<PageEntry*>(sim_virt_of(as.pml4_phys()));
     auto* kern = reinterpret_cast<PageEntry*>(sim_virt_of(TestAddressSpace::kernel_pml4()));
 
     // Record kernel entries before

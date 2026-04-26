@@ -25,10 +25,10 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
+#    include <cstdint>
 
 // Include kernel PIT header for constants and types
-#include "drivers/pit/pit.hpp"
+#    include "drivers/pit/pit.hpp"
 
 using namespace cinux::drivers;
 
@@ -64,8 +64,7 @@ static uint32_t pit_calc_divisor(uint32_t freq_hz) {
  * which equals 0x36.
  */
 static uint8_t pit_command_byte() {
-    return PitHW::CMD_CHANNEL_0 | PitHW::CMD_LSB_MSB
-         | PitHW::CMD_MODE_3 | PitHW::CMD_BINARY;
+    return PitHW::CMD_CHANNEL_0 | PitHW::CMD_LSB_MSB | PitHW::CMD_MODE_3 | PitHW::CMD_BINARY;
 }
 
 /**
@@ -323,9 +322,9 @@ TEST("pit: divisor 256 byte split") {
 
 /// Verify round-trip: reconstructing divisor from low + high bytes
 TEST("pit: divisor round-trip from byte split") {
-    uint32_t divisor = pit_calc_divisor(100);
-    uint8_t lo = pit_divisor_low(divisor);
-    uint8_t hi = pit_divisor_high(divisor);
+    uint32_t divisor       = pit_calc_divisor(100);
+    uint8_t  lo            = pit_divisor_low(divisor);
+    uint8_t  hi            = pit_divisor_high(divisor);
     uint32_t reconstructed = static_cast<uint32_t>(lo) | (static_cast<uint32_t>(hi) << 8);
     ASSERT_EQ(reconstructed, divisor);
 }
@@ -452,7 +451,7 @@ TEST("pit: 6000 ticks at 100 Hz is 60 seconds") {
 
 /// Verify effective frequency is close to requested frequency
 TEST("pit: effective 100 Hz close to requested") {
-    uint32_t divisor = pit_calc_divisor(100);
+    uint32_t divisor   = pit_calc_divisor(100);
     uint32_t effective = PitHW::BASE_FREQ / divisor;
     // 1193182 / 11931 = 100.00...
     ASSERT_EQ(effective, 100u);
@@ -460,7 +459,7 @@ TEST("pit: effective 100 Hz close to requested") {
 
 /// Verify effective 1000 Hz is exact
 TEST("pit: effective 1000 Hz is exact") {
-    uint32_t divisor = pit_calc_divisor(1000);
+    uint32_t divisor   = pit_calc_divisor(1000);
     uint32_t effective = PitHW::BASE_FREQ / divisor;
     ASSERT_EQ(effective, 1000u);
 }
@@ -468,7 +467,7 @@ TEST("pit: effective 1000 Hz is exact") {
 /// Verify clamped 1 Hz effective frequency differs from requested
 TEST("pit: clamped 1 Hz effective is not 1 Hz") {
     // Divisor clamped to 65535, effective = 1193182/65535 ~ 18.2 Hz
-    uint32_t divisor = pit_calc_divisor(1);
+    uint32_t divisor   = pit_calc_divisor(1);
     uint32_t effective = PitHW::BASE_FREQ / divisor;
     ASSERT_TRUE(effective > 1u);  // Cannot actually achieve 1 Hz
 }

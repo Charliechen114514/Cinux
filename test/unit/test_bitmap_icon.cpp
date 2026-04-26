@@ -13,13 +13,13 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstring>
-#include <vector>
+#    include <cstdint>
+#    include <cstring>
+#    include <vector>
 
 // Icon and desktop_icon headers (no C++20 dependency)
-#define CINUX_GUI
-#include "gui/desktop_icon.hpp"
+#    define CINUX_GUI
+#    include "gui/desktop_icon.hpp"
 
 // ============================================================
 // Mock Canvas (mirrors kernel/drivers/canvas.hpp/.cpp draw_bitmap logic)
@@ -36,8 +36,7 @@ public:
     }
 
     // Mirrors kernel/drivers/canvas.cpp::draw_bitmap exactly
-    void draw_bitmap(uint32_t x, uint32_t y, uint32_t w, uint32_t h,
-                     const uint32_t* pixels) {
+    void draw_bitmap(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint32_t* pixels) {
         if (back_buf_.data() == nullptr || pixels == nullptr)
             return;
 
@@ -61,21 +60,22 @@ public:
         }
     }
 
-    uint32_t width()  const { return width_; }
+    uint32_t width() const { return width_; }
     uint32_t height() const { return height_; }
-    uint32_t pitch()  const { return pitch_; }
+    uint32_t pitch() const { return pitch_; }
 
     uint32_t back_pixel(uint32_t x, uint32_t y) const {
-        if (x >= width_ || y >= height_) return 0xDEAD;
+        if (x >= width_ || y >= height_)
+            return 0xDEAD;
         return back_buf_[y * (pitch_ / 4) + x];
     }
 
 private:
-    uint32_t* front_buf_ = nullptr;
+    uint32_t*             front_buf_ = nullptr;
     std::vector<uint32_t> back_buf_;
-    uint32_t width_  = 0;
-    uint32_t height_ = 0;
-    uint32_t pitch_  = 0;
+    uint32_t              width_  = 0;
+    uint32_t              height_ = 0;
+    uint32_t              pitch_  = 0;
 };
 
 // ============================================================
@@ -89,17 +89,17 @@ enum class IconAction : uint8_t {
 };
 
 struct DesktopIcon {
-    int32_t        x;
-    int32_t        y;
+    int32_t         x;
+    int32_t         y;
     const uint32_t* bitmap;
-    const char*    label;
-    uint32_t       width;
-    uint32_t       height;
-    IconAction     action;
+    const char*     label;
+    uint32_t        width;
+    uint32_t        height;
+    IconAction      action;
 
     [[nodiscard]] bool contains(int32_t mx, int32_t my) const {
-        return mx >= x && mx < static_cast<int32_t>(x + width)
-            && my >= y && my < static_cast<int32_t>(y + height);
+        return mx >= x && mx < static_cast<int32_t>(x + width) && my >= y &&
+               my < static_cast<int32_t>(y + height);
     }
 };
 
@@ -121,8 +121,7 @@ TEST("bitmap: draw_bitmap renders opaque pixels correctly") {
     MockCanvas canvas = make_canvas(8, 8);
 
     // 2x2 bitmap, all opaque red
-    uint32_t pixels[] = {0x00FF0000, 0x00FF0000,
-                         0x00FF0000, 0x00FF0000};
+    uint32_t pixels[] = {0x00FF0000, 0x00FF0000, 0x00FF0000, 0x00FF0000};
 
     canvas.draw_bitmap(2, 2, 2, 2, pixels);
 
@@ -141,8 +140,8 @@ TEST("bitmap: draw_bitmap renders multiple distinct colours") {
     MockCanvas canvas = make_canvas(8, 8);
 
     // 2x2 bitmap with 4 different colours
-    uint32_t pixels[] = {0x00FF0000, 0x0000FF00,  // red, green
-                         0x000000FF, 0x00FFFFFF}; // blue, white
+    uint32_t pixels[] = {0x00FF0000, 0x0000FF00,   // red, green
+                         0x000000FF, 0x00FFFFFF};  // blue, white
 
     canvas.draw_bitmap(1, 1, 2, 2, pixels);
 
@@ -155,8 +154,7 @@ TEST("bitmap: draw_bitmap renders multiple distinct colours") {
 TEST("bitmap: draw_bitmap at origin (0,0)") {
     MockCanvas canvas = make_canvas(4, 4);
 
-    uint32_t pixels[] = {0x00AABBCC, 0x00DDEEFF,
-                         0x00112233, 0x00445566};
+    uint32_t pixels[] = {0x00AABBCC, 0x00DDEEFF, 0x00112233, 0x00445566};
 
     canvas.draw_bitmap(0, 0, 2, 2, pixels);
 
@@ -171,7 +169,8 @@ TEST("bitmap: draw_bitmap larger bitmap fills area") {
 
     // 5x5 bitmap, all green
     uint32_t pixels[25];
-    for (int i = 0; i < 25; i++) pixels[i] = 0x0000FF00;
+    for (int i = 0; i < 25; i++)
+        pixels[i] = 0x0000FF00;
 
     canvas.draw_bitmap(3, 3, 5, 5, pixels);
 
@@ -198,12 +197,12 @@ TEST("bitmap: draw_bitmap skips transparent pixels (0x00000000)") {
 
     // Fill canvas with blue first using a proper pixel array
     uint32_t blue_pixels[64];
-    for (int i = 0; i < 64; i++) blue_pixels[i] = 0x000000FF;
+    for (int i = 0; i < 64; i++)
+        blue_pixels[i] = 0x000000FF;
     canvas.draw_bitmap(0, 0, 8, 8, blue_pixels);
 
     // 2x2 bitmap: transparent, red, green, blue
-    uint32_t pixels[] = {0x00000000, 0x00FF0000,
-                         0x0000FF00, 0x000000FF};
+    uint32_t pixels[] = {0x00000000, 0x00FF0000, 0x0000FF00, 0x000000FF};
 
     canvas.draw_bitmap(1, 1, 2, 2, pixels);
 
@@ -218,8 +217,7 @@ TEST("bitmap: draw_bitmap skips transparent pixels (0x00000000)") {
 TEST("bitmap: draw_bitmap all transparent draws nothing") {
     MockCanvas canvas = make_canvas(4, 4);
 
-    uint32_t pixels[] = {0x00000000, 0x00000000,
-                         0x00000000, 0x00000000};
+    uint32_t pixels[] = {0x00000000, 0x00000000, 0x00000000, 0x00000000};
 
     canvas.draw_bitmap(0, 0, 2, 2, pixels);
 
@@ -236,8 +234,8 @@ TEST("bitmap: draw_bitmap checkerboard pattern") {
     // 4x4 checkerboard: alternating red and transparent
     uint32_t pixels[16];
     for (int i = 0; i < 16; i++) {
-        int row = i / 4;
-        int col = i % 4;
+        int row   = i / 4;
+        int col   = i % 4;
         pixels[i] = ((row + col) % 2 == 0) ? 0x00FF0000 : 0x00000000;
     }
 
@@ -287,7 +285,8 @@ TEST("bitmap: draw_bitmap clips both right and bottom") {
 
     // 4x4 bitmap placed at (2,2) — only 2x2 fits
     uint32_t pixels[16];
-    for (int i = 0; i < 16; i++) pixels[i] = 0x00FFFF00;
+    for (int i = 0; i < 16; i++)
+        pixels[i] = 0x00FFFF00;
 
     canvas.draw_bitmap(2, 2, 4, 4, pixels);
 
@@ -303,8 +302,7 @@ TEST("bitmap: draw_bitmap clips both right and bottom") {
 TEST("bitmap: draw_bitmap completely outside canvas is no-op") {
     MockCanvas canvas = make_canvas(4, 4);
 
-    uint32_t pixels[] = {0x00FF0000, 0x00FF0000,
-                         0x00FF0000, 0x00FF0000};
+    uint32_t pixels[] = {0x00FF0000, 0x00FF0000, 0x00FF0000, 0x00FF0000};
 
     // Bitmap starts entirely past the right edge
     canvas.draw_bitmap(10, 0, 2, 2, pixels);
@@ -340,7 +338,8 @@ TEST("bitmap: draw_bitmap null pixels is no-op") {
 
     // Pre-fill with red using a proper 4x4 pixel array
     uint32_t red_pixels[16];
-    for (int i = 0; i < 16; i++) red_pixels[i] = 0x00FF0000;
+    for (int i = 0; i < 16; i++)
+        red_pixels[i] = 0x00FF0000;
     canvas.draw_bitmap(0, 0, 4, 4, red_pixels);
 
     canvas.draw_bitmap(0, 0, 2, 2, nullptr);
@@ -388,12 +387,12 @@ TEST("bitmap: draw_bitmap transparent preserves existing drawing") {
 
     // Draw a red rectangle first using a proper pixel array
     uint32_t red_pixels[16];
-    for (int i = 0; i < 16; i++) red_pixels[i] = 0x00FF0000;
+    for (int i = 0; i < 16; i++)
+        red_pixels[i] = 0x00FF0000;
     canvas.draw_bitmap(0, 0, 4, 4, red_pixels);
 
     // Overlay a 2x2 bitmap with one transparent pixel
-    uint32_t pixels[] = {0x00000000, 0x0000FF00,
-                         0x000000FF, 0x00FFFFFF};
+    uint32_t pixels[] = {0x00000000, 0x0000FF00, 0x000000FF, 0x00FFFFFF};
 
     canvas.draw_bitmap(1, 1, 2, 2, pixels);
 
@@ -416,29 +415,35 @@ TEST("bitmap: draw_bitmap transparent preserves existing drawing") {
 
 TEST("desktop_icon: contains returns true for point inside") {
     DesktopIcon icon{
-        .x = 10, .y = 20,
-        .bitmap = nullptr, .label = "Test",
-        .width = 32, .height = 32,
+        .x      = 10,
+        .y      = 20,
+        .bitmap = nullptr,
+        .label  = "Test",
+        .width  = 32,
+        .height = 32,
         .action = IconAction::OpenShell,
     };
 
-    ASSERT_TRUE(icon.contains(10, 20));   // top-left corner
-    ASSERT_TRUE(icon.contains(20, 30));   // middle
-    ASSERT_TRUE(icon.contains(41, 51));   // bottom-right - 1
+    ASSERT_TRUE(icon.contains(10, 20));  // top-left corner
+    ASSERT_TRUE(icon.contains(20, 30));  // middle
+    ASSERT_TRUE(icon.contains(41, 51));  // bottom-right - 1
 }
 
 TEST("desktop_icon: contains returns false for point outside") {
     DesktopIcon icon{
-        .x = 10, .y = 20,
-        .bitmap = nullptr, .label = "Test",
-        .width = 32, .height = 32,
+        .x      = 10,
+        .y      = 20,
+        .bitmap = nullptr,
+        .label  = "Test",
+        .width  = 32,
+        .height = 32,
         .action = IconAction::OpenShell,
     };
 
-    ASSERT_FALSE(icon.contains(9, 20));    // left of icon
-    ASSERT_FALSE(icon.contains(10, 19));   // above icon
-    ASSERT_FALSE(icon.contains(42, 51));   // right of icon (x + width)
-    ASSERT_FALSE(icon.contains(41, 52));   // below icon (y + height)
+    ASSERT_FALSE(icon.contains(9, 20));   // left of icon
+    ASSERT_FALSE(icon.contains(10, 19));  // above icon
+    ASSERT_FALSE(icon.contains(42, 51));  // right of icon (x + width)
+    ASSERT_FALSE(icon.contains(41, 52));  // below icon (y + height)
 }
 
 // ============================================================
@@ -447,37 +452,46 @@ TEST("desktop_icon: contains returns false for point outside") {
 
 TEST("desktop_icon: contains boundary exact top-left corner is inside") {
     DesktopIcon icon{
-        .x = 0, .y = 0,
-        .bitmap = nullptr, .label = "Test",
-        .width = 16, .height = 16,
+        .x      = 0,
+        .y      = 0,
+        .bitmap = nullptr,
+        .label  = "Test",
+        .width  = 16,
+        .height = 16,
         .action = IconAction::None,
     };
 
     ASSERT_TRUE(icon.contains(0, 0));
-    ASSERT_TRUE(icon.contains(15, 15));    // last pixel inside
-    ASSERT_FALSE(icon.contains(16, 0));    // one past right edge
-    ASSERT_FALSE(icon.contains(0, 16));    // one past bottom edge
+    ASSERT_TRUE(icon.contains(15, 15));  // last pixel inside
+    ASSERT_FALSE(icon.contains(16, 0));  // one past right edge
+    ASSERT_FALSE(icon.contains(0, 16));  // one past bottom edge
 }
 
 TEST("desktop_icon: contains at large coordinates") {
     DesktopIcon icon{
-        .x = 1000, .y = 2000,
-        .bitmap = nullptr, .label = "Test",
-        .width = 32, .height = 32,
+        .x      = 1000,
+        .y      = 2000,
+        .bitmap = nullptr,
+        .label  = "Test",
+        .width  = 32,
+        .height = 32,
         .action = IconAction::OpenCalculator,
     };
 
     ASSERT_TRUE(icon.contains(1000, 2000));
-    ASSERT_TRUE(icon.contains(1031, 2031));  // last pixel
-    ASSERT_FALSE(icon.contains(1032, 2000)); // one past right
-    ASSERT_FALSE(icon.contains(1000, 2032)); // one past bottom
+    ASSERT_TRUE(icon.contains(1031, 2031));   // last pixel
+    ASSERT_FALSE(icon.contains(1032, 2000));  // one past right
+    ASSERT_FALSE(icon.contains(1000, 2032));  // one past bottom
 }
 
 TEST("desktop_icon: contains 1x1 icon") {
     DesktopIcon icon{
-        .x = 50, .y = 50,
-        .bitmap = nullptr, .label = "Dot",
-        .width = 1, .height = 1,
+        .x      = 50,
+        .y      = 50,
+        .bitmap = nullptr,
+        .label  = "Dot",
+        .width  = 1,
+        .height = 1,
         .action = IconAction::None,
     };
 
@@ -490,38 +504,50 @@ TEST("desktop_icon: contains 1x1 icon") {
 
 TEST("desktop_icon: contains negative icon position") {
     DesktopIcon icon{
-        .x = -10, .y = -5,
-        .bitmap = nullptr, .label = "Offscreen",
-        .width = 32, .height = 32,
+        .x      = -10,
+        .y      = -5,
+        .bitmap = nullptr,
+        .label  = "Offscreen",
+        .width  = 32,
+        .height = 32,
         .action = IconAction::None,
     };
 
     // Point (-10, -5) is the top-left corner — should be inside
     ASSERT_TRUE(icon.contains(-10, -5));
-    ASSERT_TRUE(icon.contains(0, 0));       // well inside
-    ASSERT_TRUE(icon.contains(21, 26));     // last pixel (x=-10+32-1=21, y=-5+32-1=26)
-    ASSERT_FALSE(icon.contains(22, 26));    // one past right edge
-    ASSERT_FALSE(icon.contains(21, 27));    // one past bottom edge
+    ASSERT_TRUE(icon.contains(0, 0));     // well inside
+    ASSERT_TRUE(icon.contains(21, 26));   // last pixel (x=-10+32-1=21, y=-5+32-1=26)
+    ASSERT_FALSE(icon.contains(22, 26));  // one past right edge
+    ASSERT_FALSE(icon.contains(21, 27));  // one past bottom edge
 }
 
 TEST("desktop_icon: contains with different IconAction values") {
     // Verify that IconAction values don't affect hit testing
     DesktopIcon icon1{
-        .x = 0, .y = 0,
-        .bitmap = nullptr, .label = "None",
-        .width = 10, .height = 10,
+        .x      = 0,
+        .y      = 0,
+        .bitmap = nullptr,
+        .label  = "None",
+        .width  = 10,
+        .height = 10,
         .action = IconAction::None,
     };
     DesktopIcon icon2{
-        .x = 0, .y = 0,
-        .bitmap = nullptr, .label = "Shell",
-        .width = 10, .height = 10,
+        .x      = 0,
+        .y      = 0,
+        .bitmap = nullptr,
+        .label  = "Shell",
+        .width  = 10,
+        .height = 10,
         .action = IconAction::OpenShell,
     };
     DesktopIcon icon3{
-        .x = 0, .y = 0,
-        .bitmap = nullptr, .label = "Calc",
-        .width = 10, .height = 10,
+        .x      = 0,
+        .y      = 0,
+        .bitmap = nullptr,
+        .label  = "Calc",
+        .width  = 10,
+        .height = 10,
         .action = IconAction::OpenCalculator,
     };
 

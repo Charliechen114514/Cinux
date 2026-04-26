@@ -9,13 +9,13 @@
  */
 
 #include "ramdisk.hpp"
-#include "ramdisk_config.hpp"
 
-#include <stdint.h>
 #include <stddef.h>
-#include "kernel/lib/string.hpp"
+#include <stdint.h>
 
 #include "kernel/lib/kprintf.hpp"
+#include "kernel/lib/string.hpp"
+#include "ramdisk_config.hpp"
 
 namespace cinux::fs {
 
@@ -38,13 +38,11 @@ namespace {
 
 class RamdiskFileOps : public InodeOps {
 public:
-    int64_t read(const Inode* inode, uint64_t offset,
-                 void* buf, uint64_t count) override;
+    int64_t read(const Inode* inode, uint64_t offset, void* buf, uint64_t count) override;
     int64_t write(Inode*, uint64_t, const void*, uint64_t) override;
 };
 
-int64_t RamdiskFileOps::read(const Inode* inode, uint64_t offset,
-                             void* buf, uint64_t count) {
+int64_t RamdiskFileOps::read(const Inode* inode, uint64_t offset, void* buf, uint64_t count) {
     if (inode == nullptr || inode->fs_private == nullptr || buf == nullptr) {
         return -1;
     }
@@ -56,7 +54,7 @@ int64_t RamdiskFileOps::read(const Inode* inode, uint64_t offset,
     }
 
     uint64_t available = entry->size - offset;
-    uint64_t to_read = (count < available) ? count : available;
+    uint64_t to_read   = (count < available) ? count : available;
 
     const auto* src = static_cast<const uint8_t*>(entry->data) + offset;
     memcpy(buf, src, to_read);
@@ -71,18 +69,15 @@ int64_t RamdiskFileOps::write(Inode*, uint64_t, const void*, uint64_t) {
 class RamdiskDirOps : public InodeOps {
 public:
     int64_t write(Inode*, uint64_t, const void*, uint64_t) override;
-    int64_t readdir(const Inode* inode, uint64_t index,
-                    char* name, uint64_t name_max) override;
+    int64_t readdir(const Inode* inode, uint64_t index, char* name, uint64_t name_max) override;
 };
 
 int64_t RamdiskDirOps::write(Inode*, uint64_t, const void*, uint64_t) {
     return -1;
 }
 
-int64_t RamdiskDirOps::readdir(const Inode* inode, uint64_t index,
-                               char* name, uint64_t name_max) {
-    if (inode == nullptr || inode->fs_private == nullptr ||
-        name == nullptr || name_max == 0) {
+int64_t RamdiskDirOps::readdir(const Inode* inode, uint64_t index, char* name, uint64_t name_max) {
+    if (inode == nullptr || inode->fs_private == nullptr || name == nullptr || name_max == 0) {
         return -1;
     }
 
@@ -112,9 +107,9 @@ int64_t RamdiskDirOps::readdir(const Inode* inode, uint64_t index,
         return 0;
     }
 
-    const char* src = ctx->entries[file_index].name;
-    uint64_t copy_len = name_max - 1;
-    uint64_t i = 0;
+    const char* src      = ctx->entries[file_index].name;
+    uint64_t    copy_len = name_max - 1;
+    uint64_t    i        = 0;
     while (src[i] != '\0' && i < copy_len) {
         name[i] = src[i];
         ++i;
@@ -186,7 +181,7 @@ uint64_t octal_to_uint(const char* s, size_t len) {
 bool Ramdisk::mount() {
     // Allocate ops instances
     file_ops_ = new RamdiskFileOps();
-    dir_ops_ = new RamdiskDirOps();
+    dir_ops_  = new RamdiskDirOps();
 
     // Step 1: Resolve archive boundaries from linker symbols
     base_ = _binary_initrd_start;
@@ -197,11 +192,10 @@ bool Ramdisk::mount() {
         return false;
     }
 
-    cinux::lib::kprintf("[RAMDISK] Archive at 0x%p, size %u bytes\n",
-                        base_, size_);
+    cinux::lib::kprintf("[RAMDISK] Archive at 0x%p, size %u bytes\n", base_, size_);
 
     // Step 2: Iterate through ustar entries and build the entry table
-    entry_count_ = 0;
+    entry_count_    = 0;
     uint64_t offset = 0;
 
     while (offset + sizeof(UstarHeader) <= size_) {
@@ -214,8 +208,7 @@ bool Ramdisk::mount() {
 
         // Validate ustar magic
         if (!is_valid_ustar(hdr)) {
-            cinux::lib::kprintf("[RAMDISK] Invalid ustar magic at offset %u, stopping.\n",
-                                offset);
+            cinux::lib::kprintf("[RAMDISK] Invalid ustar magic at offset %u, stopping.\n", offset);
             break;
         }
 
@@ -231,8 +224,7 @@ bool Ramdisk::mount() {
 
                 // Copy the file name (null-terminated)
                 uint32_t name_len = 0;
-                while (name_len < RAMDISK_NAME_MAX - 1 &&
-                       hdr->name[name_len] != '\0') {
+                while (name_len < RAMDISK_NAME_MAX - 1 && hdr->name[name_len] != '\0') {
                     entry.name[name_len] = hdr->name[name_len];
                     ++name_len;
                 }
@@ -242,10 +234,10 @@ bool Ramdisk::mount() {
                 entry.data = base_ + offset + sizeof(UstarHeader);
 
                 // Set up the Inode for this entry
-                entry.inode.ino = entry_count_;
-                entry.inode.size = file_size;
-                entry.inode.type = InodeType::Regular;
-                entry.inode.ops = file_ops_;
+                entry.inode.ino        = entry_count_;
+                entry.inode.size       = file_size;
+                entry.inode.type       = InodeType::Regular;
+                entry.inode.ops        = file_ops_;
                 entry.inode.fs_private = &entry;
 
                 cinux::lib::kprintf("[RAMDISK]   FILE: ");
@@ -271,12 +263,12 @@ bool Ramdisk::mount() {
     cinux::lib::kprintf("[RAMDISK] %u file(s) found in initrd.\n", entry_count_);
 
     // Set up the root directory inode for readdir support
-    root_ctx_.entries = entries_;
-    root_ctx_.count = entry_count_;
-    root_inode_.ino = 0;
-    root_inode_.size = 0;
-    root_inode_.type = InodeType::Directory;
-    root_inode_.ops = dir_ops_;
+    root_ctx_.entries      = entries_;
+    root_ctx_.count        = entry_count_;
+    root_inode_.ino        = 0;
+    root_inode_.size       = 0;
+    root_inode_.type       = InodeType::Directory;
+    root_inode_.ops        = dir_ops_;
     root_inode_.fs_private = &root_ctx_;
 
     return entry_count_ > 0;
@@ -301,7 +293,7 @@ Inode* Ramdisk::lookup(const char* path) {
     for (uint32_t i = 0; i < entry_count_; ++i) {
         // Compare the path with the entry name
         const char* entry_name = entries_[i].name;
-        uint32_t j = 0;
+        uint32_t    j          = 0;
         while (entry_name[j] != '\0' && path[j] != '\0') {
             if (entry_name[j] != path[j]) {
                 break;

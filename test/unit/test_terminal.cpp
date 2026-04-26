@@ -14,9 +14,9 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstring>
-#include <vector>
+#    include <cstdint>
+#    include <cstring>
+#    include <vector>
 
 // ============================================================
 // Mock PSFFont (mimics kernel/drivers/video/font.hpp)
@@ -34,17 +34,18 @@ public:
     }
 
     const uint8_t* glyph(uint8_t c) const {
-        if (glyphs_[c].empty()) return nullptr;
+        if (glyphs_[c].empty())
+            return nullptr;
         return glyphs_[c].data();
     }
 
-    uint32_t width()  const { return width_; }
+    uint32_t width() const { return width_; }
     uint32_t height() const { return height_; }
 
 private:
     std::vector<uint8_t> glyphs_[256];
-    uint32_t width_  = 0;
-    uint32_t height_ = 0;
+    uint32_t             width_  = 0;
+    uint32_t             height_ = 0;
 };
 
 // ============================================================
@@ -56,15 +57,17 @@ public:
     MockCanvas() = default;
 
     void init(uint32_t w, uint32_t h) {
-        if (!back_buf_.empty()) back_buf_.clear();
-        width_     = w;
-        height_    = h;
-        pitch_     = w * 4;
+        if (!back_buf_.empty())
+            back_buf_.clear();
+        width_  = w;
+        height_ = h;
+        pitch_  = w * 4;
         back_buf_.resize(static_cast<size_t>(w) * h, 0);
     }
 
     void draw_pixel(uint32_t x, uint32_t y, uint32_t color) {
-        if (x >= width_ || y >= height_) return;
+        if (x >= width_ || y >= height_)
+            return;
         back_buf_[y * width_ + x] = color;
     }
 
@@ -76,46 +79,51 @@ public:
         }
     }
 
-    void blit(int32_t dst_x, int32_t dst_y, MockCanvas& src,
-              uint32_t sx, uint32_t sy, uint32_t w, uint32_t h) {
+    void blit(int32_t dst_x, int32_t dst_y, MockCanvas& src, uint32_t sx, uint32_t sy, uint32_t w,
+              uint32_t h) {
         for (uint32_t row = 0; row < h; row++) {
             uint32_t src_row = sy + row;
-            int32_t dst_row = dst_y + static_cast<int32_t>(row);
-            if (dst_row < 0) continue;
-            if (src_row >= src.height_ || dst_row >= static_cast<int32_t>(height_)) break;
+            int32_t  dst_row = dst_y + static_cast<int32_t>(row);
+            if (dst_row < 0)
+                continue;
+            if (src_row >= src.height_ || dst_row >= static_cast<int32_t>(height_))
+                break;
 
-            int32_t col_skip = 0;
-            int32_t eff_dst_x = dst_x;
-            uint32_t eff_sx = sx;
+            int32_t  col_skip  = 0;
+            int32_t  eff_dst_x = dst_x;
+            uint32_t eff_sx    = sx;
             if (eff_dst_x < 0) {
-                col_skip = -eff_dst_x;
+                col_skip  = -eff_dst_x;
                 eff_dst_x = 0;
                 eff_sx += static_cast<uint32_t>(col_skip);
             }
 
             uint32_t dst_col_start = static_cast<uint32_t>(eff_dst_x);
-            uint32_t col_count = w - static_cast<uint32_t>(col_skip);
+            uint32_t col_count     = w - static_cast<uint32_t>(col_skip);
 
             for (uint32_t i = 0; i < col_count; i++) {
                 uint32_t src_col = eff_sx + i;
                 uint32_t dst_col = dst_col_start + i;
-                if (src_col >= src.width_ || dst_col >= width_) break;
+                if (src_col >= src.width_ || dst_col >= width_)
+                    break;
                 back_buf_[dst_row * width_ + dst_col] =
                     src.back_buf_[src_row * src.width_ + src_col];
             }
         }
     }
 
-    void draw_text(uint32_t x, uint32_t y, const char* str, uint32_t color,
-                   MockPSFFont& font) {
-        if (str == nullptr) return;
+    void draw_text(uint32_t x, uint32_t y, const char* str, uint32_t color, MockPSFFont& font) {
+        if (str == nullptr)
+            return;
         uint32_t gw = font.width();
         uint32_t gh = font.height();
-        if (gw == 0 || gh == 0) return;
+        if (gw == 0 || gh == 0)
+            return;
         uint32_t cx = x;
         for (uint32_t i = 0; str[i] != '\0'; i++) {
             const uint8_t* g = font.glyph(static_cast<uint8_t>(str[i]));
-            if (g == nullptr) continue;
+            if (g == nullptr)
+                continue;
             for (uint32_t row = 0; row < gh; row++) {
                 uint8_t bits = g[row];
                 for (uint32_t col = 0; col < gw; col++) {
@@ -129,26 +137,28 @@ public:
     }
 
     void clear(uint32_t color = 0) {
-        for (auto& p : back_buf_) p = color;
+        for (auto& p : back_buf_)
+            p = color;
     }
 
     void flip() {
         // No-op in mock
     }
 
-    uint32_t width()  const { return width_; }
+    uint32_t width() const { return width_; }
     uint32_t height() const { return height_; }
 
     uint32_t pixel(uint32_t x, uint32_t y) const {
-        if (x >= width_ || y >= height_) return 0xDEAD;
+        if (x >= width_ || y >= height_)
+            return 0xDEAD;
         return back_buf_[y * width_ + x];
     }
 
 private:
     std::vector<uint32_t> back_buf_;
-    uint32_t width_  = 0;
-    uint32_t height_ = 0;
-    uint32_t pitch_  = 0;
+    uint32_t              width_  = 0;
+    uint32_t              height_ = 0;
+    uint32_t              pitch_  = 0;
 };
 
 // ============================================================
@@ -170,11 +180,11 @@ struct MockKeyEvent {
 
 class MockWindow {
 public:
-    static constexpr uint32_t TITLE_BAR_HEIGHT = 20;
+    static constexpr uint32_t TITLE_BAR_HEIGHT  = 20;
     static constexpr uint32_t CLOSE_BUTTON_SIZE = 14;
-    static constexpr uint32_t TITLE_MAX_LEN    = 63;
-    static constexpr uint32_t DEFAULT_WIDTH    = 320;
-    static constexpr uint32_t DEFAULT_HEIGHT   = 240;
+    static constexpr uint32_t TITLE_MAX_LEN     = 63;
+    static constexpr uint32_t DEFAULT_WIDTH     = 320;
+    static constexpr uint32_t DEFAULT_HEIGHT    = 240;
 
     static constexpr uint32_t COLOR_TITLE_BG     = 0x00336699;
     static constexpr uint32_t COLOR_TITLE_TEXT   = 0x00FFFFFF;
@@ -184,13 +194,11 @@ public:
 
     static uint32_t next_id_;
 
-    MockWindow(const char* title = "Untitled",
-               int32_t x = 0, int32_t y = 0,
-               uint32_t w = DEFAULT_WIDTH,
-               uint32_t h = DEFAULT_HEIGHT)
-        : id_(next_id_++), x_(x), y_(y), w_(w), h_(h),
-          visible_(true), focused_(false) {
-        for (uint32_t i = 0; i <= TITLE_MAX_LEN; i++) title_[i] = '\0';
+    MockWindow(const char* title = "Untitled", int32_t x = 0, int32_t y = 0,
+               uint32_t w = DEFAULT_WIDTH, uint32_t h = DEFAULT_HEIGHT)
+        : id_(next_id_++), x_(x), y_(y), w_(w), h_(h), visible_(true), focused_(false) {
+        for (uint32_t i = 0; i <= TITLE_MAX_LEN; i++)
+            title_[i] = '\0';
         if (title != nullptr) {
             uint32_t i = 0;
             while (i < TITLE_MAX_LEN && title[i] != '\0') {
@@ -213,45 +221,48 @@ public:
         canvas_.draw_text(4, text_y, title_, COLOR_TITLE_TEXT, font);
         uint32_t cb_x = w_ - CLOSE_BUTTON_SIZE - 3;
         uint32_t cb_y = (TITLE_BAR_HEIGHT - CLOSE_BUTTON_SIZE) / 2;
-        canvas_.draw_rect(cb_x, cb_y, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE,
-                          COLOR_CLOSE_BUTTON);
+        canvas_.draw_rect(cb_x, cb_y, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, COLOR_CLOSE_BUTTON);
     }
 
-    void draw_content() {
-        canvas_.draw_rect(0, TITLE_BAR_HEIGHT, w_, h_, COLOR_CONTENT_BG);
-    }
+    void draw_content() { canvas_.draw_rect(0, TITLE_BAR_HEIGHT, w_, h_, COLOR_CONTENT_BG); }
 
     void blit_to(MockCanvas& dst) {
-        if (!visible_) return;
+        if (!visible_)
+            return;
         dst.blit(x_, y_, canvas_, 0, 0, w_, total_height());
     }
 
-    void set_position(int32_t x, int32_t y) { x_ = x; y_ = y; }
-    void resize(uint32_t w, uint32_t h) { w_ = w; h_ = h; allocate_canvas(); }
+    void set_position(int32_t x, int32_t y) {
+        x_ = x;
+        y_ = y;
+    }
+    void resize(uint32_t w, uint32_t h) {
+        w_ = w;
+        h_ = h;
+        allocate_canvas();
+    }
 
     bool is_close_button_hit(int32_t mx, int32_t my) const {
         int32_t cb_x = x_ + static_cast<int32_t>(w_) - CLOSE_BUTTON_SIZE - 3;
         int32_t cb_y = y_ + static_cast<int32_t>((TITLE_BAR_HEIGHT - CLOSE_BUTTON_SIZE) / 2);
-        return mx >= cb_x && mx < cb_x + static_cast<int32_t>(CLOSE_BUTTON_SIZE)
-            && my >= cb_y && my < cb_y + static_cast<int32_t>(CLOSE_BUTTON_SIZE);
+        return mx >= cb_x && mx < cb_x + static_cast<int32_t>(CLOSE_BUTTON_SIZE) && my >= cb_y &&
+               my < cb_y + static_cast<int32_t>(CLOSE_BUTTON_SIZE);
     }
 
     bool contains(int32_t mx, int32_t my) const {
-        return mx >= x_
-            && mx < x_ + static_cast<int32_t>(w_)
-            && my >= y_
-            && my < y_ + static_cast<int32_t>(total_height());
+        return mx >= x_ && mx < x_ + static_cast<int32_t>(w_) && my >= y_ &&
+               my < y_ + static_cast<int32_t>(total_height());
     }
 
-    uint32_t id() const { return id_; }
-    int32_t  x() const { return x_; }
-    int32_t  y() const { return y_; }
-    uint32_t width() const { return w_; }
-    uint32_t height() const { return h_; }
-    bool     visible() const { return visible_; }
-    bool     focused() const { return focused_; }
+    uint32_t    id() const { return id_; }
+    int32_t     x() const { return x_; }
+    int32_t     y() const { return y_; }
+    uint32_t    width() const { return w_; }
+    uint32_t    height() const { return h_; }
+    bool        visible() const { return visible_; }
+    bool        focused() const { return focused_; }
     const char* title() const { return title_; }
-    uint32_t total_height() const { return h_ + TITLE_BAR_HEIGHT; }
+    uint32_t    total_height() const { return h_ + TITLE_BAR_HEIGHT; }
 
     void set_visible(bool v) { visible_ = v; }
     void set_focused(bool f) { focused_ = f; }
@@ -266,15 +277,15 @@ protected:
         canvas_.init(w_, total_h);
     }
 
-    uint32_t id_;
-    int32_t  x_;
-    int32_t  y_;
-    uint32_t w_;
-    uint32_t h_;
-    char     title_[TITLE_MAX_LEN + 1];
+    uint32_t   id_;
+    int32_t    x_;
+    int32_t    y_;
+    uint32_t   w_;
+    uint32_t   h_;
+    char       title_[TITLE_MAX_LEN + 1];
     MockCanvas canvas_;
-    bool     visible_;
-    bool     focused_;
+    bool       visible_;
+    bool       focused_;
 };
 
 uint32_t MockWindow::next_id_ = 1;
@@ -299,11 +310,7 @@ public:
     static constexpr uint32_t ROWS = 25;
 
     MockTerminal(uint32_t x = 0, uint32_t y = 0, const char* title = "Cinux Terminal")
-        : MockWindow(title,
-                     static_cast<int32_t>(x),
-                     static_cast<int32_t>(y),
-                     COLS * 8,
-                     ROWS * 16) {
+        : MockWindow(title, static_cast<int32_t>(x), static_cast<int32_t>(y), COLS * 8, ROWS * 16) {
         for (uint32_t r = 0; r < ROWS; r++) {
             for (uint32_t c = 0; c < COLS; c++) {
                 screen_[r][c] = MockTerminalCell{};
@@ -314,8 +321,10 @@ public:
     ~MockTerminal() override = default;
 
     void on_key(MockKeyEvent& ev) override {
-        if (!ev.pressed) return;
-        if (ev.ascii == 0) return;
+        if (!ev.pressed)
+            return;
+        if (ev.ascii == 0)
+            return;
         process_char(ev.ascii);
     }
 
@@ -328,19 +337,27 @@ public:
                 continue;
             }
             switch (ch) {
-            case '\n': newline(); break;
-            case '\r': cursor_x_ = 0; break;
-            case '\b': backspace(); break;
-            case '\t': tab(); break;
-            default:   process_char(ch); break;
+            case '\n':
+                newline();
+                break;
+            case '\r':
+                cursor_x_ = 0;
+                break;
+            case '\b':
+                backspace();
+                break;
+            case '\t':
+                tab();
+                break;
+            default:
+                process_char(ch);
+                break;
             }
             pos++;
         }
     }
 
-    const MockTerminalCell& cell(uint32_t row, uint32_t col) const {
-        return screen_[row][col];
-    }
+    const MockTerminalCell& cell(uint32_t row, uint32_t col) const { return screen_[row][col]; }
 
     uint32_t cursor_x() const { return cursor_x_; }
     uint32_t cursor_y() const { return cursor_y_; }
@@ -357,7 +374,8 @@ public:
 
     // Expose internals for testing
     void process_char(char ch) {
-        if (static_cast<uint8_t>(ch) < 0x20 || static_cast<uint8_t>(ch) > 0x7E) return;
+        if (static_cast<uint8_t>(ch) < 0x20 || static_cast<uint8_t>(ch) > 0x7E)
+            return;
         screen_[cursor_y_][cursor_x_].ch = ch;
         screen_[cursor_y_][cursor_x_].fg = fg_;
         screen_[cursor_y_][cursor_x_].bg = bg_;
@@ -394,7 +412,7 @@ public:
             screen_[cursor_y_][cursor_x_] = MockTerminalCell{};
         } else if (cursor_y_ > 0) {
             cursor_y_--;
-            cursor_x_ = COLS - 1;
+            cursor_x_                     = COLS - 1;
             screen_[cursor_y_][cursor_x_] = MockTerminalCell{};
         }
     }
@@ -429,7 +447,8 @@ private:
                 pos++;
                 switch (ch) {
                 case 'J':
-                    if (param == 2) clear();
+                    if (param == 2)
+                        clear();
                     return;
                 case 'H':
                     cursor_x_ = 0;
@@ -452,10 +471,10 @@ private:
     }
 
     MockTerminalCell screen_[ROWS][COLS];
-    uint32_t cursor_x_ = 0;
-    uint32_t cursor_y_ = 0;
-    uint32_t fg_ = 0x00FFFFFF;
-    uint32_t bg_ = 0x00000000;
+    uint32_t         cursor_x_ = 0;
+    uint32_t         cursor_y_ = 0;
+    uint32_t         fg_       = 0x00FFFFFF;
+    uint32_t         bg_       = 0x00000000;
 };
 
 // ============================================================
@@ -544,7 +563,8 @@ TEST("terminal: write wraps at end of line") {
 
     // Write exactly COLS characters
     char line[81];
-    for (int i = 0; i < 80; i++) line[i] = 'A' + static_cast<char>(i % 26);
+    for (int i = 0; i < 80; i++)
+        line[i] = 'A' + static_cast<char>(i % 26);
     line[80] = '\0';
     t.write(line, 80);
 
@@ -563,7 +583,8 @@ TEST("terminal: write wraps beyond COLS triggers newline") {
 
     // Write COLS + 1 characters
     char buf[82];
-    for (int i = 0; i < 81; i++) buf[i] = 'X';
+    for (int i = 0; i < 81; i++)
+        buf[i] = 'X';
     t.write(buf, 81);
 
     // First char of second row should be 'X' (the 81st character)
@@ -640,7 +661,8 @@ TEST("terminal: write tab near end of line clamps to COLS-1") {
     // Set cursor near end of line
     // Write 77 chars then tab: cursor at 77, next tab stop = 80, clamp to 79
     char buf[78];
-    for (int i = 0; i < 77; i++) buf[i] = 'X';
+    for (int i = 0; i < 77; i++)
+        buf[i] = 'X';
     buf[77] = '\0';
     t.write(buf, 77);
     ASSERT_EQ(t.cursor_x(), 77u);
@@ -679,12 +701,12 @@ TEST("terminal: on_key writes printable character to buffer") {
     MockTerminal t;
 
     MockKeyEvent ev{};
-    ev.ascii = 'Z';
-    ev.pressed = true;
+    ev.ascii    = 'Z';
+    ev.pressed  = true;
     ev.scancode = 0;
-    ev.shift = false;
-    ev.ctrl = false;
-    ev.alt = false;
+    ev.shift    = false;
+    ev.ctrl     = false;
+    ev.alt      = false;
 
     t.on_key(ev);
 
@@ -698,7 +720,7 @@ TEST("terminal: on_key ignores key release") {
     MockTerminal t;
 
     MockKeyEvent ev{};
-    ev.ascii = 'Z';
+    ev.ascii   = 'Z';
     ev.pressed = false;
 
     t.on_key(ev);
@@ -712,7 +734,7 @@ TEST("terminal: on_key ignores non-printable (ascii=0)") {
     MockTerminal t;
 
     MockKeyEvent ev{};
-    ev.ascii = 0;
+    ev.ascii   = 0;
     ev.pressed = true;
 
     t.on_key(ev);
@@ -726,7 +748,7 @@ TEST("terminal: on_key enter triggers newline") {
 
     // Write 'A' first
     MockKeyEvent ev_a{};
-    ev_a.ascii = 'A';
+    ev_a.ascii   = 'A';
     ev_a.pressed = true;
     t.on_key(ev_a);
 

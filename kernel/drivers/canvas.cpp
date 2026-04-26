@@ -66,9 +66,9 @@ void Canvas::init(Framebuffer& fb) {
     // Drawing functions access back_buf_[row * (pitch/4) + col], so
     // the buffer must be pitch/4 * height elements to avoid overflow when
     // the framebuffer pitch is larger than width * 4 (VBE line alignment).
-    uint32_t stride      = pitch_ / 4;
+    uint32_t stride       = pitch_ / 4;
     uint32_t total_pixels = stride * height_;
-    back_buf_ = new uint32_t[total_pixels];
+    back_buf_             = new uint32_t[total_pixels];
 
     // Clear back buffer to black
     memfill32(back_buf_, 0, total_pixels);
@@ -88,7 +88,7 @@ void Canvas::init(uint32_t w, uint32_t h) {
 
     // Allocate back buffer
     uint32_t total_pixels = width_ * height_;
-    back_buf_ = new uint32_t[total_pixels];
+    back_buf_             = new uint32_t[total_pixels];
 
     // Clear to black
     memfill32(back_buf_, 0, total_pixels);
@@ -99,7 +99,7 @@ void Canvas::draw_pixel(uint32_t x, uint32_t y, uint32_t color) {
         return;
 
     // Compute index using pitch (same formula as Framebuffer)
-    uint32_t pixels_per_row = pitch_ / 4;
+    uint32_t pixels_per_row           = pitch_ / 4;
     back_buf_[y * pixels_per_row + x] = color;
 }
 
@@ -155,8 +155,7 @@ void Canvas::flip() {
 
     for (uint32_t row = 0; row < height_; row++) {
         memcopy(dst + static_cast<uintptr_t>(row) * pitch_,
-                src + static_cast<uintptr_t>(row) * pitch_,
-                width_ * 4);
+                src + static_cast<uintptr_t>(row) * pitch_, width_ * 4);
     }
 }
 
@@ -168,8 +167,7 @@ void Canvas::clear(uint32_t color) {
     memfill32(back_buf_, color, total_pixels);
 }
 
-void Canvas::draw_line(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1,
-                       uint32_t color) {
+void Canvas::draw_line(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, uint32_t color) {
     if (back_buf_ == nullptr)
         return;
 
@@ -206,8 +204,7 @@ void Canvas::draw_line(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1,
     }
 }
 
-void Canvas::draw_text(uint32_t x, uint32_t y, const char* str, uint32_t color,
-                       PSFFont& font) {
+void Canvas::draw_text(uint32_t x, uint32_t y, const char* str, uint32_t color, PSFFont& font) {
     if (back_buf_ == nullptr || str == nullptr)
         return;
 
@@ -246,8 +243,8 @@ void Canvas::draw_text(uint32_t x, uint32_t y, const char* str, uint32_t color,
     }
 }
 
-void Canvas::blit(int32_t dst_x, int32_t dst_y, Canvas& src,
-                  uint32_t sx, uint32_t sy, uint32_t w, uint32_t h) {
+void Canvas::blit(int32_t dst_x, int32_t dst_y, Canvas& src, uint32_t sx, uint32_t sy, uint32_t w,
+                  uint32_t h) {
     if (back_buf_ == nullptr || src.back_buf_ == nullptr)
         return;
 
@@ -256,7 +253,7 @@ void Canvas::blit(int32_t dst_x, int32_t dst_y, Canvas& src,
 
     for (uint32_t row = 0; row < h; row++) {
         uint32_t src_row = sy + row;
-        int32_t dst_row = dst_y + static_cast<int32_t>(row);
+        int32_t  dst_row = dst_y + static_cast<int32_t>(row);
 
         // Skip rows that are above or below the destination canvas
         if (dst_row < 0) {
@@ -266,17 +263,17 @@ void Canvas::blit(int32_t dst_x, int32_t dst_y, Canvas& src,
             break;
 
         // Adjust source column start if destination starts before left edge
-        int32_t col_skip = 0;
-        int32_t eff_dst_x = dst_x;
-        uint32_t eff_sx = sx;
+        int32_t  col_skip  = 0;
+        int32_t  eff_dst_x = dst_x;
+        uint32_t eff_sx    = sx;
         if (eff_dst_x < 0) {
-            col_skip = -eff_dst_x;
+            col_skip  = -eff_dst_x;
             eff_dst_x = 0;
             eff_sx += static_cast<uint32_t>(col_skip);
         }
 
         uint32_t dst_col_start = static_cast<uint32_t>(eff_dst_x);
-        uint32_t col_count = w - static_cast<uint32_t>(col_skip);
+        uint32_t col_count     = w - static_cast<uint32_t>(col_skip);
 
         for (uint32_t i = 0; i < col_count; i++) {
             uint32_t src_col = eff_sx + i;
@@ -291,8 +288,7 @@ void Canvas::blit(int32_t dst_x, int32_t dst_y, Canvas& src,
     }
 }
 
-void Canvas::draw_bitmap(uint32_t x, uint32_t y, uint32_t w, uint32_t h,
-                         const uint32_t* pixels) {
+void Canvas::draw_bitmap(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint32_t* pixels) {
     if (back_buf_ == nullptr || pixels == nullptr)
         return;
 

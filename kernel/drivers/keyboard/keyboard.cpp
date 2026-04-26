@@ -16,8 +16,8 @@
 #include "kernel/proc/sync.hpp"
 
 #ifdef CINUX_GUI
-#include "kernel/drivers/mouse.hpp"
-#include "kernel/gui/event.hpp"
+#    include "kernel/drivers/mouse.hpp"
+#    include "kernel/gui/event.hpp"
 #endif
 
 using cinux::arch::PIC;
@@ -70,8 +70,8 @@ constexpr uint8_t EXTENDED = 0xE0;
 // Ring Buffer Constants (internal)
 // ============================================================
 
-static constexpr uint32_t KEY_QUEUE_SIZE     = 64;
-static constexpr uint32_t SCAN_TABLE_SIZE    = 128;
+static constexpr uint32_t KEY_QUEUE_SIZE  = 64;
+static constexpr uint32_t SCAN_TABLE_SIZE = 128;
 
 // ============================================================
 // Scan Code Set 1 -> ASCII Lookup Tables (data-driven)
@@ -83,44 +83,44 @@ static constexpr uint32_t SCAN_TABLE_SIZE    = 128;
  * Indexed by make code.  0 means non-printable or no mapping.
  */
 static constexpr char kScToLower[SCAN_TABLE_SIZE] = {
-    0,   27,  '1', '2', '3', '4', '5', '6',  // 0x00-0x07
-    '7', '8', '9', '0', '-', '=', '\b', 0,    // 0x08-0x0F
-    'q', 'w', 'e', 'r', 't', 'y', 'u', 'i',  // 0x10-0x17
-    'o', 'p', '[', ']', '\n', 0,   'a', 's',  // 0x18-0x1F
-    'd', 'f', 'g', 'h', 'j', 'k', 'l', ';',  // 0x20-0x27
-    '\'', '`', 0,   '\\', 'z', 'x', 'c', 'v', // 0x28-0x2F
-    'b', 'n', 'm', ',', '.', '/', 0,   '*',   // 0x30-0x37
-    0,   ' ', 0,   0,   0,   0,   0,   0,    // 0x38-0x3F
-    0,   0,   0,   0,   0,   0,   0,   '7',  // 0x40-0x47
-    '8', '9', '-', '4', '5', '6', '+', '1',  // 0x48-0x4F
-    '2', '3', '0', '.', 0,   0,   0,   0,    // 0x50-0x57
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x58-0x5F
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x60-0x67
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x68-0x6F
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x70-0x77
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x78-0x7F
+    0,    27,  '1', '2',  '3',  '4', '5',  '6',  // 0x00-0x07
+    '7',  '8', '9', '0',  '-',  '=', '\b', 0,    // 0x08-0x0F
+    'q',  'w', 'e', 'r',  't',  'y', 'u',  'i',  // 0x10-0x17
+    'o',  'p', '[', ']',  '\n', 0,   'a',  's',  // 0x18-0x1F
+    'd',  'f', 'g', 'h',  'j',  'k', 'l',  ';',  // 0x20-0x27
+    '\'', '`', 0,   '\\', 'z',  'x', 'c',  'v',  // 0x28-0x2F
+    'b',  'n', 'm', ',',  '.',  '/', 0,    '*',  // 0x30-0x37
+    0,    ' ', 0,   0,    0,    0,   0,    0,    // 0x38-0x3F
+    0,    0,   0,   0,    0,    0,   0,    '7',  // 0x40-0x47
+    '8',  '9', '-', '4',  '5',  '6', '+',  '1',  // 0x48-0x4F
+    '2',  '3', '0', '.',  0,    0,   0,    0,    // 0x50-0x57
+    0,    0,   0,   0,    0,    0,   0,    0,    // 0x58-0x5F
+    0,    0,   0,   0,    0,    0,   0,    0,    // 0x60-0x67
+    0,    0,   0,   0,    0,    0,   0,    0,    // 0x68-0x6F
+    0,    0,   0,   0,    0,    0,   0,    0,    // 0x70-0x77
+    0,    0,   0,   0,    0,    0,   0,    0,    // 0x78-0x7F
 };
 
 /**
  * @brief Scan code set 1 to uppercase / shifted ASCII translation table
  */
 static constexpr char kScToUpper[SCAN_TABLE_SIZE] = {
-    0,   27,  '!', '@', '#', '$', '%', '^',  // 0x00-0x07
-    '&', '*', '(', ')', '_', '+', '\b', 0,   // 0x08-0x0F
-    'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', // 0x10-0x17
-    'O', 'P', '{', '}', '\n', 0,   'A', 'S', // 0x18-0x1F
-    'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', // 0x20-0x27
-    '"', '~', 0,   '|', 'Z', 'X', 'C', 'V',  // 0x28-0x2F
-    'B', 'N', 'M', '<', '>', '?', 0,   '*',  // 0x30-0x37
-    0,   ' ', 0,   0,   0,   0,   0,   0,    // 0x38-0x3F
-    0,   0,   0,   0,   0,   0,   0,   '7',  // 0x40-0x47
-    '8', '9', '-', '4', '5', '6', '+', '1',  // 0x48-0x4F
-    '2', '3', '0', '.', 0,   0,   0,   0,    // 0x50-0x57
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x58-0x5F
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x60-0x67
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x68-0x6F
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x70-0x77
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x78-0x7F
+    0,   27,  '!', '@', '#',  '$', '%',  '^',  // 0x00-0x07
+    '&', '*', '(', ')', '_',  '+', '\b', 0,    // 0x08-0x0F
+    'Q', 'W', 'E', 'R', 'T',  'Y', 'U',  'I',  // 0x10-0x17
+    'O', 'P', '{', '}', '\n', 0,   'A',  'S',  // 0x18-0x1F
+    'D', 'F', 'G', 'H', 'J',  'K', 'L',  ':',  // 0x20-0x27
+    '"', '~', 0,   '|', 'Z',  'X', 'C',  'V',  // 0x28-0x2F
+    'B', 'N', 'M', '<', '>',  '?', 0,    '*',  // 0x30-0x37
+    0,   ' ', 0,   0,   0,    0,   0,    0,    // 0x38-0x3F
+    0,   0,   0,   0,   0,    0,   0,    '7',  // 0x40-0x47
+    '8', '9', '-', '4', '5',  '6', '+',  '1',  // 0x48-0x4F
+    '2', '3', '0', '.', 0,    0,   0,    0,    // 0x50-0x57
+    0,   0,   0,   0,   0,    0,   0,    0,    // 0x58-0x5F
+    0,   0,   0,   0,   0,    0,   0,    0,    // 0x60-0x67
+    0,   0,   0,   0,   0,    0,   0,    0,    // 0x68-0x6F
+    0,   0,   0,   0,   0,    0,   0,    0,    // 0x70-0x77
+    0,   0,   0,   0,   0,    0,   0,    0,    // 0x78-0x7F
 };
 
 // ============================================================
@@ -128,8 +128,8 @@ static constexpr char kScToUpper[SCAN_TABLE_SIZE] = {
 // ============================================================
 
 KeyEvent Keyboard::queue_[KEY_QUEUE_SIZE] = {};
-uint32_t Keyboard::head_ = 0;
-uint32_t Keyboard::tail_ = 0;
+uint32_t Keyboard::head_                  = 0;
+uint32_t Keyboard::tail_                  = 0;
 
 bool Keyboard::shift_held_ = false;
 bool Keyboard::ctrl_held_  = false;
@@ -192,7 +192,7 @@ void Keyboard::init() {
     // Step 4: Modify config: enable IRQ1 (bit 0), disable IRQ12 (bit 1 clear),
     //         disable mouse translation (bit 6 clear)
     config |= 0x01;   // Enable keyboard IRQ (IRQ1)
-    config &= ~0x02;   // Disable mouse IRQ (IRQ12)
+    config &= ~0x02;  // Disable mouse IRQ (IRQ12)
     config |= 0x40;   // Enable scan code set 2 → set 1 translation
 
     send_command(Ps2Cmd::WRITE_CONFIG);
@@ -207,16 +207,15 @@ void Keyboard::init() {
     if (result == 0x55) {
         kprintf("[KBD] PS/2 controller self-test passed.\n");
     } else {
-        kprintf("[KBD] PS/2 controller self-test FAILED (got 0x%02X, expected 0x55)\n",
-                result);
+        kprintf("[KBD] PS/2 controller self-test FAILED (got 0x%02X, expected 0x55)\n", result);
     }
 
     // Step 6: Re-enable the first PS/2 port (keyboard)
     send_command(Ps2Cmd::ENABLE_PORT1);
 
     // Step 7: Reset internal state
-    head_ = 0;
-    tail_ = 0;
+    head_       = 0;
+    tail_       = 0;
     shift_held_ = false;
     ctrl_held_  = false;
     alt_held_   = false;
@@ -239,7 +238,7 @@ void Keyboard::irq1_handler(cinux::arch::InterruptFrame* /*frame*/) {
     }
 
     // Determine if this is a make (press) or break (release) code
-    bool pressed = (sc & 0x80) == 0;
+    bool    pressed   = (sc & 0x80) == 0;
     uint8_t make_code = sc & 0x7F;
 
     // Track modifier keys regardless of press/release
@@ -266,8 +265,7 @@ void Keyboard::irq1_handler(cinux::arch::InterruptFrame* /*frame*/) {
 
     // Translate to ASCII only on key press and if the make code is in range
     if (pressed && make_code < SCAN_TABLE_SIZE) {
-        ev.ascii = shift_held_ ? kScToUpper[make_code]
-                               : kScToLower[make_code];
+        ev.ascii = shift_held_ ? kScToUpper[make_code] : kScToLower[make_code];
     }
 
     // Enqueue the event
@@ -277,8 +275,7 @@ void Keyboard::irq1_handler(cinux::arch::InterruptFrame* /*frame*/) {
     // Dual dispatch: also push into the GUI EventQueue for the window manager
     {
         cinux::gui::Event gui_ev{};
-        gui_ev.type_ = ev.pressed ? cinux::gui::EventType::KeyDown
-                                   : cinux::gui::EventType::KeyUp;
+        gui_ev.type_ = ev.pressed ? cinux::gui::EventType::KeyDown : cinux::gui::EventType::KeyUp;
         gui_ev.key.ascii    = ev.ascii;
         gui_ev.key.scancode = ev.scancode;
         gui_ev.key.pressed  = ev.pressed;
@@ -305,7 +302,7 @@ bool Keyboard::poll(KeyEvent& out) {
         return false;
     }
 
-    out = queue_[head_];
+    out   = queue_[head_];
     head_ = (head_ + 1) % KEY_QUEUE_SIZE;
     return true;
 }
@@ -323,7 +320,7 @@ void Keyboard::enqueue(const KeyEvent& ev) {
     }
 
     queue_[tail_] = ev;
-    tail_ = next;
+    tail_         = next;
 }
 
 }  // namespace cinux::drivers

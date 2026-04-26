@@ -14,14 +14,13 @@
 
 namespace cinux::syscall {
 
-int64_t sys_exit(uint64_t code, uint64_t, uint64_t,
-                 uint64_t, uint64_t, uint64_t) {
+int64_t sys_exit(uint64_t code, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) {
     auto* task = cinux::proc::Scheduler::current();
     if (task != nullptr) {
         task->state = cinux::proc::TaskState::Dead;
         cinux::lib::kprintf("[SYSCALL] sys_exit(%u) from tid=%u '%s'\n",
-                            static_cast<unsigned>(code),
-                            static_cast<unsigned>(task->tid), task->name);
+                            static_cast<unsigned>(code), static_cast<unsigned>(task->tid),
+                            task->name);
     }
 
     if (cinux::proc::Scheduler::is_initialized()) {

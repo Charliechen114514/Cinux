@@ -17,8 +17,7 @@
 
 namespace cinux::syscall {
 
-int64_t sys_getdents(uint64_t fd, uint64_t buf_virt, uint64_t count,
-                     uint64_t, uint64_t, uint64_t) {
+int64_t sys_getdents(uint64_t fd, uint64_t buf_virt, uint64_t count, uint64_t, uint64_t, uint64_t) {
     // Validate user buffer address
     if (buf_virt == 0 || count == 0) {
         return -1;
@@ -42,8 +41,7 @@ int64_t sys_getdents(uint64_t fd, uint64_t buf_virt, uint64_t count,
     {
         auto g = file->offset_lock_.guard();
         (void)g;
-        int64_t result = file->inode->ops->readdir(
-            file->inode, file->offset, name_buf, count);
+        int64_t result = file->inode->ops->readdir(file->inode, file->offset, name_buf, count);
 
         if (result == 1) {
             file->offset++;

@@ -23,8 +23,8 @@
 
 #pragma once
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 namespace cinux::mini::driver::ata {
 
@@ -53,20 +53,20 @@ constexpr uint16_t ATA_REG_COMMAND    = 7;  ///< Command register (write)
 // ============================================================
 // ATA Status Register Bits
 // ============================================================
-constexpr uint8_t ATA_STATUS_ERR  = 0x01;  ///< Error occurred
-constexpr uint8_t ATA_STATUS_DRQ  = 0x08;  ///< Data request ready
-constexpr uint8_t ATA_STATUS_DF   = 0x20;  ///< Drive fault
-constexpr uint8_t ATA_STATUS_RDY  = 0x40;  ///< Drive ready
-constexpr uint8_t ATA_STATUS_BSY  = 0x80;  ///< Drive busy
+constexpr uint8_t ATA_STATUS_ERR = 0x01;  ///< Error occurred
+constexpr uint8_t ATA_STATUS_DRQ = 0x08;  ///< Data request ready
+constexpr uint8_t ATA_STATUS_DF  = 0x20;  ///< Drive fault
+constexpr uint8_t ATA_STATUS_RDY = 0x40;  ///< Drive ready
+constexpr uint8_t ATA_STATUS_BSY = 0x80;  ///< Drive busy
 
 // ============================================================
 // ATA Commands
 // ============================================================
-constexpr uint8_t ATA_CMD_READ_PIO        = 0x20;  ///< Read sectors (LBA28)
-constexpr uint8_t ATA_CMD_READ_PIO_EXT    = 0x24;  ///< Read sectors (LBA48)
-constexpr uint8_t ATA_CMD_READ_DMA        = 0xC8;  ///< Read DMA (LBA28)
-constexpr uint8_t ATA_CMD_READ_DMA_EXT    = 0x25;  ///< Read DMA (LBA48)
-constexpr uint8_t ATA_CMD_IDENTIFY        = 0xEC;  ///< Identify device
+constexpr uint8_t ATA_CMD_READ_PIO     = 0x20;  ///< Read sectors (LBA28)
+constexpr uint8_t ATA_CMD_READ_PIO_EXT = 0x24;  ///< Read sectors (LBA48)
+constexpr uint8_t ATA_CMD_READ_DMA     = 0xC8;  ///< Read DMA (LBA28)
+constexpr uint8_t ATA_CMD_READ_DMA_EXT = 0x25;  ///< Read DMA (LBA48)
+constexpr uint8_t ATA_CMD_IDENTIFY     = 0xEC;  ///< Identify device
 
 // ============================================================
 // ATA Drive Selection Bits

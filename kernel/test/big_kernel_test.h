@@ -52,49 +52,48 @@ inline int get_total_failed() {
 // Assertion Macros
 // ============================================================
 
-#define TEST_ASSERT(cond)                           \
-    do {                                            \
-        if (!(cond)) {                              \
-            kprintf("[FAIL] %s at %s:%d\n",         \
-                    #cond, __FILE__, __LINE__);      \
-            test::tests_failed++;                   \
-            return;                                 \
-        }                                           \
+#define TEST_ASSERT(cond)                                                                          \
+    do {                                                                                           \
+        if (!(cond)) {                                                                             \
+            kprintf("[FAIL] %s at %s:%d\n", #cond, __FILE__, __LINE__);                            \
+            test::tests_failed++;                                                                  \
+            return;                                                                                \
+        }                                                                                          \
     } while (0)
 
-#define TEST_ASSERT_EQ(a, b) TEST_ASSERT((a) == (b))
-#define TEST_ASSERT_NE(a, b) TEST_ASSERT((a) != (b))
-#define TEST_ASSERT_GT(a, b) TEST_ASSERT((a) > (b))
-#define TEST_ASSERT_GE(a, b) TEST_ASSERT((a) >= (b))
-#define TEST_ASSERT_LT(a, b) TEST_ASSERT((a) < (b))
-#define TEST_ASSERT_LE(a, b) TEST_ASSERT((a) <= (b))
-#define TEST_ASSERT_NULL(ptr) TEST_ASSERT((ptr) == nullptr)
+#define TEST_ASSERT_EQ(a, b)      TEST_ASSERT((a) == (b))
+#define TEST_ASSERT_NE(a, b)      TEST_ASSERT((a) != (b))
+#define TEST_ASSERT_GT(a, b)      TEST_ASSERT((a) > (b))
+#define TEST_ASSERT_GE(a, b)      TEST_ASSERT((a) >= (b))
+#define TEST_ASSERT_LT(a, b)      TEST_ASSERT((a) < (b))
+#define TEST_ASSERT_LE(a, b)      TEST_ASSERT((a) <= (b))
+#define TEST_ASSERT_NULL(ptr)     TEST_ASSERT((ptr) == nullptr)
 #define TEST_ASSERT_NOT_NULL(ptr) TEST_ASSERT((ptr) != nullptr)
-#define TEST_ASSERT_TRUE(expr) TEST_ASSERT((expr) == true)
-#define TEST_ASSERT_FALSE(expr) TEST_ASSERT((expr) == false)
+#define TEST_ASSERT_TRUE(expr)    TEST_ASSERT((expr) == true)
+#define TEST_ASSERT_FALSE(expr)   TEST_ASSERT((expr) == false)
 
 // ============================================================
 // Test Runner Macros
 // ============================================================
 
-#define RUN_TEST(fn)                                \
-    do {                                            \
-        kprintf("[RUN] %s\n", #fn);                 \
-        int _failed_before = test::tests_failed;    \
-        fn();                                       \
-        if (test::tests_failed == _failed_before) { \
-            test::tests_passed++;                   \
-            kprintf("[PASS] %s\n", #fn);            \
-        }                                           \
+#define RUN_TEST(fn)                                                                               \
+    do {                                                                                           \
+        kprintf("[RUN] %s\n", #fn);                                                                \
+        int _failed_before = test::tests_failed;                                                   \
+        fn();                                                                                      \
+        if (test::tests_failed == _failed_before) {                                                \
+            test::tests_passed++;                                                                  \
+            kprintf("[PASS] %s\n", #fn);                                                           \
+        }                                                                                          \
     } while (0)
 
-#define TEST_SUMMARY()                                                      \
-    do {                                                                    \
-        kprintf("\n=== Tests: %d passed, %d failed ===\n",                  \
-                test::tests_passed, test::tests_failed);                    \
+#define TEST_SUMMARY()                                                                             \
+    do {                                                                                           \
+        kprintf("\n=== Tests: %d passed, %d failed ===\n", test::tests_passed,                     \
+                test::tests_failed);                                                               \
     } while (0)
 
-#define TEST_SECTION(name)                          \
-    do {                                            \
-        kprintf("\n=== %s ===\n", name);            \
+#define TEST_SECTION(name)                                                                         \
+    do {                                                                                           \
+        kprintf("\n=== %s ===\n", name);                                                           \
     } while (0)

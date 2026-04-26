@@ -29,13 +29,13 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
+#    include <cstddef>
+#    include <cstdint>
+#    include <cstring>
 
 // Include kernel headers for struct/constant definitions
-#include "fs/ramdisk_config.hpp"
-#include "fs/ramdisk.hpp"
+#    include "fs/ramdisk.hpp"
+#    include "fs/ramdisk_config.hpp"
 
 using namespace cinux::fs;
 
@@ -93,8 +93,7 @@ uint32_t data_blocks(uint64_t size) {
  * @param size     File size in bytes (stored as octal in header)
  * @param typeflag Type flag character ('0' for file, '5' for dir, etc.)
  */
-void build_ustar_header(void* buf, const char* name,
-                        uint64_t size, char typeflag) {
+void build_ustar_header(void* buf, const char* name, uint64_t size, char typeflag) {
     auto* hdr = static_cast<UstarHeader*>(std::memset(buf, 0, sizeof(UstarHeader)));
 
     // Copy name
@@ -117,8 +116,8 @@ void build_ustar_header(void* buf, const char* name,
         size_buf[1] = '\0';
     } else {
         // Convert to octal string, writing digits from right to left
-        size_t pos = 11;  // last position before the NUL terminator
-        uint64_t v = size;
+        size_t   pos = 11;  // last position before the NUL terminator
+        uint64_t v   = size;
         while (v > 0 && pos > 0) {
             size_buf[pos] = '0' + static_cast<char>(v & 7);
             --pos;
@@ -142,9 +141,9 @@ void build_ustar_header(void* buf, const char* name,
  * @brief Mount result structure for host testing
  */
 struct MountResult {
-    uint32_t entry_count;       ///< Number of file entries found
-    uint32_t dir_count;         ///< Number of directory entries found
-    bool     stopped_bad_magic; ///< True if stopped due to invalid magic
+    uint32_t entry_count;        ///< Number of file entries found
+    uint32_t dir_count;          ///< Number of directory entries found
+    bool     stopped_bad_magic;  ///< True if stopped due to invalid magic
 };
 
 /**
@@ -160,7 +159,7 @@ struct MountResult {
  */
 MountResult mount_archive(const uint8_t* base, uint64_t size) {
     MountResult result{};
-    uint64_t offset = 0;
+    uint64_t    offset = 0;
 
     while (offset + sizeof(UstarHeader) <= size) {
         auto* hdr = reinterpret_cast<const UstarHeader*>(base + offset);
@@ -207,43 +206,43 @@ TEST("ramdisk_ustar_header: sizeof(UstarHeader) is 512") {
 
 TEST("ramdisk_ustar_header: name field offset is 0") {
     UstarHeader hdr{};
-    auto* base = reinterpret_cast<const uint8_t*>(&hdr);
-    auto* name = reinterpret_cast<const uint8_t*>(hdr.name);
+    auto*       base = reinterpret_cast<const uint8_t*>(&hdr);
+    auto*       name = reinterpret_cast<const uint8_t*>(hdr.name);
     ASSERT_EQ(static_cast<size_t>(name - base), 0ULL);
 }
 
 TEST("ramdisk_ustar_header: mode field offset is 100") {
     UstarHeader hdr{};
-    auto* base = reinterpret_cast<const uint8_t*>(&hdr);
-    auto* mode = reinterpret_cast<const uint8_t*>(hdr.mode);
+    auto*       base = reinterpret_cast<const uint8_t*>(&hdr);
+    auto*       mode = reinterpret_cast<const uint8_t*>(hdr.mode);
     ASSERT_EQ(static_cast<size_t>(mode - base), 100ULL);
 }
 
 TEST("ramdisk_ustar_header: size field offset is 124") {
     UstarHeader hdr{};
-    auto* base = reinterpret_cast<const uint8_t*>(&hdr);
-    auto* sz = reinterpret_cast<const uint8_t*>(hdr.size);
+    auto*       base = reinterpret_cast<const uint8_t*>(&hdr);
+    auto*       sz   = reinterpret_cast<const uint8_t*>(hdr.size);
     ASSERT_EQ(static_cast<size_t>(sz - base), 124ULL);
 }
 
 TEST("ramdisk_ustar_header: typeflag offset is 156") {
     UstarHeader hdr{};
-    auto* base = reinterpret_cast<const uint8_t*>(&hdr);
-    auto* tf = reinterpret_cast<const uint8_t*>(&hdr.typeflag);
+    auto*       base = reinterpret_cast<const uint8_t*>(&hdr);
+    auto*       tf   = reinterpret_cast<const uint8_t*>(&hdr.typeflag);
     ASSERT_EQ(static_cast<size_t>(tf - base), 156ULL);
 }
 
 TEST("ramdisk_ustar_header: magic field offset is 257") {
     UstarHeader hdr{};
-    auto* base = reinterpret_cast<const uint8_t*>(&hdr);
-    auto* mag = reinterpret_cast<const uint8_t*>(hdr.magic);
+    auto*       base = reinterpret_cast<const uint8_t*>(&hdr);
+    auto*       mag  = reinterpret_cast<const uint8_t*>(hdr.magic);
     ASSERT_EQ(static_cast<size_t>(mag - base), 257ULL);
 }
 
 TEST("ramdisk_ustar_header: prefix field offset is 345") {
     UstarHeader hdr{};
-    auto* base = reinterpret_cast<const uint8_t*>(&hdr);
-    auto* pfx = reinterpret_cast<const uint8_t*>(hdr.prefix);
+    auto*       base = reinterpret_cast<const uint8_t*>(&hdr);
+    auto*       pfx  = reinterpret_cast<const uint8_t*>(hdr.prefix);
     ASSERT_EQ(static_cast<size_t>(pfx - base), 345ULL);
 }
 
@@ -769,21 +768,10 @@ TEST("ramdisk_octal_data_driven: batch of known values") {
     };
 
     const TestCase cases[] = {
-        {"0",          1,  0ULL},
-        {"1",          1,  1ULL},
-        {"7",          1,  7ULL},
-        {"10",         2,  8ULL},
-        {"17",         2,  15ULL},
-        {"20",         2,  16ULL},
-        {"77",         2,  63ULL},
-        {"100",        3,  64ULL},
-        {"200",        3,  128ULL},
-        {"400",        3,  256ULL},
-        {"777",        3,  511ULL},
-        {"1000",       4,  512ULL},
-        {"7777",       4,  4095ULL},
-        {"10000",      5,  4096ULL},
-        {"77777",      5,  32767ULL},
+        {"0", 1, 0ULL},       {"1", 1, 1ULL},        {"7", 1, 7ULL},         {"10", 2, 8ULL},
+        {"17", 2, 15ULL},     {"20", 2, 16ULL},      {"77", 2, 63ULL},       {"100", 3, 64ULL},
+        {"200", 3, 128ULL},   {"400", 3, 256ULL},    {"777", 3, 511ULL},     {"1000", 4, 512ULL},
+        {"7777", 4, 4095ULL}, {"10000", 5, 4096ULL}, {"77777", 5, 32767ULL},
     };
 
     for (const auto& tc : cases) {
@@ -803,16 +791,8 @@ TEST("ramdisk_data_blocks_data_driven: batch of known values") {
     };
 
     const TestCase cases[] = {
-        {0ULL,    0U},
-        {1ULL,    1U},
-        {511ULL,  1U},
-        {512ULL,  1U},
-        {513ULL,  2U},
-        {1024ULL, 2U},
-        {1025ULL, 3U},
-        {1536ULL, 3U},
-        {1537ULL, 4U},
-        {2048ULL, 4U},
+        {0ULL, 0U},    {1ULL, 1U},    {511ULL, 1U},  {512ULL, 1U},  {513ULL, 2U},
+        {1024ULL, 2U}, {1025ULL, 3U}, {1536ULL, 3U}, {1537ULL, 4U}, {2048ULL, 4U},
     };
 
     for (const auto& tc : cases) {
@@ -844,10 +824,10 @@ TEST("ramdisk_mount: realistic multi-entry archive") {
     uint8_t archive[4096];
     std::memset(archive, 0, sizeof(archive));
 
-    ramdisk_test::build_ustar_header(archive + 0,    "dir/",          0,    UstarType::DIRECTORY);
-    ramdisk_test::build_ustar_header(archive + 512,   "dir/hello.txt", 13,   UstarType::REGULAR);
-    ramdisk_test::build_ustar_header(archive + 1536,  "dir/world.txt", 1024, UstarType::REGULAR);
-    ramdisk_test::build_ustar_header(archive + 3072,  "readme.txt",    0,    UstarType::REGULAR);
+    ramdisk_test::build_ustar_header(archive + 0, "dir/", 0, UstarType::DIRECTORY);
+    ramdisk_test::build_ustar_header(archive + 512, "dir/hello.txt", 13, UstarType::REGULAR);
+    ramdisk_test::build_ustar_header(archive + 1536, "dir/world.txt", 1024, UstarType::REGULAR);
+    ramdisk_test::build_ustar_header(archive + 3072, "readme.txt", 0, UstarType::REGULAR);
 
     auto result = ramdisk_test::mount_archive(archive, sizeof(archive));
     ASSERT_EQ(result.entry_count, 3U);  // 3 regular files

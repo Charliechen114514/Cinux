@@ -36,7 +36,7 @@ constexpr uint8_t IDT_VEC_PF = 14;  ///< Page fault exception
 /// IDT entry type: 64-bit interrupt gate (no error code pushed, handled by ISR)
 constexpr uint8_t IDT_TYPE_INTERRUPT_GATE = 0x0E;
 /// IDT entry type: 64-bit trap gate (differs from interrupt gate by not clearing IF)
-constexpr uint8_t IDT_TYPE_TRAP_GATE = 0x0F;
+constexpr uint8_t IDT_TYPE_TRAP_GATE      = 0x0F;
 
 // ============================================================
 // IDT Descriptor Structure (16 bytes)
@@ -49,13 +49,13 @@ constexpr uint8_t IDT_TYPE_TRAP_GATE = 0x0F;
  * interrupt handler, segment selector, IST offset, and type/permission attributes.
  */
 struct IdtEntry {
-    uint16_t offset_low;    ///< Handler address low 16 bits [0:15]
-    uint16_t selector;      ///< Code segment selector (CS)
-    uint8_t  ist;           ///< IST offset (0 = do not use IST)
-    uint8_t  type_attr;     ///< Type and attributes (P | DPL | 0 | Gate Type)
-    uint16_t offset_mid;    ///< Handler address middle 16 bits [16:31]
-    uint32_t offset_high;   ///< Handler address high 32 bits [32:63]
-    uint32_t reserved;      ///< Reserved, must be 0
+    uint16_t offset_low;   ///< Handler address low 16 bits [0:15]
+    uint16_t selector;     ///< Code segment selector (CS)
+    uint8_t  ist;          ///< IST offset (0 = do not use IST)
+    uint8_t  type_attr;    ///< Type and attributes (P | DPL | 0 | Gate Type)
+    uint16_t offset_mid;   ///< Handler address middle 16 bits [16:31]
+    uint32_t offset_high;  ///< Handler address high 32 bits [32:63]
+    uint32_t reserved;     ///< Reserved, must be 0
 } __attribute__((packed));
 
 /**
@@ -65,8 +65,8 @@ struct IdtEntry {
  * 2-byte limit + 8-byte base address.
  */
 struct IdtPointer {
-    uint16_t limit; ///< IDT byte size - 1
-    uint64_t base;  ///< Linear address of the IDT
+    uint16_t limit;  ///< IDT byte size - 1
+    uint64_t base;   ///< Linear address of the IDT
 } __attribute__((packed));
 
 // ============================================================
@@ -86,10 +86,10 @@ struct IdtPointer {
  *       pushes a dummy error code (0) to keep the stack frame aligned.
  */
 struct InterruptFrame {
-    uint64_t r15, r14, r13, r12; ///< General-purpose registers (saved by ISR stub)
-    uint64_t r11, r10, r9, r8;   ///< General-purpose registers (saved by ISR stub)
-    uint64_t rdi, rsi, rbp, rdx; ///< General-purpose registers (saved by ISR stub)
-    uint64_t rcx, rbx, rax;      ///< General-purpose registers (saved by ISR stub)
+    uint64_t r15, r14, r13, r12;  ///< General-purpose registers (saved by ISR stub)
+    uint64_t r11, r10, r9, r8;    ///< General-purpose registers (saved by ISR stub)
+    uint64_t rdi, rsi, rbp, rdx;  ///< General-purpose registers (saved by ISR stub)
+    uint64_t rcx, rbx, rax;       ///< General-purpose registers (saved by ISR stub)
     uint64_t error_code;          ///< Error code (stub fills 0 for exceptions without one)
     uint64_t rip;                 ///< Instruction pointer (pushed by CPU)
     uint64_t cs;                  ///< Code segment selector (pushed by CPU)
@@ -114,4 +114,4 @@ struct InterruptFrame {
  */
 void idt_init();
 
-} // namespace cinux::mini::arch
+}  // namespace cinux::mini::arch

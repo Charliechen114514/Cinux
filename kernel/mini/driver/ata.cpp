@@ -9,8 +9,8 @@
 
 #include "ata.hpp"
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "driver/io.h"
 #include "driver/pci.hpp"
@@ -28,10 +28,10 @@ namespace cinux::mini::driver::ata {
 static bool s_initialized = false;
 
 /// DMA state
-static bool s_dma_available = false;
-static uint16_t s_bm_base = 0;        ///< Bus Master I/O base (from BAR4)
-static uint32_t s_prdt_phys = 0;      ///< Physical address of PRDT page
-static pci::Prd* s_prdt = nullptr;    ///< Virtual pointer to PRDT page
+static bool      s_dma_available = false;
+static uint16_t  s_bm_base       = 0;        ///< Bus Master I/O base (from BAR4)
+static uint32_t  s_prdt_phys     = 0;        ///< Physical address of PRDT page
+static pci::Prd* s_prdt          = nullptr;  ///< Virtual pointer to PRDT page
 
 /// Static PRDT buffer — avoids PMM dependency so DMA works even when
 /// memory is scarce (e.g. test kernel with only 3MB RAM).
@@ -150,24 +150,23 @@ bool init() {
     // Step 4: Attempt DMA initialization
     uint8_t pci_bus, pci_dev, pci_func;
     if (pci::find_ide_controller(pci_bus, pci_dev, pci_func)) {
-        kprintf("[ATA] Found PCI IDE controller at bus %u, device %u, func %u\n",
-                pci_bus, pci_dev, pci_func);
+        kprintf("[ATA] Found PCI IDE controller at bus %u, device %u, func %u\n", pci_bus, pci_dev,
+                pci_func);
 
         uint32_t bar4_raw = pci::read_bar4(pci_bus, pci_dev, pci_func);
-        uint16_t bm_base = static_cast<uint16_t>(bar4_raw & 0xFFF0);
+        uint16_t bm_base  = static_cast<uint16_t>(bar4_raw & 0xFFF0);
 
         if (bm_base != 0) {
             pci::enable_bus_master(pci_bus, pci_dev, pci_func);
 
             // Use static PRDT buffer (no PMM dependency)
-            s_prdt = s_prdt_storage;
-            s_prdt_phys = static_cast<uint32_t>(
-                reinterpret_cast<uintptr_t>(s_prdt_storage) - KERNEL_VIRT_BASE);
-            s_bm_base = bm_base;
+            s_prdt          = s_prdt_storage;
+            s_prdt_phys     = static_cast<uint32_t>(reinterpret_cast<uintptr_t>(s_prdt_storage) -
+                                                    KERNEL_VIRT_BASE);
+            s_bm_base       = bm_base;
             s_dma_available = true;
 
-            kprintf("[ATA] DMA enabled: BAR4=0x%04x, PRDT at phys 0x%08x\n",
-                    bm_base, s_prdt_phys);
+            kprintf("[ATA] DMA enabled: BAR4=0x%04x, PRDT at phys 0x%08x\n", bm_base, s_prdt_phys);
         }
     } else {
         kprintf("[ATA] No PCI IDE controller found, DMA unavailable\n");
@@ -190,32 +189,38 @@ bool is_dma_available() {
 
 bool dma_read(uint64_t lba, uint16_t count, void* buffer) {
     // Validate
-    if (!s_dma_available) return false;
-    if (count == 0 || buffer == nullptr) return false;
-    if (lba >= (1ULL << 48)) return false;
+    if (!s_dma_available)
+        return false;
+    if (count == 0 || buffer == nullptr)
+        return false;
+    if (lba >= (1ULL << 48))
+        return false;
 
     // Buffer must be in 32-bit addressable physical memory
     auto buf_addr = reinterpret_cast<uintptr_t>(buffer);
-    if (buf_addr > 0xFFFFFFFFULL) return false;
+    if (buf_addr > 0xFFFFFFFFULL)
+        return false;
 
     // Fill PRD table
     uint32_t total_bytes = static_cast<uint32_t>(count) * ATA_SECTOR_SIZE;
-    uint32_t buf_phys = static_cast<uint32_t>(buf_addr);
-    uint32_t prd_count = 0;
+    uint32_t buf_phys    = static_cast<uint32_t>(buf_addr);
+    uint32_t prd_count   = 0;
 
     while (total_bytes > 0) {
         uint32_t chunk = total_bytes;
-        if (chunk > 65536) chunk = 65536;
+        if (chunk > 65536)
+            chunk = 65536;
 
         s_prdt[prd_count].buffer_addr = buf_phys;
-        s_prdt[prd_count].byte_count = static_cast<uint16_t>(chunk & 0xFFFF);
-        s_prdt[prd_count].flags = 0;
+        s_prdt[prd_count].byte_count  = static_cast<uint16_t>(chunk & 0xFFFF);
+        s_prdt[prd_count].flags       = 0;
 
         buf_phys += chunk;
         total_bytes -= chunk;
         prd_count++;
 
-        if (prd_count >= 512) break;  // PRDT page limit
+        if (prd_count >= 512)
+            break;  // PRDT page limit
     }
     s_prdt[prd_count - 1].flags = pci::PRD_FLAG_EOT;
 
@@ -226,9 +231,9 @@ bool dma_read(uint64_t lba, uint16_t count, void* buffer) {
     }
 
     // Program Bus Master registers
-    io::outl(s_bm_base + BM_PRDT, s_prdt_phys);       // Set PRDT address
-    io::outb(s_bm_base + BM_STATUS, 0x06);              // Clear error + interrupt flags
-    io::outb(s_bm_base + BM_CMD, 0x00);                  // Stop DMA, read direction
+    io::outl(s_bm_base + BM_PRDT, s_prdt_phys);  // Set PRDT address
+    io::outb(s_bm_base + BM_STATUS, 0x06);       // Clear error + interrupt flags
+    io::outb(s_bm_base + BM_CMD, 0x00);          // Stop DMA, read direction
 
     // Issue ATA READ DMA EXT command (always LBA48 for DMA)
     write_reg(ATA_REG_DRIVE, ATA_DRIVE_MASTER | 0x40);
@@ -330,8 +335,7 @@ bool read(uint64_t lba, uint16_t count, void* buffer) {
 
         write_reg(ATA_REG_COMMAND, ATA_CMD_READ_PIO_EXT);
     } else {
-        write_reg(ATA_REG_DRIVE,
-                  ATA_DRIVE_MASTER | static_cast<uint8_t>((lba >> 24) & 0x0F));
+        write_reg(ATA_REG_DRIVE, ATA_DRIVE_MASTER | static_cast<uint8_t>((lba >> 24) & 0x0F));
         delay_400ns();
 
         write_reg(ATA_REG_SECTOR_CNT, static_cast<uint8_t>(count & 0xFF));
@@ -352,19 +356,17 @@ bool read(uint64_t lba, uint16_t count, void* buffer) {
             return false;
         }
 
-            {
-                unsigned int words = 256;
-                __asm__ volatile(
-                    "rep insw"
-                    : "+D"(buf), "+c"(words)
-                    : "d"(static_cast<uint16_t>(ATA_PRIMARY_BASE))
-                    : "memory"
-                );
-            }
+        {
+            unsigned int words = 256;
+            __asm__ volatile("rep insw"
+                             : "+D"(buf), "+c"(words)
+                             : "d"(static_cast<uint16_t>(ATA_PRIMARY_BASE))
+                             : "memory");
         }
-
-        return true;
     }
+
+    return true;
+}
 // ============================================================
 // Chunked Disk Read (uses DMA when available)
 // ============================================================
@@ -374,7 +376,8 @@ bool read_large(uint64_t lba, uint32_t count, void* buffer) {
         kprintf("[ATA] ERROR: driver not initialized\n");
         return false;
     }
-    if (count == 0) return true;
+    if (count == 0)
+        return true;
     if (buffer == nullptr) {
         kprintf("[ATA] ERROR: null buffer\n");
         return false;
@@ -382,12 +385,12 @@ bool read_large(uint64_t lba, uint32_t count, void* buffer) {
 
     static constexpr uint32_t MAX_SECTORS_PER_READ = 65535;
     // Log progress every 64K sectors (~32 MB)
-    static constexpr uint32_t PROGRESS_SECTORS = 65536;
+    static constexpr uint32_t PROGRESS_SECTORS     = 65536;
 
-    auto* buf = static_cast<uint8_t*>(buffer);
-    uint32_t remaining = count;
+    auto*    buf         = static_cast<uint8_t*>(buffer);
+    uint32_t remaining   = count;
     uint64_t current_lba = lba;
-    uint32_t done = 0;
+    uint32_t done        = 0;
 
     while (remaining > 0) {
         uint16_t chunk = static_cast<uint16_t>(
@@ -416,12 +419,10 @@ bool read_large(uint64_t lba, uint32_t count, void* buffer) {
         done += chunk;
 
         if (done >= PROGRESS_SECTORS) {
-            uint32_t pct = static_cast<uint32_t>(
-                (static_cast<uint64_t>(count - remaining) * 100) / count);
-            kprintf("[ATA] Read progress: %u MB / %u MB (%u%%)\n",
-                    (count - remaining) / 2048,
-                    count / 2048,
-                    pct);
+            uint32_t pct =
+                static_cast<uint32_t>((static_cast<uint64_t>(count - remaining) * 100) / count);
+            kprintf("[ATA] Read progress: %u MB / %u MB (%u%%)\n", (count - remaining) / 2048,
+                    count / 2048, pct);
             done = 0;
         }
     }

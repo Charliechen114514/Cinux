@@ -14,8 +14,8 @@
 
 #pragma once
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "fs/stat.hpp"
 
@@ -50,14 +50,11 @@ class InodeOps {
 public:
     virtual ~InodeOps() = default;
 
-    virtual int64_t read(const Inode* inode, uint64_t offset,
-                         void* buf, uint64_t count);
-    virtual int64_t write(Inode* inode, uint64_t offset,
-                          const void* buf, uint64_t count);
-    virtual int64_t readdir(const Inode* inode, uint64_t index,
-                            char* name, uint64_t name_max);
-    virtual Inode* create(Inode* dir, const char* name, uint32_t namelen);
-    virtual Inode* mkdir(Inode* dir, const char* name, uint32_t namelen);
+    virtual int64_t read(const Inode* inode, uint64_t offset, void* buf, uint64_t count);
+    virtual int64_t write(Inode* inode, uint64_t offset, const void* buf, uint64_t count);
+    virtual int64_t readdir(const Inode* inode, uint64_t index, char* name, uint64_t name_max);
+    virtual Inode*  create(Inode* dir, const char* name, uint32_t namelen);
+    virtual Inode*  mkdir(Inode* dir, const char* name, uint32_t namelen);
     virtual int64_t unlink(Inode* dir, const char* name, uint32_t namelen);
     virtual int64_t stat(const Inode* inode, struct stat* st);
 };
@@ -74,20 +71,20 @@ public:
  * the caller -- the filesystem manages their lifetime.
  */
 struct Inode {
-    uint64_t    ino{0};        ///< Inode number (filesystem-specific)
-    uint64_t    size{0};       ///< File size in bytes
-    InodeType   type{InodeType::Regular}; ///< Type of this inode
-    InodeOps*   ops{nullptr};  ///< Operation function table (may be nullptr)
-    void*       fs_private{nullptr}; ///< Opaque pointer for filesystem-specific data
+    uint64_t  ino{0};                    ///< Inode number (filesystem-specific)
+    uint64_t  size{0};                   ///< File size in bytes
+    InodeType type{InodeType::Regular};  ///< Type of this inode
+    InodeOps* ops{nullptr};              ///< Operation function table (may be nullptr)
+    void*     fs_private{nullptr};       ///< Opaque pointer for filesystem-specific data
 
-    uint32_t    mode{0};       ///< File mode (type + permissions)
-    uint32_t    uid{0};        ///< Owner user ID
-    uint32_t    gid{0};        ///< Owner group ID
-    uint32_t    nlink{1};      ///< Hard link count
-    uint64_t    atime{0};      ///< Time of last access
-    uint64_t    ctime{0};      ///< Time of last status change
-    uint64_t    mtime{0};      ///< Time of last modification
-    uint64_t    blocks{0};     ///< Number of 512-byte blocks allocated
+    uint32_t mode{0};    ///< File mode (type + permissions)
+    uint32_t uid{0};     ///< Owner user ID
+    uint32_t gid{0};     ///< Owner group ID
+    uint32_t nlink{1};   ///< Hard link count
+    uint64_t atime{0};   ///< Time of last access
+    uint64_t ctime{0};   ///< Time of last status change
+    uint64_t mtime{0};   ///< Time of last modification
+    uint64_t blocks{0};  ///< Number of 512-byte blocks allocated
 };
 
 }  // namespace cinux::fs

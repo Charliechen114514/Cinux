@@ -11,10 +11,10 @@
 
 #include <stdint.h>
 
+#include "kernel/fs/file.hpp"
 #include "kernel/fs/path.hpp"
 #include "kernel/fs/stat.hpp"
 #include "kernel/fs/vfs_mount.hpp"
-#include "kernel/fs/file.hpp"
 #include "kernel/lib/kprintf.hpp"
 #include "kernel/lib/string.hpp"
 #include "kernel/syscall/path_util.hpp"
@@ -27,8 +27,7 @@ using cinux::lib::kprintf;
 
 }  // anonymous namespace
 
-int64_t sys_stat(uint64_t path_virt, uint64_t st_virt, uint64_t,
-                 uint64_t, uint64_t, uint64_t) {
+int64_t sys_stat(uint64_t path_virt, uint64_t st_virt, uint64_t, uint64_t, uint64_t, uint64_t) {
     if (!validate_user_ptr(st_virt)) {
         return -1;
     }
@@ -40,8 +39,8 @@ int64_t sys_stat(uint64_t path_virt, uint64_t st_virt, uint64_t,
     }
 
     // Step 2: Resolve through the VFS mount table
-    const char* rel_path = nullptr;
-    cinux::fs::FileSystem* fs = cinux::fs::vfs_resolve(resolved, &rel_path);
+    const char*            rel_path = nullptr;
+    cinux::fs::FileSystem* fs       = cinux::fs::vfs_resolve(resolved, &rel_path);
 
     if (fs == nullptr) {
         kprintf("[SYS_STAT] No filesystem mounted for '%s'\n", resolved);
@@ -62,7 +61,7 @@ int64_t sys_stat(uint64_t path_virt, uint64_t st_virt, uint64_t,
     }
 
     cinux::fs::stat kst;
-    int64_t ret = inode->ops->stat(inode, &kst);
+    int64_t         ret = inode->ops->stat(inode, &kst);
     if (ret < 0) {
         return -1;
     }
@@ -74,15 +73,13 @@ int64_t sys_stat(uint64_t path_virt, uint64_t st_virt, uint64_t,
     return 0;
 }
 
-int64_t sys_fstat(uint64_t fd, uint64_t st_virt, uint64_t,
-                  uint64_t, uint64_t, uint64_t) {
+int64_t sys_fstat(uint64_t fd, uint64_t st_virt, uint64_t, uint64_t, uint64_t, uint64_t) {
     if (!validate_user_ptr(st_virt)) {
         return -1;
     }
 
     // Step 1: Look up the FD
-    cinux::fs::File* file = cinux::fs::current_fd_table().get(
-        static_cast<int>(fd));
+    cinux::fs::File* file = cinux::fs::current_fd_table().get(static_cast<int>(fd));
 
     if (file == nullptr || file->inode == nullptr) {
         return -1;
@@ -96,7 +93,7 @@ int64_t sys_fstat(uint64_t fd, uint64_t st_virt, uint64_t,
     }
 
     cinux::fs::stat kst;
-    int64_t ret = inode->ops->stat(inode, &kst);
+    int64_t         ret = inode->ops->stat(inode, &kst);
     if (ret < 0) {
         return -1;
     }

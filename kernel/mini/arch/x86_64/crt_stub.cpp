@@ -17,12 +17,12 @@ extern "C" {
 // ============================================================
 // Called when a pure virtual function is called (should never happen)
 [[noreturn]] void __cxa_pure_virtual() {
-	// Infinite halt - pure virtual call is a programming error
-	while (1) {
-		__asm__ volatile(
-			"cli; \
+    // Infinite halt - pure virtual call is a programming error
+    while (1) {
+        __asm__ volatile(
+            "cli; \
             hlt");
-	}
+    }
 }
 
 // ============================================================
@@ -30,10 +30,10 @@ extern "C" {
 // ============================================================
 // Called when stack protection detects corruption (with -fstack-protector)
 [[noreturn]] void __stack_chk_fail() {
-	// Infinite halt - stack corruption detected
-	while (1) {
-		__asm__ volatile("cli; hlt");
-	}
+    // Infinite halt - stack corruption detected
+    while (1) {
+        __asm__ volatile("cli; hlt");
+    }
 }
 
 // ============================================================
@@ -41,7 +41,7 @@ extern "C" {
 // ============================================================
 // We don't support process termination, so this is a no-op
 int __cxa_atexit(void (*)(void*), void*, void*) {
-	return 0;  // Success (but we don't actually register anything)
+    return 0;  // Success (but we don't actually register anything)
 }
 
 // ============================================================
@@ -54,17 +54,17 @@ extern void (*__init_array_start[])();
 extern void (*__init_array_end[])();
 
 void _init_global_ctors() {
-	// __init_array_start/end are higher-half addresses
-	// No conversion needed - we're running in higher-half now!
-	void (**start)() = __init_array_start;
-	void (**end)()	 = __init_array_end;
+    // __init_array_start/end are higher-half addresses
+    // No conversion needed - we're running in higher-half now!
+    void (**start)() = __init_array_start;
+    void (**end)()   = __init_array_end;
 
-	for (void (**func)() = start; func != end; func++) {
-		void (*ctor)() = *func;
-		if (ctor != nullptr) {
-			ctor();
-		}
-	}
+    for (void (**func)() = start; func != end; func++) {
+        void (*ctor)() = *func;
+        if (ctor != nullptr) {
+            ctor();
+        }
+    }
 }
 
 }  // extern "C"
@@ -78,34 +78,34 @@ void _init_global_ctors() {
 // NOTE: These must be outside extern "C" as they require C++ linkage.
 
 void operator delete(void* ptr) noexcept {
-	// Halt - delete not supported
-	(void)ptr;
-	while (1) {
-		__asm__ volatile("cli; hlt");
-	}
+    // Halt - delete not supported
+    (void)ptr;
+    while (1) {
+        __asm__ volatile("cli; hlt");
+    }
 }
 
 void operator delete(void* ptr, unsigned long size) noexcept {
-	// Halt - sized delete not supported
-	(void)ptr;
-	(void)size;
-	while (1) {
-		__asm__ volatile("cli; hlt");
-	}
+    // Halt - sized delete not supported
+    (void)ptr;
+    (void)size;
+    while (1) {
+        __asm__ volatile("cli; hlt");
+    }
 }
 
 void* operator new(unsigned long size) {
-	// Halt - new not supported
-	(void)size;
-	while (1) {
-		__asm__ volatile("cli; hlt");
-	}
+    // Halt - new not supported
+    (void)size;
+    while (1) {
+        __asm__ volatile("cli; hlt");
+    }
 }
 
 void* operator new[](unsigned long size) {
-	// Halt - array new not supported
-	(void)size;
-	while (1) {
-		__asm__ volatile("cli; hlt");
-	}
+    // Halt - array new not supported
+    (void)size;
+    while (1) {
+        __asm__ volatile("cli; hlt");
+    }
 }

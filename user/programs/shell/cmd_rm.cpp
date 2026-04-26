@@ -6,9 +6,9 @@
  * Usage: rm <path>
  */
 
-#include "shell.hpp"
 #include "libc/string.hpp"
 #include "libc/syscall.h"
+#include "shell.hpp"
 
 using cinux::user::strlen;
 
@@ -26,8 +26,8 @@ void cmd_rm(int argc, char** argv) {
         return;
     }
 
-    const char* path = argv[1];
-    int64_t result = sys_unlink(path);
+    const char* path   = argv[1];
+    int64_t     result = sys_unlink(path);
 
     if (result < 0) {
         write_str("rm: cannot remove '");

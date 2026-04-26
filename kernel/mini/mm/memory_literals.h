@@ -20,7 +20,7 @@ namespace cinux::mini::mm::literals {
  * Example: 4_KB → 4096
  */
 constexpr uint64_t operator""_KB(unsigned long long value) {
-	return value * 1024ULL;
+    return value * 1024ULL;
 }
 
 /**
@@ -31,7 +31,7 @@ constexpr uint64_t operator""_KB(unsigned long long value) {
  * Example: 1_MB → 1048576
  */
 constexpr uint64_t operator""_MB(unsigned long long value) {
-	return value * 1024ULL * 1024ULL;
+    return value * 1024ULL * 1024ULL;
 }
 
 /**
@@ -42,7 +42,7 @@ constexpr uint64_t operator""_MB(unsigned long long value) {
  * Example: 4_GB → 4294967296
  */
 constexpr uint64_t operator""_GB(unsigned long long value) {
-	return value * 1024ULL * 1024ULL * 1024ULL;
+    return value * 1024ULL * 1024ULL * 1024ULL;
 }
 
 /**
@@ -53,12 +53,12 @@ constexpr uint64_t operator""_GB(unsigned long long value) {
  * Example: 1_TB → 1099511627776
  */
 constexpr uint64_t operator""_TB(unsigned long long value) {
-	return value * 1024ULL * 1024ULL * 1024ULL * 1024ULL;
+    return value * 1024ULL * 1024ULL * 1024ULL * 1024ULL;
 }
 
-} // namespace cinux::mini::mm::literals
+}  // namespace cinux::mini::mm::literals
 
 // Import literals into cinux::mini::mm namespace for convenience
 namespace cinux::mini::mm {
-	using namespace literals;
+using namespace literals;
 }

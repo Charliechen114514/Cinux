@@ -9,6 +9,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "mm_defines.h"
 
 namespace cinux::mini::mm::pmm {
@@ -16,11 +17,11 @@ namespace cinux::mini::mm::pmm {
 // ============================================================
 // Constants
 // ============================================================
-constexpr uint64_t PAGE_SIZE			  = 4_KB;			// 4KB pages
-constexpr uint64_t MAX_MEMORY			= 4_GB;			// 4GB max supported
-constexpr uint64_t MAX_PAGES			= MAX_MEMORY / PAGE_SIZE;		// 1M pages max
-constexpr uint64_t BITMAP_SIZE		  = MAX_PAGES / 8;				// 128KB bitmap
-constexpr uint64_t LOW_MEMORY_BOUNDARY  = 1_MB; // 1MB
+constexpr uint64_t PAGE_SIZE           = 4_KB;                    // 4KB pages
+constexpr uint64_t MAX_MEMORY          = 4_GB;                    // 4GB max supported
+constexpr uint64_t MAX_PAGES           = MAX_MEMORY / PAGE_SIZE;  // 1M pages max
+constexpr uint64_t BITMAP_SIZE         = MAX_PAGES / 8;           // 128KB bitmap
+constexpr uint64_t LOW_MEMORY_BOUNDARY = 1_MB;                    // 1MB
 
 // ============================================================
 // Initialization
@@ -62,4 +63,4 @@ uint64_t free_page_count();
  */
 uint64_t total_page_count();
 
-} // namespace cinux::mini::mm::pmm
+}  // namespace cinux::mini::mm::pmm

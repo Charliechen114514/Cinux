@@ -7,12 +7,12 @@
  */
 
 #define TEST_FRAMEWORK_IMPL
-#include "test_framework.h"
-
-#include <string>
 #include <stdarg.h>
 
+#include <string>
+
 #include "kernel/lib/private/vkprintf_impl.hpp"
+#include "test_framework.h"
 
 using cinux::lib::detail::vkprintf_impl;
 
@@ -20,7 +20,9 @@ namespace {
 
 std::string g_output;
 
-static void test_putc(char c) { g_output += c; }
+static void test_putc(char c) {
+    g_output += c;
+}
 
 static std::string do_fmt(const char* fmt, ...) {
     g_output.clear();
@@ -78,8 +80,7 @@ TEST("kprintf: %X uppercase hex") {
 }
 
 TEST("kprintf: %p pointer format") {
-    ASSERT_EQ(do_fmt("%p", 0xFFFFFFFF80000000ULL),
-              std::string("0xFFFFFFFF80000000"));
+    ASSERT_EQ(do_fmt("%p", 0xFFFFFFFF80000000ULL), std::string("0xFFFFFFFF80000000"));
 }
 
 // ============================================================
@@ -111,8 +112,7 @@ TEST("kprintf: %-10s left-align string") {
 // ============================================================
 
 TEST("kprintf: mixed specifiers") {
-    ASSERT_EQ(do_fmt("%s %d %x", "test", -5, 0xABULL),
-              std::string("test -5 ab"));
+    ASSERT_EQ(do_fmt("%s %d %x", "test", -5, 0xABULL), std::string("test -5 ab"));
 }
 
 TEST("kprintf: unknown specifier passes through") {

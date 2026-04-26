@@ -7,9 +7,9 @@
 
 #include <stdint.h>
 
+#include "kernel/proc/per_cpu.hpp"
 #include "kernel/proc/process.hpp"
 #include "kernel/proc/scheduler.hpp"
-#include "kernel/proc/per_cpu.hpp"
 
 namespace cinux::proc {
 
@@ -61,8 +61,8 @@ Task* Mutex::dequeue_waiter() {
         return nullptr;
     }
 
-    Task* task = wait_head_;
-    wait_head_ = task->wait_next;
+    Task* task      = wait_head_;
+    wait_head_      = task->wait_next;
     task->wait_next = nullptr;
     return task;
 }
@@ -128,9 +128,7 @@ bool Mutex::try_lock() {
 // Semaphore implementation
 // ============================================================
 
-Semaphore::Semaphore(int64_t initial)
-    : count_(initial), wait_head_(nullptr) {
-}
+Semaphore::Semaphore(int64_t initial) : count_(initial), wait_head_(nullptr) {}
 
 void Semaphore::enqueue_waiter(Task* task) {
     task->wait_next = nullptr;
@@ -152,8 +150,8 @@ Task* Semaphore::dequeue_waiter() {
         return nullptr;
     }
 
-    Task* task = wait_head_;
-    wait_head_ = task->wait_next;
+    Task* task      = wait_head_;
+    wait_head_      = task->wait_next;
     task->wait_next = nullptr;
     return task;
 }

@@ -5,9 +5,9 @@
  * Prints a list of available shell commands.
  */
 
-#include "shell.hpp"
 #include "libc/string.hpp"
 #include "libc/syscall.h"
+#include "shell.hpp"
 
 using cinux::user::strlen;
 
@@ -31,6 +31,5 @@ void cmd_help(int /*argc*/, char** /*argv*/) {
         "  touch <path>      - create an empty file\n"
         "  mkdir <path>      - create a directory\n"
         "  rm <path>         - remove a file\n"
-        "  rmdir <path>      - remove an empty directory\n"
-    );
+        "  rmdir <path>      - remove an empty directory\n");
 }

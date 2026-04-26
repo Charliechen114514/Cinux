@@ -11,6 +11,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "kernel/arch/x86_64/syscall.hpp"
 
 namespace cinux::syscall {
@@ -25,7 +26,6 @@ namespace cinux::syscall {
  * @param status    User virtual address of int to store exit status
  * @return Child PID on success, 0 if child not yet exited, or negative errno
  */
-int64_t sys_waitpid(uint64_t pid, uint64_t status, uint64_t,
-                    uint64_t, uint64_t, uint64_t);
+int64_t sys_waitpid(uint64_t pid, uint64_t status, uint64_t, uint64_t, uint64_t, uint64_t);
 
 }  // namespace cinux::syscall

@@ -11,6 +11,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "kernel/arch/x86_64/syscall.hpp"
 
 namespace cinux::syscall {
@@ -23,7 +24,7 @@ namespace cinux::syscall {
  * @param envp_virt  User virtual address of the environment vector
  * @return 0 on success, or a negative error code on failure
  */
-int64_t sys_execve(uint64_t path_virt, uint64_t argv_virt, uint64_t envp_virt,
-                   uint64_t, uint64_t, uint64_t);
+int64_t sys_execve(uint64_t path_virt, uint64_t argv_virt, uint64_t envp_virt, uint64_t, uint64_t,
+                   uint64_t);
 
 }  // namespace cinux::syscall

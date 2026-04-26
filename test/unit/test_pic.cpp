@@ -25,10 +25,10 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
+#    include <cstdint>
 
 // Include kernel PIC header for constants and types
-#include "arch/x86_64/pic.hpp"
+#    include "arch/x86_64/pic.hpp"
 
 using namespace cinux::arch;
 
@@ -91,7 +91,7 @@ static void pic_unmask(uint8_t irq) {
  */
 static void pic_eoi_targets(uint8_t irq, bool& master_eoi, bool& slave_eoi) {
     master_eoi = true;
-    slave_eoi = (irq >= 8);
+    slave_eoi  = (irq >= 8);
 }
 
 /**

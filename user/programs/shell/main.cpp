@@ -9,9 +9,9 @@
  * in its own .cpp file (cmd_echo.cpp, cmd_help.cpp, cmd_clear.cpp).
  */
 
-#include "shell.hpp"
 #include "libc/string.hpp"
 #include "libc/syscall.h"
+#include "shell.hpp"
 
 using cinux::user::strcmp;
 using cinux::user::strlen;
@@ -67,7 +67,7 @@ size_t read_line(char* buf, size_t cap) {
     size_t pos = 0;
 
     while (pos < cap - 1) {
-        char c = 0;
+        char    c = 0;
         int64_t n = sys_read(0, &c, 1);
         if (n <= 0) {
             continue;
@@ -155,18 +155,9 @@ namespace {
 /// To add a new command: implement cmd_xxx in cmd_xxx.cpp, declare
 /// it in shell.hpp, and add an entry here.
 constexpr CmdEntry builtin_cmds[] = {
-    {"echo",  cmd_echo},
-    {"help",  cmd_help},
-    {"clear", cmd_clear},
-    {"cat",   cmd_cat},
-    {"ls",    cmd_ls},
-    {"touch", cmd_touch},
-    {"mkdir", cmd_mkdir},
-    {"rm",    cmd_rm},
-    {"rmdir", cmd_rmdir},
-    {"cd",    cmd_cd},
-    {"pwd",   cmd_pwd},
-    {"stat",  cmd_stat},
+    {"echo", cmd_echo},   {"help", cmd_help},   {"clear", cmd_clear}, {"cat", cmd_cat},
+    {"ls", cmd_ls},       {"touch", cmd_touch}, {"mkdir", cmd_mkdir}, {"rm", cmd_rm},
+    {"rmdir", cmd_rmdir}, {"cd", cmd_cd},       {"pwd", cmd_pwd},     {"stat", cmd_stat},
     {nullptr, nullptr},
 };
 

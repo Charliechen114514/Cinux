@@ -14,9 +14,9 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstring>
-#include <vector>
+#    include <cstdint>
+#    include <cstring>
+#    include <vector>
 
 // ============================================================
 // Mock PSFFont (mimics kernel/drivers/video/font.hpp)
@@ -34,17 +34,18 @@ public:
     }
 
     const uint8_t* glyph(uint8_t c) const {
-        if (glyphs_[c].empty()) return nullptr;
+        if (glyphs_[c].empty())
+            return nullptr;
         return glyphs_[c].data();
     }
 
-    uint32_t width()  const { return width_; }
+    uint32_t width() const { return width_; }
     uint32_t height() const { return height_; }
 
 private:
     std::vector<uint8_t> glyphs_[256];
-    uint32_t width_  = 0;
-    uint32_t height_ = 0;
+    uint32_t             width_  = 0;
+    uint32_t             height_ = 0;
 };
 
 // ============================================================
@@ -56,15 +57,17 @@ public:
     MockCanvas() = default;
 
     void init(uint32_t w, uint32_t h) {
-        if (!back_buf_.empty()) back_buf_.clear();
-        width_     = w;
-        height_    = h;
-        pitch_     = w * 4;
+        if (!back_buf_.empty())
+            back_buf_.clear();
+        width_  = w;
+        height_ = h;
+        pitch_  = w * 4;
         back_buf_.resize(static_cast<size_t>(w) * h, 0);
     }
 
     void draw_pixel(uint32_t x, uint32_t y, uint32_t color) {
-        if (x >= width_ || y >= height_) return;
+        if (x >= width_ || y >= height_)
+            return;
         back_buf_[y * width_ + x] = color;
     }
 
@@ -76,46 +79,51 @@ public:
         }
     }
 
-    void blit(int32_t dst_x, int32_t dst_y, MockCanvas& src,
-              uint32_t sx, uint32_t sy, uint32_t w, uint32_t h) {
+    void blit(int32_t dst_x, int32_t dst_y, MockCanvas& src, uint32_t sx, uint32_t sy, uint32_t w,
+              uint32_t h) {
         for (uint32_t row = 0; row < h; row++) {
             uint32_t src_row = sy + row;
-            int32_t dst_row = dst_y + static_cast<int32_t>(row);
-            if (dst_row < 0) continue;
-            if (src_row >= src.height_ || dst_row >= static_cast<int32_t>(height_)) break;
+            int32_t  dst_row = dst_y + static_cast<int32_t>(row);
+            if (dst_row < 0)
+                continue;
+            if (src_row >= src.height_ || dst_row >= static_cast<int32_t>(height_))
+                break;
 
-            int32_t col_skip = 0;
-            int32_t eff_dst_x = dst_x;
-            uint32_t eff_sx = sx;
+            int32_t  col_skip  = 0;
+            int32_t  eff_dst_x = dst_x;
+            uint32_t eff_sx    = sx;
             if (eff_dst_x < 0) {
-                col_skip = -eff_dst_x;
+                col_skip  = -eff_dst_x;
                 eff_dst_x = 0;
                 eff_sx += static_cast<uint32_t>(col_skip);
             }
 
             uint32_t dst_col_start = static_cast<uint32_t>(eff_dst_x);
-            uint32_t col_count = w - static_cast<uint32_t>(col_skip);
+            uint32_t col_count     = w - static_cast<uint32_t>(col_skip);
 
             for (uint32_t i = 0; i < col_count; i++) {
                 uint32_t src_col = eff_sx + i;
                 uint32_t dst_col = dst_col_start + i;
-                if (src_col >= src.width_ || dst_col >= width_) break;
+                if (src_col >= src.width_ || dst_col >= width_)
+                    break;
                 back_buf_[dst_row * width_ + dst_col] =
                     src.back_buf_[src_row * src.width_ + src_col];
             }
         }
     }
 
-    void draw_text(uint32_t x, uint32_t y, const char* str, uint32_t color,
-                   MockPSFFont& font) {
-        if (str == nullptr) return;
+    void draw_text(uint32_t x, uint32_t y, const char* str, uint32_t color, MockPSFFont& font) {
+        if (str == nullptr)
+            return;
         uint32_t gw = font.width();
         uint32_t gh = font.height();
-        if (gw == 0 || gh == 0) return;
+        if (gw == 0 || gh == 0)
+            return;
         uint32_t cx = x;
         for (uint32_t i = 0; str[i] != '\0'; i++) {
             const uint8_t* g = font.glyph(static_cast<uint8_t>(str[i]));
-            if (g == nullptr) continue;
+            if (g == nullptr)
+                continue;
             for (uint32_t row = 0; row < gh; row++) {
                 uint8_t bits = g[row];
                 for (uint32_t col = 0; col < gw; col++) {
@@ -129,26 +137,28 @@ public:
     }
 
     void clear(uint32_t color = 0) {
-        for (auto& p : back_buf_) p = color;
+        for (auto& p : back_buf_)
+            p = color;
     }
 
     void flip() {
         // No-op in mock (no front buffer)
     }
 
-    uint32_t width()  const { return width_; }
+    uint32_t width() const { return width_; }
     uint32_t height() const { return height_; }
 
     uint32_t pixel(uint32_t x, uint32_t y) const {
-        if (x >= width_ || y >= height_) return 0xDEAD;
+        if (x >= width_ || y >= height_)
+            return 0xDEAD;
         return back_buf_[y * width_ + x];
     }
 
 private:
     std::vector<uint32_t> back_buf_;
-    uint32_t width_  = 0;
-    uint32_t height_ = 0;
-    uint32_t pitch_  = 0;
+    uint32_t              width_  = 0;
+    uint32_t              height_ = 0;
+    uint32_t              pitch_  = 0;
 };
 
 // ============================================================
@@ -164,14 +174,14 @@ enum class MockEventType : uint8_t {
 };
 
 struct MockMouseEvent {
-    int32_t  x;
-    int32_t  y;
-    int32_t  dx;
-    int32_t  dy;
-    uint8_t  buttons;
-    bool     left;
-    bool     right;
-    bool     middle;
+    int32_t x;
+    int32_t y;
+    int32_t dx;
+    int32_t dy;
+    uint8_t buttons;
+    bool    left;
+    bool    right;
+    bool    middle;
 };
 
 struct MockKeyEvent {
@@ -197,11 +207,11 @@ struct MockEvent {
 
 class MockWindow {
 public:
-    static constexpr uint32_t TITLE_BAR_HEIGHT = 20;
+    static constexpr uint32_t TITLE_BAR_HEIGHT  = 20;
     static constexpr uint32_t CLOSE_BUTTON_SIZE = 14;
-    static constexpr uint32_t TITLE_MAX_LEN    = 63;
-    static constexpr uint32_t DEFAULT_WIDTH    = 320;
-    static constexpr uint32_t DEFAULT_HEIGHT   = 240;
+    static constexpr uint32_t TITLE_MAX_LEN     = 63;
+    static constexpr uint32_t DEFAULT_WIDTH     = 320;
+    static constexpr uint32_t DEFAULT_HEIGHT    = 240;
 
     static constexpr uint32_t COLOR_TITLE_BG     = 0x00336699;
     static constexpr uint32_t COLOR_TITLE_TEXT   = 0x00FFFFFF;
@@ -211,13 +221,11 @@ public:
 
     static uint32_t next_id_;
 
-    MockWindow(const char* title = "Untitled",
-               int32_t x = 0, int32_t y = 0,
-               uint32_t w = DEFAULT_WIDTH,
-               uint32_t h = DEFAULT_HEIGHT)
-        : id_(next_id_++), x_(x), y_(y), w_(w), h_(h),
-          visible_(true), focused_(false) {
-        for (uint32_t i = 0; i <= TITLE_MAX_LEN; i++) title_[i] = '\0';
+    MockWindow(const char* title = "Untitled", int32_t x = 0, int32_t y = 0,
+               uint32_t w = DEFAULT_WIDTH, uint32_t h = DEFAULT_HEIGHT)
+        : id_(next_id_++), x_(x), y_(y), w_(w), h_(h), visible_(true), focused_(false) {
+        for (uint32_t i = 0; i <= TITLE_MAX_LEN; i++)
+            title_[i] = '\0';
         if (title != nullptr) {
             uint32_t i = 0;
             while (i < TITLE_MAX_LEN && title[i] != '\0') {
@@ -240,23 +248,29 @@ public:
         canvas_.draw_text(4, text_y, title_, COLOR_TITLE_TEXT, font);
         uint32_t cb_x = w_ - CLOSE_BUTTON_SIZE - 3;
         uint32_t cb_y = (TITLE_BAR_HEIGHT - CLOSE_BUTTON_SIZE) / 2;
-        canvas_.draw_rect(cb_x, cb_y, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE,
-                          COLOR_CLOSE_BUTTON);
+        canvas_.draw_rect(cb_x, cb_y, CLOSE_BUTTON_SIZE, CLOSE_BUTTON_SIZE, COLOR_CLOSE_BUTTON);
     }
 
-    void draw_content() {
-        canvas_.draw_rect(0, TITLE_BAR_HEIGHT, w_, h_, COLOR_CONTENT_BG);
-    }
+    void draw_content() { canvas_.draw_rect(0, TITLE_BAR_HEIGHT, w_, h_, COLOR_CONTENT_BG); }
 
     void blit_to(MockCanvas& dst) {
-        if (!visible_) return;
+        if (!visible_)
+            return;
         dst.blit(x_, y_, canvas_, 0, 0, w_, total_height());
     }
 
-    void set_position(int32_t x, int32_t y) { x_ = x; y_ = y; }
-    void resize(uint32_t w, uint32_t h) { w_ = w; h_ = h; allocate_canvas(); }
+    void set_position(int32_t x, int32_t y) {
+        x_ = x;
+        y_ = y;
+    }
+    void resize(uint32_t w, uint32_t h) {
+        w_ = w;
+        h_ = h;
+        allocate_canvas();
+    }
     void set_title(const char* title) {
-        for (uint32_t i = 0; i <= TITLE_MAX_LEN; i++) title_[i] = '\0';
+        for (uint32_t i = 0; i <= TITLE_MAX_LEN; i++)
+            title_[i] = '\0';
         if (title != nullptr) {
             uint32_t i = 0;
             while (i < TITLE_MAX_LEN && title[i] != '\0') {
@@ -269,26 +283,24 @@ public:
     bool is_close_button_hit(int32_t mx, int32_t my) const {
         int32_t cb_x = x_ + static_cast<int32_t>(w_) - CLOSE_BUTTON_SIZE - 3;
         int32_t cb_y = y_ + static_cast<int32_t>((TITLE_BAR_HEIGHT - CLOSE_BUTTON_SIZE) / 2);
-        return mx >= cb_x && mx < cb_x + static_cast<int32_t>(CLOSE_BUTTON_SIZE)
-            && my >= cb_y && my < cb_y + static_cast<int32_t>(CLOSE_BUTTON_SIZE);
+        return mx >= cb_x && mx < cb_x + static_cast<int32_t>(CLOSE_BUTTON_SIZE) && my >= cb_y &&
+               my < cb_y + static_cast<int32_t>(CLOSE_BUTTON_SIZE);
     }
 
     bool contains(int32_t mx, int32_t my) const {
-        return mx >= x_
-            && mx < x_ + static_cast<int32_t>(w_)
-            && my >= y_
-            && my < y_ + static_cast<int32_t>(total_height());
+        return mx >= x_ && mx < x_ + static_cast<int32_t>(w_) && my >= y_ &&
+               my < y_ + static_cast<int32_t>(total_height());
     }
 
-    uint32_t id() const { return id_; }
-    int32_t  x() const { return x_; }
-    int32_t  y() const { return y_; }
-    uint32_t width() const { return w_; }
-    uint32_t height() const { return h_; }
-    bool     visible() const { return visible_; }
-    bool     focused() const { return focused_; }
+    uint32_t    id() const { return id_; }
+    int32_t     x() const { return x_; }
+    int32_t     y() const { return y_; }
+    uint32_t    width() const { return w_; }
+    uint32_t    height() const { return h_; }
+    bool        visible() const { return visible_; }
+    bool        focused() const { return focused_; }
     const char* title() const { return title_; }
-    uint32_t total_height() const { return h_ + TITLE_BAR_HEIGHT; }
+    uint32_t    total_height() const { return h_ + TITLE_BAR_HEIGHT; }
 
     void set_visible(bool v) { visible_ = v; }
     void set_focused(bool f) { focused_ = f; }
@@ -303,15 +315,15 @@ private:
         canvas_.init(w_, total_h);
     }
 
-    uint32_t id_;
-    int32_t  x_;
-    int32_t  y_;
-    uint32_t w_;
-    uint32_t h_;
-    char     title_[TITLE_MAX_LEN + 1];
+    uint32_t   id_;
+    int32_t    x_;
+    int32_t    y_;
+    uint32_t   w_;
+    uint32_t   h_;
+    char       title_[TITLE_MAX_LEN + 1];
     MockCanvas canvas_;
-    bool     visible_;
-    bool     focused_;
+    bool       visible_;
+    bool       focused_;
 };
 
 uint32_t MockWindow::next_id_ = 1;
@@ -322,8 +334,8 @@ uint32_t MockWindow::next_id_ = 1;
 
 class MockWindowManager {
 public:
-    static constexpr uint32_t MAX_WINDOWS    = 64;
-    static constexpr uint32_t DESKTOP_COLOR  = 0x00224466;
+    static constexpr uint32_t MAX_WINDOWS   = 64;
+    static constexpr uint32_t DESKTOP_COLOR = 0x00224466;
 
     MockWindowManager() = default;
 
@@ -332,25 +344,26 @@ public:
             delete windows_[i];
             windows_[i] = nullptr;
         }
-        count_ = 0;
+        count_   = 0;
         focused_ = nullptr;
     }
 
-    MockWindowManager(const MockWindowManager&) = delete;
+    MockWindowManager(const MockWindowManager&)            = delete;
     MockWindowManager& operator=(const MockWindowManager&) = delete;
 
     void init(MockCanvas* screen, MockPSFFont* font) {
-        screen_ = screen;
-        font_   = font;
-        count_  = 0;
-        focused_ = nullptr;
+        screen_   = screen;
+        font_     = font;
+        count_    = 0;
+        focused_  = nullptr;
         dragging_ = false;
-        mouse_x_ = 0;
-        mouse_y_ = 0;
+        mouse_x_  = 0;
+        mouse_y_  = 0;
     }
 
     uint32_t create(const char* title, uint32_t w, uint32_t h) {
-        if (count_ >= MAX_WINDOWS) return 0;
+        if (count_ >= MAX_WINDOWS)
+            return 0;
 
         int32_t offset_x = static_cast<int32_t>(count_ * 30);
         int32_t offset_y = static_cast<int32_t>(count_ * 30);
@@ -377,7 +390,8 @@ public:
 
     void raise(uint32_t id) {
         uint32_t idx = find_index(id);
-        if (idx >= MAX_WINDOWS || idx == count_ - 1) return;
+        if (idx >= MAX_WINDOWS || idx == count_ - 1)
+            return;
 
         MockWindow* win = windows_[idx];
         for (uint32_t i = idx; i < count_ - 1; i++) {
@@ -388,7 +402,8 @@ public:
     }
 
     void composite() {
-        if (screen_ == nullptr) return;
+        if (screen_ == nullptr)
+            return;
         screen_->clear(DESKTOP_COLOR);
         for (uint32_t i = 0; i < count_; i++) {
             if (windows_[i]->visible()) {
@@ -404,7 +419,8 @@ public:
 
         switch (ev.type_) {
         case MockEventType::MouseDown: {
-            if (!ev.mouse.left) break;
+            if (!ev.mouse.left)
+                break;
 
             MockWindow* hit = hit_test(ev.mouse.x, ev.mouse.y);
 
@@ -426,9 +442,8 @@ public:
             raise(hit->id());
 
             int32_t local_y = ev.mouse.y - hit->y();
-            if (local_y >= 0 &&
-                local_y < static_cast<int32_t>(MockWindow::TITLE_BAR_HEIGHT)) {
-                dragging_ = true;
+            if (local_y >= 0 && local_y < static_cast<int32_t>(MockWindow::TITLE_BAR_HEIGHT)) {
+                dragging_      = true;
                 drag_offset_x_ = ev.mouse.x - hit->x();
                 drag_offset_y_ = ev.mouse.y - hit->y();
             }
@@ -469,23 +484,25 @@ public:
         }
     }
 
-    uint32_t window_count() const { return count_; }
+    uint32_t    window_count() const { return count_; }
     MockWindow* focused() const { return focused_; }
-    int32_t mouse_x() const { return mouse_x_; }
-    int32_t mouse_y() const { return mouse_y_; }
-    bool dragging() const { return dragging_; }
+    int32_t     mouse_x() const { return mouse_x_; }
+    int32_t     mouse_y() const { return mouse_y_; }
+    bool        dragging() const { return dragging_; }
 
 private:
     MockWindow* find_window(uint32_t id) {
         for (uint32_t i = 0; i < count_; i++) {
-            if (windows_[i]->id() == id) return windows_[i];
+            if (windows_[i]->id() == id)
+                return windows_[i];
         }
         return nullptr;
     }
 
     uint32_t find_index(uint32_t id) const {
         for (uint32_t i = 0; i < count_; i++) {
-            if (windows_[i]->id() == id) return i;
+            if (windows_[i]->id() == id)
+                return i;
         }
         return MAX_WINDOWS;
     }
@@ -501,10 +518,10 @@ private:
     }
 
     void remove_at(uint32_t idx) {
-        if (idx >= count_) return;
+        if (idx >= count_)
+            return;
 
-        bool was_focused = (focused_ != nullptr &&
-                            focused_->id() == windows_[idx]->id());
+        bool was_focused = (focused_ != nullptr && focused_->id() == windows_[idx]->id());
 
         delete windows_[idx];
         windows_[idx] = nullptr;
@@ -515,7 +532,8 @@ private:
         windows_[count_ - 1] = nullptr;
         count_--;
 
-        if (was_focused) update_focus();
+        if (was_focused)
+            update_focus();
     }
 
     void update_focus() {
@@ -531,8 +549,8 @@ private:
     }
 
     MockWindow* windows_[MAX_WINDOWS] = {};
-    uint32_t count_ = 0;
-    MockWindow* focused_ = nullptr;
+    uint32_t    count_                = 0;
+    MockWindow* focused_              = nullptr;
 
     int32_t mouse_x_ = 0;
     int32_t mouse_y_ = 0;
@@ -912,11 +930,10 @@ TEST("wm: composite respects Z-order (top overwrites bottom)") {
 
     // At position (50, 50): both windows cover this point.
     // Window A's total_height = 70, so (50,50) is in A's content area (50 < 100, 50 < 70).
-    // Window B is at (30,30), total_height=70, so (50,50) is in B's content area (50-30=20, 50-30=20, both < content h=50).
-    // B is on top, so we should see B's content (grey) not A's.
-    // But both are content grey, so they look the same.
-    // Instead, let's verify the title bar of B overwrites A's content.
-    // B's title bar is at y=30..49. At (50, 40): inside B's title bar.
+    // Window B is at (30,30), total_height=70, so (50,50) is in B's content area (50-30=20,
+    // 50-30=20, both < content h=50). B is on top, so we should see B's content (grey) not A's. But
+    // both are content grey, so they look the same. Instead, let's verify the title bar of B
+    // overwrites A's content. B's title bar is at y=30..49. At (50, 40): inside B's title bar.
     ASSERT_EQ(screen.pixel(50, 40), MockWindow::COLOR_TITLE_BG);
 
     // Raise A to top
@@ -984,11 +1001,11 @@ TEST("wm: handle_mouse MouseDown on close button destroys window") {
     // Window A is at stagger (0,0), width=100.
     // Close button at x = 0 + 100 - 14 - 3 = 83, y = 0 + (20-14)/2 = 3
     MockEvent ev;
-    ev.type_ = MockEventType::MouseDown;
-    ev.mouse.x = 83;
-    ev.mouse.y = 3;
-    ev.mouse.left = true;
-    ev.mouse.right = false;
+    ev.type_        = MockEventType::MouseDown;
+    ev.mouse.x      = 83;
+    ev.mouse.y      = 3;
+    ev.mouse.left   = true;
+    ev.mouse.right  = false;
     ev.mouse.middle = false;
 
     wm.handle_mouse(ev);
@@ -1015,11 +1032,11 @@ TEST("wm: handle_mouse MouseDown on title bar starts dragging") {
     // Window A is at stagger (0,0).
     // Click on title bar: y=5 (within 0..19)
     MockEvent ev;
-    ev.type_ = MockEventType::MouseDown;
-    ev.mouse.x = 50;
-    ev.mouse.y = 5;
-    ev.mouse.left = true;
-    ev.mouse.right = false;
+    ev.type_        = MockEventType::MouseDown;
+    ev.mouse.x      = 50;
+    ev.mouse.y      = 5;
+    ev.mouse.left   = true;
+    ev.mouse.right  = false;
     ev.mouse.middle = false;
 
     wm.handle_mouse(ev);
@@ -1042,11 +1059,11 @@ TEST("wm: handle_mouse MouseMove while dragging updates position") {
 
     // Start drag on title bar at (50, 5), window at (0, 0)
     MockEvent ev_down;
-    ev_down.type_ = MockEventType::MouseDown;
-    ev_down.mouse.x = 50;
-    ev_down.mouse.y = 5;
-    ev_down.mouse.left = true;
-    ev_down.mouse.right = false;
+    ev_down.type_        = MockEventType::MouseDown;
+    ev_down.mouse.x      = 50;
+    ev_down.mouse.y      = 5;
+    ev_down.mouse.left   = true;
+    ev_down.mouse.right  = false;
     ev_down.mouse.middle = false;
     wm.handle_mouse(ev_down);
 
@@ -1056,11 +1073,11 @@ TEST("wm: handle_mouse MouseMove while dragging updates position") {
     // drag_offset = (50 - 0, 5 - 0) = (50, 5)
     // new position = (100 - 50, 55 - 5) = (50, 50)
     MockEvent ev_move;
-    ev_move.type_ = MockEventType::MouseMove;
-    ev_move.mouse.x = 100;
-    ev_move.mouse.y = 55;
-    ev_move.mouse.left = true;
-    ev_move.mouse.right = false;
+    ev_move.type_        = MockEventType::MouseMove;
+    ev_move.mouse.x      = 100;
+    ev_move.mouse.y      = 55;
+    ev_move.mouse.left   = true;
+    ev_move.mouse.right  = false;
     ev_move.mouse.middle = false;
     wm.handle_mouse(ev_move);
 
@@ -1083,11 +1100,11 @@ TEST("wm: handle_mouse MouseUp ends dragging") {
 
     // Start drag
     MockEvent ev_down;
-    ev_down.type_ = MockEventType::MouseDown;
-    ev_down.mouse.x = 50;
-    ev_down.mouse.y = 5;
-    ev_down.mouse.left = true;
-    ev_down.mouse.right = false;
+    ev_down.type_        = MockEventType::MouseDown;
+    ev_down.mouse.x      = 50;
+    ev_down.mouse.y      = 5;
+    ev_down.mouse.left   = true;
+    ev_down.mouse.right  = false;
     ev_down.mouse.middle = false;
     wm.handle_mouse(ev_down);
 
@@ -1095,11 +1112,11 @@ TEST("wm: handle_mouse MouseUp ends dragging") {
 
     // Release mouse
     MockEvent ev_up;
-    ev_up.type_ = MockEventType::MouseUp;
-    ev_up.mouse.x = 100;
-    ev_up.mouse.y = 55;
-    ev_up.mouse.left = false;
-    ev_up.mouse.right = false;
+    ev_up.type_        = MockEventType::MouseUp;
+    ev_up.mouse.x      = 100;
+    ev_up.mouse.y      = 55;
+    ev_up.mouse.left   = false;
+    ev_up.mouse.right  = false;
     ev_up.mouse.middle = false;
     wm.handle_mouse(ev_up);
 
@@ -1129,11 +1146,11 @@ TEST("wm: handle_mouse MouseDown on content area raises window") {
 
     // Click on A's content area (50, 50) -- A's content is y=20..69
     MockEvent ev;
-    ev.type_ = MockEventType::MouseDown;
-    ev.mouse.x = 10;
-    ev.mouse.y = 50;
-    ev.mouse.left = true;
-    ev.mouse.right = false;
+    ev.type_        = MockEventType::MouseDown;
+    ev.mouse.x      = 10;
+    ev.mouse.y      = 50;
+    ev.mouse.left   = true;
+    ev.mouse.right  = false;
     ev.mouse.middle = false;
 
     wm.handle_mouse(ev);
@@ -1160,11 +1177,11 @@ TEST("wm: handle_mouse click on desktop clears focus") {
 
     // Click on desktop (far from any window)
     MockEvent ev;
-    ev.type_ = MockEventType::MouseDown;
-    ev.mouse.x = 500;
-    ev.mouse.y = 500;
-    ev.mouse.left = true;
-    ev.mouse.right = false;
+    ev.type_        = MockEventType::MouseDown;
+    ev.mouse.x      = 500;
+    ev.mouse.y      = 500;
+    ev.mouse.left   = true;
+    ev.mouse.right  = false;
     ev.mouse.middle = false;
 
     wm.handle_mouse(ev);
@@ -1190,11 +1207,11 @@ TEST("wm: handle_mouse right button click is ignored") {
 
     // Right-click on window A's title bar
     MockEvent ev;
-    ev.type_ = MockEventType::MouseDown;
-    ev.mouse.x = 50;
-    ev.mouse.y = 5;
-    ev.mouse.left = false;
-    ev.mouse.right = true;
+    ev.type_        = MockEventType::MouseDown;
+    ev.mouse.x      = 50;
+    ev.mouse.y      = 5;
+    ev.mouse.left   = false;
+    ev.mouse.right  = true;
     ev.mouse.middle = false;
 
     wm.handle_mouse(ev);
@@ -1222,13 +1239,13 @@ TEST("wm: handle_key does not crash") {
     wm.create("A", 100, 50);
 
     MockEvent ev;
-    ev.type_ = MockEventType::KeyDown;
-    ev.key.ascii = 'a';
+    ev.type_        = MockEventType::KeyDown;
+    ev.key.ascii    = 'a';
     ev.key.scancode = 0x1E;
-    ev.key.pressed = true;
-    ev.key.shift = false;
-    ev.key.ctrl = false;
-    ev.key.alt = false;
+    ev.key.pressed  = true;
+    ev.key.shift    = false;
+    ev.key.ctrl     = false;
+    ev.key.alt      = false;
 
     wm.handle_key(ev);
 
@@ -1243,12 +1260,11 @@ TEST("wm: handle_key does not crash") {
 // Subclass that tracks on_key calls via a static flag
 class KeyTrackingWindow : public MockWindow {
 public:
-    static int call_count;
+    static int  call_count;
     static char last_ascii;
 
-    KeyTrackingWindow(const char* title = "Track",
-                      int32_t x = 0, int32_t y = 0,
-                      uint32_t w = 100, uint32_t h = 50)
+    KeyTrackingWindow(const char* title = "Track", int32_t x = 0, int32_t y = 0, uint32_t w = 100,
+                      uint32_t h = 50)
         : MockWindow(title, x, y, w, h) {}
 
     void on_key(MockKeyEvent& ev) override {
@@ -1262,17 +1278,17 @@ public:
     }
 };
 
-int KeyTrackingWindow::call_count = 0;
+int  KeyTrackingWindow::call_count = 0;
 char KeyTrackingWindow::last_ascii = 0;
 
 // Verify virtual on_key dispatches correctly through base pointer
 TEST("wm: virtual on_key dispatches through base pointer") {
     KeyTrackingWindow::reset();
     KeyTrackingWindow w;
-    MockWindow* base = &w;
+    MockWindow*       base = &w;
 
     MockKeyEvent ev{};
-    ev.ascii = 'Z';
+    ev.ascii   = 'Z';
     ev.pressed = true;
 
     base->on_key(ev);
@@ -1283,11 +1299,11 @@ TEST("wm: virtual on_key dispatches through base pointer") {
 
 // Verify default MockWindow on_key does not crash (base class default impl)
 TEST("wm: default window on_key does not crash") {
-    MockWindow w;
+    MockWindow   w;
     MockKeyEvent ev{};
-    ev.ascii = 'X';
+    ev.ascii    = 'X';
     ev.scancode = 0x2D;
-    ev.pressed = true;
+    ev.pressed  = true;
 
     // Default implementation should be a no-op
     w.on_key(ev);
@@ -1304,8 +1320,8 @@ TEST("wm: handle_key with no focused window does not crash") {
     // No windows created, so focused_ is nullptr
 
     MockEvent ev;
-    ev.type_ = MockEventType::KeyDown;
-    ev.key.ascii = 'a';
+    ev.type_       = MockEventType::KeyDown;
+    ev.key.ascii   = 'a';
     ev.key.pressed = true;
 
     wm.handle_key(ev);
@@ -1388,11 +1404,11 @@ TEST("wm: hit test gives top window priority") {
     // Click on the overlapping region at (50, 40).
     // B is on top, so B should receive the click.
     MockEvent ev;
-    ev.type_ = MockEventType::MouseDown;
-    ev.mouse.x = 50;
-    ev.mouse.y = 40;
-    ev.mouse.left = true;
-    ev.mouse.right = false;
+    ev.type_        = MockEventType::MouseDown;
+    ev.mouse.x      = 50;
+    ev.mouse.y      = 40;
+    ev.mouse.left   = true;
+    ev.mouse.right  = false;
     ev.mouse.middle = false;
 
     wm.handle_mouse(ev);
@@ -1406,11 +1422,11 @@ TEST("wm: hit test gives top window priority") {
 
     // Click at (50, 40) again -- now A is on top
     MockEvent ev2;
-    ev2.type_ = MockEventType::MouseDown;
-    ev2.mouse.x = 50;
-    ev2.mouse.y = 40;
-    ev2.mouse.left = true;
-    ev2.mouse.right = false;
+    ev2.type_        = MockEventType::MouseDown;
+    ev2.mouse.x      = 50;
+    ev2.mouse.y      = 40;
+    ev2.mouse.left   = true;
+    ev2.mouse.right  = false;
     ev2.mouse.middle = false;
 
     wm.handle_mouse(ev2);
@@ -1436,22 +1452,22 @@ TEST("wm: drag updates window position in composite") {
 
     // Start drag at (50, 5), window at (0, 0)
     MockEvent ev_down;
-    ev_down.type_ = MockEventType::MouseDown;
-    ev_down.mouse.x = 50;
-    ev_down.mouse.y = 5;
-    ev_down.mouse.left = true;
-    ev_down.mouse.right = false;
+    ev_down.type_        = MockEventType::MouseDown;
+    ev_down.mouse.x      = 50;
+    ev_down.mouse.y      = 5;
+    ev_down.mouse.left   = true;
+    ev_down.mouse.right  = false;
     ev_down.mouse.middle = false;
     wm.handle_mouse(ev_down);
 
     // Drag to (200, 100)
     // new position = (200 - 50, 100 - 5) = (150, 95)
     MockEvent ev_move;
-    ev_move.type_ = MockEventType::MouseMove;
-    ev_move.mouse.x = 200;
-    ev_move.mouse.y = 100;
-    ev_move.mouse.left = true;
-    ev_move.mouse.right = false;
+    ev_move.type_        = MockEventType::MouseMove;
+    ev_move.mouse.x      = 200;
+    ev_move.mouse.y      = 100;
+    ev_move.mouse.left   = true;
+    ev_move.mouse.right  = false;
     ev_move.mouse.middle = false;
     wm.handle_mouse(ev_move);
 
@@ -1476,11 +1492,11 @@ TEST("wm: mouse position tracked correctly") {
     init_wm(wm, &screen, &font);
 
     MockEvent ev;
-    ev.type_ = MockEventType::MouseMove;
-    ev.mouse.x = 123;
-    ev.mouse.y = 456;
-    ev.mouse.left = false;
-    ev.mouse.right = false;
+    ev.type_        = MockEventType::MouseMove;
+    ev.mouse.x      = 123;
+    ev.mouse.y      = 456;
+    ev.mouse.left   = false;
+    ev.mouse.right  = false;
     ev.mouse.middle = false;
 
     wm.handle_mouse(ev);
@@ -1528,7 +1544,7 @@ TEST("wm: destructor cleans up all windows") {
 
     {
         MockWindowManager wm;
-    init_wm(wm, &screen, &font);
+        init_wm(wm, &screen, &font);
         wm.create("A", 100, 50);
         wm.create("B", 100, 50);
         wm.create("C", 100, 50);

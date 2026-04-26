@@ -19,17 +19,16 @@
  * Compile condition: CINUX_GUI
  */
 
-#include "big_kernel_test.h"
-
 #include <stdint.h>
 
+#include "big_kernel_test.h"
 #include "boot/boot_info.h"
 #include "kernel/drivers/video/framebuffer.hpp"
 
 #ifdef CINUX_GUI
 
-#include "kernel/drivers/canvas.hpp"
-#include "kernel/gui/desktop_icon.hpp"
+#    include "kernel/drivers/canvas.hpp"
+#    include "kernel/gui/desktop_icon.hpp"
 
 using cinux::drivers::Canvas;
 using cinux::drivers::Framebuffer;
@@ -41,20 +40,20 @@ namespace {
 Framebuffer g_fb;
 
 /// Icon size constant (mirrors cinux::gui::icons::ICON_SIZE)
-constexpr uint32_t ICON_SIZE = 32;
+constexpr uint32_t ICON_SIZE   = 32;
 constexpr uint32_t ICON_PIXELS = ICON_SIZE * ICON_SIZE;
 
 /// Palette colours matching kernel/gui/data/icon_data.hpp::palette
 namespace palette {
-    constexpr uint32_t BLACK       = 0x00000000;
-    constexpr uint32_t DARK_BLACK  = 0x00101010;
-    constexpr uint32_t WHITE       = 0x00FFFFFF;
-    constexpr uint32_t GREY_DARK   = 0x00404040;
-    constexpr uint32_t GREY_MID    = 0x00707070;
-    constexpr uint32_t BUTTON_GREY = 0x00909090;
-    constexpr uint32_t DISPLAY_BG  = 0x00C8DFC8;
-    constexpr uint32_t ORANGE      = 0x00FF8C00;
-}
+constexpr uint32_t BLACK       = 0x00000000;
+constexpr uint32_t DARK_BLACK  = 0x00101010;
+constexpr uint32_t WHITE       = 0x00FFFFFF;
+constexpr uint32_t GREY_DARK   = 0x00404040;
+constexpr uint32_t GREY_MID    = 0x00707070;
+constexpr uint32_t BUTTON_GREY = 0x00909090;
+constexpr uint32_t DISPLAY_BG  = 0x00C8DFC8;
+constexpr uint32_t ORANGE      = 0x00FF8C00;
+}  // namespace palette
 
 /// Build a simple 32x32 test icon with a frame and cross pattern.
 /// Border pixels are GREY_DARK, centre cross is WHITE, rest is DARK_BLACK.
@@ -65,8 +64,8 @@ void build_test_icon(uint32_t pixels[ICON_PIXELS]) {
             uint32_t idx = r * ICON_SIZE + c;
 
             // Transparent corners (2x2)
-            if ((r < 2 && c < 2) || (r < 2 && c >= 30) ||
-                (r >= 30 && c < 2) || (r >= 30 && c >= 30)) {
+            if ((r < 2 && c < 2) || (r < 2 && c >= 30) || (r >= 30 && c < 2) ||
+                (r >= 30 && c >= 30)) {
                 pixels[idx] = palette::BLACK;
             }
             // Border (row 0, row 31, col 0, col 31)
@@ -92,8 +91,8 @@ void build_test_icon2(uint32_t pixels[ICON_PIXELS]) {
             uint32_t idx = r * ICON_SIZE + c;
 
             // Transparent corners (2x2)
-            if ((r < 2 && c < 2) || (r < 2 && c >= 30) ||
-                (r >= 30 && c < 2) || (r >= 30 && c >= 30)) {
+            if ((r < 2 && c < 2) || (r < 2 && c >= 30) || (r >= 30 && c < 2) ||
+                (r >= 30 && c >= 30)) {
                 pixels[idx] = palette::BLACK;
             }
             // Border
@@ -132,8 +131,7 @@ void test_bitmap_render_opaque() {
     canvas.init(g_fb);
 
     canvas.clear(0);
-    uint32_t pixels[] = {0x00FF0000, 0x0000FF00,
-                         0x000000FF, 0x00FFFFFF};
+    uint32_t pixels[] = {0x00FF0000, 0x0000FF00, 0x000000FF, 0x00FFFFFF};
     canvas.draw_bitmap(10, 10, 2, 2, pixels);
     canvas.flip();
 
@@ -165,8 +163,9 @@ void test_bitmap_render_larger() {
 
     // 8x8 bitmap, all yellow
     constexpr uint32_t W = 8, H = 8;
-    uint32_t pixels[W * H];
-    for (uint32_t i = 0; i < W * H; i++) pixels[i] = 0x00FFFF00;
+    uint32_t           pixels[W * H];
+    for (uint32_t i = 0; i < W * H; i++)
+        pixels[i] = 0x00FFFF00;
 
     canvas.draw_bitmap(5, 5, W, H, pixels);
     canvas.flip();
@@ -195,8 +194,7 @@ void test_bitmap_transparent_skip() {
     canvas.clear(0x000000FF);
 
     // 2x2 bitmap with mixed transparency
-    uint32_t pixels[] = {0x00000000, 0x00FF0000,
-                         0x0000FF00, 0x00000000};
+    uint32_t pixels[] = {0x00000000, 0x00FF0000, 0x0000FF00, 0x00000000};
     canvas.draw_bitmap(10, 10, 2, 2, pixels);
     canvas.flip();
 
@@ -215,8 +213,7 @@ void test_bitmap_all_transparent() {
 
     canvas.clear(0x00FF0000);
 
-    uint32_t pixels[] = {0x00000000, 0x00000000,
-                         0x00000000, 0x00000000};
+    uint32_t pixels[] = {0x00000000, 0x00000000, 0x00000000, 0x00000000};
     canvas.draw_bitmap(0, 0, 2, 2, pixels);
     canvas.flip();
 
@@ -268,8 +265,7 @@ void test_bitmap_outside_canvas() {
 
     canvas.clear(0x00FFFFFF);
 
-    uint32_t pixels[] = {0x00FF0000, 0x00FF0000,
-                         0x00FF0000, 0x00FF0000};
+    uint32_t pixels[] = {0x00FF0000, 0x00FF0000, 0x00FF0000, 0x00FF0000};
     canvas.draw_bitmap(canvas.width() + 10, 0, 2, 2, pixels);
     canvas.draw_bitmap(0, canvas.height() + 10, 2, 2, pixels);
     canvas.flip();
@@ -391,52 +387,56 @@ void test_bitmap_render_two_icons() {
 /// Verify contains returns true for point inside icon
 void test_desktop_icon_contains_inside() {
     DesktopIcon icon{
-        .x = 10, .y = 20,
+        .x      = 10,
+        .y      = 20,
         .bitmap = nullptr,
-        .label = "Shell",
-        .width = ICON_SIZE,
+        .label  = "Shell",
+        .width  = ICON_SIZE,
         .height = ICON_SIZE,
         .action = IconAction::OpenShell,
     };
 
-    TEST_ASSERT_TRUE(icon.contains(10, 20));   // top-left corner
-    TEST_ASSERT_TRUE(icon.contains(25, 35));   // middle
-    TEST_ASSERT_TRUE(icon.contains(41, 51));   // last pixel (x+w-1, y+h-1)
+    TEST_ASSERT_TRUE(icon.contains(10, 20));  // top-left corner
+    TEST_ASSERT_TRUE(icon.contains(25, 35));  // middle
+    TEST_ASSERT_TRUE(icon.contains(41, 51));  // last pixel (x+w-1, y+h-1)
 }
 
 /// Verify contains returns false for point outside icon
 void test_desktop_icon_contains_outside() {
     DesktopIcon icon{
-        .x = 10, .y = 20,
+        .x      = 10,
+        .y      = 20,
         .bitmap = nullptr,
-        .label = "Shell",
-        .width = ICON_SIZE,
+        .label  = "Shell",
+        .width  = ICON_SIZE,
         .height = ICON_SIZE,
         .action = IconAction::OpenShell,
     };
 
-    TEST_ASSERT_FALSE(icon.contains(9, 20));    // left of icon
-    TEST_ASSERT_FALSE(icon.contains(10, 19));   // above icon
-    TEST_ASSERT_FALSE(icon.contains(42, 51));   // right edge (exclusive)
-    TEST_ASSERT_FALSE(icon.contains(41, 52));   // bottom edge (exclusive)
-    TEST_ASSERT_FALSE(icon.contains(0, 0));     // far away
+    TEST_ASSERT_FALSE(icon.contains(9, 20));   // left of icon
+    TEST_ASSERT_FALSE(icon.contains(10, 19));  // above icon
+    TEST_ASSERT_FALSE(icon.contains(42, 51));  // right edge (exclusive)
+    TEST_ASSERT_FALSE(icon.contains(41, 52));  // bottom edge (exclusive)
+    TEST_ASSERT_FALSE(icon.contains(0, 0));    // far away
 }
 
 /// Verify contains with negative icon position
 void test_desktop_icon_contains_negative_position() {
     DesktopIcon icon{
-        .x = -10, .y = -5,
+        .x      = -10,
+        .y      = -5,
         .bitmap = nullptr,
-        .label = "Offscreen",
-        .width = 32, .height = 32,
+        .label  = "Offscreen",
+        .width  = 32,
+        .height = 32,
         .action = IconAction::None,
     };
 
-    TEST_ASSERT_TRUE(icon.contains(-10, -5));   // top-left corner
-    TEST_ASSERT_TRUE(icon.contains(0, 0));      // well inside
-    TEST_ASSERT_TRUE(icon.contains(21, 26));    // last pixel
-    TEST_ASSERT_FALSE(icon.contains(22, 26));   // one past right
-    TEST_ASSERT_FALSE(icon.contains(21, 27));   // one past bottom
+    TEST_ASSERT_TRUE(icon.contains(-10, -5));  // top-left corner
+    TEST_ASSERT_TRUE(icon.contains(0, 0));     // well inside
+    TEST_ASSERT_TRUE(icon.contains(21, 26));   // last pixel
+    TEST_ASSERT_FALSE(icon.contains(22, 26));  // one past right
+    TEST_ASSERT_FALSE(icon.contains(21, 27));  // one past bottom
 }
 
 /// Verify IconAction enum values
@@ -449,10 +449,12 @@ void test_icon_action_values() {
 /// Verify 1x1 icon contains only its single pixel
 void test_desktop_icon_1x1() {
     DesktopIcon icon{
-        .x = 50, .y = 50,
+        .x      = 50,
+        .y      = 50,
         .bitmap = nullptr,
-        .label = "Dot",
-        .width = 1, .height = 1,
+        .label  = "Dot",
+        .width  = 1,
+        .height = 1,
         .action = IconAction::None,
     };
 
@@ -471,7 +473,7 @@ extern "C" void run_bitmap_icon_tests() {
 
     // Initialise framebuffer for pixel-verification tests
     static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
-    auto* bi = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
+    auto*                      bi             = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
     g_fb.init(*bi);
     g_fb.clear(0);
 

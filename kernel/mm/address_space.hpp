@@ -49,7 +49,7 @@ public:
     ~AddressSpace();
 
     // Disable copy -- each AddressSpace owns exclusive physical pages
-    AddressSpace(const AddressSpace&) = delete;
+    AddressSpace(const AddressSpace&)            = delete;
     AddressSpace& operator=(const AddressSpace&) = delete;
 
     // Allow move -- transfers ownership of pml4_phys_

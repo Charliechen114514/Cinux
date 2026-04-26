@@ -8,15 +8,16 @@
  */
 
 #include "kernel/arch/x86_64/paging.hpp"
-#include "kernel/arch/x86_64/paging_config.hpp"
 
 #include <stdint.h>
+
+#include "kernel/arch/x86_64/paging_config.hpp"
 
 namespace cinux::arch {
 
 namespace {
 
-constexpr uint64_t PD_HUGE_PAGE_FLAGS = FLAG_PRESENT | FLAG_WRITABLE | FLAG_HUGE;
+constexpr uint64_t PD_HUGE_PAGE_FLAGS  = FLAG_PRESENT | FLAG_WRITABLE | FLAG_HUGE;
 constexpr uint64_t PDPT_1GB_PAGE_FLAGS = FLAG_PRESENT | FLAG_WRITABLE | FLAG_HUGE;
 
 constexpr uint64_t PAGE_2MB_SIZE = 0x200000;
@@ -38,7 +39,7 @@ bool has_1gb_pages() {
 }  // anonymous namespace
 
 void map_mmio(uint64_t phys, uint64_t size) {
-    auto* pd = reinterpret_cast<volatile uint64_t*>(PD_VIRT_ADDR);
+    auto* pd   = reinterpret_cast<volatile uint64_t*>(PD_VIRT_ADDR);
     auto* pdpt = reinterpret_cast<volatile uint64_t*>(PDPT_VIRT_ADDR);
 
     uint64_t end = phys + size;
@@ -57,7 +58,8 @@ void map_mmio(uint64_t phys, uint64_t size) {
     // Part 2: PDPT entries for range >= 1GB (1GB pages)
     if (end > PAGE_1GB_SIZE && has_1gb_pages()) {
         uint64_t cur1g = phys & ~(PAGE_1GB_SIZE - 1);
-        if (cur1g < PAGE_1GB_SIZE) cur1g = PAGE_1GB_SIZE;
+        if (cur1g < PAGE_1GB_SIZE)
+            cur1g = PAGE_1GB_SIZE;
 
         while (cur1g < end) {
             uint32_t n = static_cast<uint32_t>(cur1g / PAGE_1GB_SIZE);

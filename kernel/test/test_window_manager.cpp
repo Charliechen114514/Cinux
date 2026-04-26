@@ -17,17 +17,16 @@
  */
 
 #include "big_kernel_test.h"
-
 #include "boot/boot_info.h"
 #include "kernel/drivers/video/font.hpp"
 #include "kernel/drivers/video/framebuffer.hpp"
 
 #ifdef CINUX_GUI
 
-#include "kernel/drivers/canvas.hpp"
-#include "kernel/gui/event.hpp"
-#include "kernel/gui/window.hpp"
-#include "kernel/gui/window_manager.hpp"
+#    include "kernel/drivers/canvas.hpp"
+#    include "kernel/gui/event.hpp"
+#    include "kernel/gui/window.hpp"
+#    include "kernel/gui/window_manager.hpp"
 
 using cinux::drivers::Canvas;
 using cinux::drivers::Framebuffer;
@@ -41,8 +40,8 @@ using cinux::gui::WindowManager;
 namespace {
 
 Framebuffer g_fb;
-PSFFont g_font;
-Canvas g_screen;
+PSFFont     g_font;
+Canvas      g_screen;
 
 }  // anonymous namespace
 
@@ -306,11 +305,11 @@ void test_wm_drag_updates_composite_position() {
 
     // Start drag on title bar at (50, 5), window at (0, 0)
     Event ev_down;
-    ev_down.type_ = EventType::MouseDown;
-    ev_down.mouse.x = 50;
-    ev_down.mouse.y = 5;
-    ev_down.mouse.left = true;
-    ev_down.mouse.right = false;
+    ev_down.type_        = EventType::MouseDown;
+    ev_down.mouse.x      = 50;
+    ev_down.mouse.y      = 5;
+    ev_down.mouse.left   = true;
+    ev_down.mouse.right  = false;
     ev_down.mouse.middle = false;
 
     wm.handle_mouse(ev_down);
@@ -319,11 +318,11 @@ void test_wm_drag_updates_composite_position() {
     // drag_offset = (50 - 0, 5 - 0) = (50, 5)
     // new position = (200 - 50, 100 - 5) = (150, 95)
     Event ev_move;
-    ev_move.type_ = EventType::MouseMove;
-    ev_move.mouse.x = 200;
-    ev_move.mouse.y = 100;
-    ev_move.mouse.left = true;
-    ev_move.mouse.right = false;
+    ev_move.type_        = EventType::MouseMove;
+    ev_move.mouse.x      = 200;
+    ev_move.mouse.y      = 100;
+    ev_move.mouse.left   = true;
+    ev_move.mouse.right  = false;
     ev_move.mouse.middle = false;
 
     g_fb.clear(0);
@@ -337,11 +336,11 @@ void test_wm_drag_updates_composite_position() {
 
     // Release mouse
     Event ev_up;
-    ev_up.type_ = EventType::MouseUp;
-    ev_up.mouse.x = 200;
-    ev_up.mouse.y = 100;
-    ev_up.mouse.left = false;
-    ev_up.mouse.right = false;
+    ev_up.type_        = EventType::MouseUp;
+    ev_up.mouse.x      = 200;
+    ev_up.mouse.y      = 100;
+    ev_up.mouse.left   = false;
+    ev_up.mouse.right  = false;
     ev_up.mouse.middle = false;
 
     wm.handle_mouse(ev_up);
@@ -366,11 +365,11 @@ void test_wm_close_button_destroys_and_composites() {
     // Window A at (0, 0), width=100.
     // Close button at x = 0 + 100 - 14 - 3 = 83, y = 0 + (20-14)/2 = 3
     Event ev;
-    ev.type_ = EventType::MouseDown;
-    ev.mouse.x = 83;
-    ev.mouse.y = 3;
-    ev.mouse.left = true;
-    ev.mouse.right = false;
+    ev.type_        = EventType::MouseDown;
+    ev.mouse.x      = 83;
+    ev.mouse.y      = 3;
+    ev.mouse.left   = true;
+    ev.mouse.right  = false;
     ev.mouse.middle = false;
 
     g_fb.clear(0);
@@ -403,11 +402,11 @@ void test_wm_content_click_raises_and_composites() {
 
     // Click on A's content area at (10, 50) -- A's content starts at y=20
     Event ev;
-    ev.type_ = EventType::MouseDown;
-    ev.mouse.x = 10;
-    ev.mouse.y = 50;
-    ev.mouse.left = true;
-    ev.mouse.right = false;
+    ev.type_        = EventType::MouseDown;
+    ev.mouse.x      = 10;
+    ev.mouse.y      = 50;
+    ev.mouse.left   = true;
+    ev.mouse.right  = false;
     ev.mouse.middle = false;
 
     g_fb.clear(0);
@@ -434,11 +433,11 @@ void test_wm_desktop_click_clears_focus() {
     TEST_ASSERT_NOT_NULL(wm.focused());
 
     Event ev;
-    ev.type_ = EventType::MouseDown;
-    ev.mouse.x = 500;
-    ev.mouse.y = 500;
-    ev.mouse.left = true;
-    ev.mouse.right = false;
+    ev.type_        = EventType::MouseDown;
+    ev.mouse.x      = 500;
+    ev.mouse.y      = 500;
+    ev.mouse.left   = true;
+    ev.mouse.right  = false;
     ev.mouse.middle = false;
 
     wm.handle_mouse(ev);
@@ -458,13 +457,13 @@ void test_wm_handle_key_no_crash() {
     wm.create("A", 100, 50);
 
     Event ev;
-    ev.type_ = EventType::KeyDown;
-    ev.key.ascii = 'a';
+    ev.type_        = EventType::KeyDown;
+    ev.key.ascii    = 'a';
     ev.key.scancode = 0x1E;
-    ev.key.pressed = true;
-    ev.key.shift = false;
-    ev.key.ctrl = false;
-    ev.key.alt = false;
+    ev.key.pressed  = true;
+    ev.key.shift    = false;
+    ev.key.ctrl     = false;
+    ev.key.alt      = false;
 
     wm.handle_key(ev);
 
@@ -478,10 +477,10 @@ void test_wm_handle_key_no_focus_no_crash() {
     // No windows created, focused_ is nullptr
 
     Event ev;
-    ev.type_ = EventType::KeyDown;
-    ev.key.ascii = 'b';
+    ev.type_        = EventType::KeyDown;
+    ev.key.ascii    = 'b';
     ev.key.scancode = 0x30;
-    ev.key.pressed = true;
+    ev.key.pressed  = true;
 
     wm.handle_key(ev);
 
@@ -495,12 +494,11 @@ void test_wm_handle_key_no_focus_no_crash() {
 /// Subclass that tracks on_key calls via a static flag
 class KeyTrackingWindow : public Window {
 public:
-    static int call_count;
+    static int  call_count;
     static char last_ascii;
 
-    KeyTrackingWindow(const char* title = "Track",
-                      int32_t x = 0, int32_t y = 0,
-                      uint32_t w = 100, uint32_t h = 50)
+    KeyTrackingWindow(const char* title = "Track", int32_t x = 0, int32_t y = 0, uint32_t w = 100,
+                      uint32_t h = 50)
         : Window(title, x, y, w, h) {}
 
     void on_key(KeyEvent& ev) override {
@@ -514,17 +512,17 @@ public:
     }
 };
 
-int KeyTrackingWindow::call_count = 0;
+int  KeyTrackingWindow::call_count = 0;
 char KeyTrackingWindow::last_ascii = 0;
 
 /// Verify virtual on_key dispatches correctly through base pointer
 void test_wm_virtual_on_key_dispatch() {
     KeyTrackingWindow::reset();
     KeyTrackingWindow w;
-    Window* base = &w;
+    Window*           base = &w;
 
     KeyEvent ev{};
-    ev.ascii = 'Z';
+    ev.ascii   = 'Z';
     ev.pressed = true;
 
     base->on_key(ev);
@@ -535,11 +533,11 @@ void test_wm_virtual_on_key_dispatch() {
 
 /// Verify default Window on_key does not crash (base class default impl)
 void test_wm_default_on_key_no_crash() {
-    Window w;
+    Window   w;
     KeyEvent ev{};
-    ev.ascii = 'X';
+    ev.ascii    = 'X';
     ev.scancode = 0x2D;
-    ev.pressed = true;
+    ev.pressed  = true;
 
     w.on_key(ev);
     TEST_ASSERT_TRUE(true);
@@ -564,8 +562,8 @@ void test_wm_handle_key_routes_to_focused() {
     // Here we just verify handle_key reaches the focused window without crash.
 
     Event ev;
-    ev.type_ = EventType::KeyDown;
-    ev.key.ascii = 'R';
+    ev.type_       = EventType::KeyDown;
+    ev.key.ascii   = 'R';
     ev.key.pressed = true;
 
     wm.handle_key(ev);
@@ -649,7 +647,7 @@ extern "C" void run_window_manager_tests() {
 
     // Initialise framebuffer, font, and off-screen canvas for pixel tests
     static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
-    auto* bi = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
+    auto*                      bi             = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
     g_fb.init(*bi);
     g_font.init();
     g_fb.clear(0);

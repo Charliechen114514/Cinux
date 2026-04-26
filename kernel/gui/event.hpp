@@ -47,14 +47,14 @@ enum class EventType : uint8_t {
  * for the three standard PS/2 buttons.
  */
 struct MouseEvent {
-    int32_t  x;        ///< Absolute cursor X (pixels, clamped to screen)
-    int32_t  y;        ///< Absolute cursor Y (pixels, clamped to screen)
-    int32_t  dx;       ///< Relative X movement since last packet
-    int32_t  dy;       ///< Relative Y movement since last packet (positive = down)
-    uint8_t  buttons;  ///< Raw button bitmask (bit0=left, bit1=right, bit2=middle)
-    bool     left;     ///< true if left button is pressed
-    bool     right;    ///< true if right button is pressed
-    bool     middle;   ///< true if middle button is pressed
+    int32_t x;        ///< Absolute cursor X (pixels, clamped to screen)
+    int32_t y;        ///< Absolute cursor Y (pixels, clamped to screen)
+    int32_t dx;       ///< Relative X movement since last packet
+    int32_t dy;       ///< Relative Y movement since last packet (positive = down)
+    uint8_t buttons;  ///< Raw button bitmask (bit0=left, bit1=right, bit2=middle)
+    bool    left;     ///< true if left button is pressed
+    bool    right;    ///< true if right button is pressed
+    bool    middle;   ///< true if middle button is pressed
 };
 
 // ============================================================
@@ -142,7 +142,7 @@ public:
 private:
     static constexpr uint32_t BUF_SIZE = 128;
 
-    Event   buf_[BUF_SIZE]{};
+    Event    buf_[BUF_SIZE]{};
     uint32_t head_ = 0;
     uint32_t tail_ = 0;
 };

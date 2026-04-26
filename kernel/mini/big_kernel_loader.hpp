@@ -67,9 +67,9 @@ constexpr uint32_t MAX_MEMORY_REGIONS = 16;
 
 /// Memory region descriptor for overlap checking
 struct MemoryRegion {
-	uint64_t start;
-	uint64_t end;      // exclusive
-	const char* name;
+    uint64_t    start;
+    uint64_t    end;  // exclusive
+    const char* name;
 };
 
 /**
@@ -87,11 +87,11 @@ bool check_memory_overlaps(const MemoryRegion* regions, uint32_t count);
 
 /// State produced by Phase 1 and consumed by Phase 2
 struct BigKernelLoadState {
-	uint64_t raw_elf_end;       ///< Actual end of ELF data (before sector alignment)
-	uint64_t total_elf_size;    ///< Total ELF file size (sector-aligned)
-	uint32_t total_sectors;     ///< Total sectors to read
-	uint16_t phnum;             ///< Number of program headers
-	elf_loader::Elf64_Phdr phdrs[MAX_PROGRAM_HEADERS];  ///< Saved program headers
+    uint64_t               raw_elf_end;     ///< Actual end of ELF data (before sector alignment)
+    uint64_t               total_elf_size;  ///< Total ELF file size (sector-aligned)
+    uint32_t               total_sectors;   ///< Total sectors to read
+    uint16_t               phnum;           ///< Number of program headers
+    elf_loader::Elf64_Phdr phdrs[MAX_PROGRAM_HEADERS];  ///< Saved program headers
 };
 
 /**

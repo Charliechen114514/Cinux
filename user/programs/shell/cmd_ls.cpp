@@ -6,9 +6,9 @@
  * Usage: ls [path]   (defaults to '/' if no path given)
  */
 
-#include "shell.hpp"
 #include "libc/string.hpp"
 #include "libc/syscall.h"
+#include "shell.hpp"
 
 using cinux::user::strlen;
 
@@ -21,7 +21,7 @@ void write_str(const char* s) {
 }  // anonymous namespace
 
 void cmd_ls(int argc, char** argv) {
-    char cwd_buf[256];
+    char        cwd_buf[256];
     const char* path;
 
     if (argc >= 2) {
@@ -41,7 +41,7 @@ void cmd_ls(int argc, char** argv) {
     }
 
     constexpr size_t NAME_MAX = 256;
-    char name[NAME_MAX];
+    char             name[NAME_MAX];
 
     while (true) {
         int64_t n = sys_getdents(static_cast<int>(fd), name, NAME_MAX);

@@ -14,9 +14,9 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstring>
-#include <vector>
+#    include <cstdint>
+#    include <cstring>
+#    include <vector>
 
 // ============================================================
 // Mock Framebuffer (mimics kernel/drivers/video/framebuffer.hpp)
@@ -32,21 +32,22 @@ public:
     }
 
     uint32_t get_pixel(uint32_t x, uint32_t y) const {
-        if (x >= width_ || y >= height_) return 0;
+        if (x >= width_ || y >= height_)
+            return 0;
         return buf_[y * (pitch_ / 4) + x];
     }
 
-    uint32_t width()  const { return width_; }
+    uint32_t width() const { return width_; }
     uint32_t height() const { return height_; }
-    uint32_t pitch()  const { return pitch_; }
+    uint32_t pitch() const { return pitch_; }
 
     uint32_t* data() { return buf_.data(); }
 
 private:
     std::vector<uint32_t> buf_;
-    uint32_t width_  = 0;
-    uint32_t height_ = 0;
-    uint32_t pitch_  = 0;
+    uint32_t              width_  = 0;
+    uint32_t              height_ = 0;
+    uint32_t              pitch_  = 0;
 };
 
 // ============================================================
@@ -65,17 +66,18 @@ public:
     }
 
     const uint8_t* glyph(uint8_t c) const {
-        if (glyphs_[c].empty()) return nullptr;
+        if (glyphs_[c].empty())
+            return nullptr;
         return glyphs_[c].data();
     }
 
-    uint32_t width()  const { return width_; }
+    uint32_t width() const { return width_; }
     uint32_t height() const { return height_; }
 
 private:
     std::vector<uint8_t> glyphs_[256];
-    uint32_t width_  = 0;
-    uint32_t height_ = 0;
+    uint32_t             width_  = 0;
+    uint32_t             height_ = 0;
 };
 
 // ============================================================
@@ -95,8 +97,9 @@ public:
     }
 
     void draw_pixel(uint32_t x, uint32_t y, uint32_t color) {
-        if (x >= width_ || y >= height_) return;
-        uint32_t pixels_per_row = pitch_ / 4;
+        if (x >= width_ || y >= height_)
+            return;
+        uint32_t pixels_per_row           = pitch_ / 4;
         back_buf_[y * pixels_per_row + x] = color;
     }
 
@@ -139,7 +142,8 @@ public:
     }
 
     void flip() {
-        if (front_buf_ == nullptr) return;
+        if (front_buf_ == nullptr)
+            return;
         auto* dst = front_buf_->data();
         for (uint32_t row = 0; row < height_; row++) {
             uint32_t row_offset = row * (pitch_ / 4);
@@ -155,8 +159,7 @@ public:
         }
     }
 
-    void draw_line(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1,
-                   uint32_t color) {
+    void draw_line(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, uint32_t color) {
         int32_t dx = static_cast<int32_t>(x1) - static_cast<int32_t>(x0);
         int32_t dy = static_cast<int32_t>(y1) - static_cast<int32_t>(y0);
 
@@ -189,14 +192,15 @@ public:
         }
     }
 
-    void draw_text(uint32_t x, uint32_t y, const char* str, uint32_t color,
-                   MockPSFFont& font) {
-        if (str == nullptr) return;
+    void draw_text(uint32_t x, uint32_t y, const char* str, uint32_t color, MockPSFFont& font) {
+        if (str == nullptr)
+            return;
 
         uint32_t glyph_w = font.width();
         uint32_t glyph_h = font.height();
 
-        if (glyph_w == 0 || glyph_h == 0) return;
+        if (glyph_w == 0 || glyph_h == 0)
+            return;
 
         uint32_t cursor_x = x;
         uint32_t cursor_y = y;
@@ -209,7 +213,8 @@ public:
             }
 
             const uint8_t* g = font.glyph(static_cast<uint8_t>(str[i]));
-            if (g == nullptr) continue;
+            if (g == nullptr)
+                continue;
 
             for (uint32_t row = 0; row < glyph_h; row++) {
                 uint8_t bits = g[row];
@@ -224,30 +229,31 @@ public:
         }
     }
 
-    void blit(int32_t dst_x, int32_t dst_y, MockCanvas& src,
-              uint32_t sx, uint32_t sy, uint32_t w, uint32_t h) {
+    void blit(int32_t dst_x, int32_t dst_y, MockCanvas& src, uint32_t sx, uint32_t sy, uint32_t w,
+              uint32_t h) {
         uint32_t dst_pixels_per_row = pitch_ / 4;
         uint32_t src_pixels_per_row = src.pitch_ / 4;
 
         for (uint32_t row = 0; row < h; row++) {
             uint32_t src_row = sy + row;
-            int32_t dst_row = dst_y + static_cast<int32_t>(row);
+            int32_t  dst_row = dst_y + static_cast<int32_t>(row);
 
-            if (dst_row < 0) continue;
+            if (dst_row < 0)
+                continue;
             if (src_row >= src.height_ || dst_row >= static_cast<int32_t>(height_))
                 break;
 
-            int32_t col_skip = 0;
-            int32_t eff_dst_x = dst_x;
-            uint32_t eff_sx = sx;
+            int32_t  col_skip  = 0;
+            int32_t  eff_dst_x = dst_x;
+            uint32_t eff_sx    = sx;
             if (eff_dst_x < 0) {
-                col_skip = -eff_dst_x;
+                col_skip  = -eff_dst_x;
                 eff_dst_x = 0;
                 eff_sx += static_cast<uint32_t>(col_skip);
             }
 
             uint32_t dst_col_start = static_cast<uint32_t>(eff_dst_x);
-            uint32_t col_count = w - static_cast<uint32_t>(col_skip);
+            uint32_t col_count     = w - static_cast<uint32_t>(col_skip);
 
             for (uint32_t i = 0; i < col_count; i++) {
                 uint32_t src_col = eff_sx + i;
@@ -262,22 +268,23 @@ public:
         }
     }
 
-    uint32_t width()  const { return width_; }
+    uint32_t width() const { return width_; }
     uint32_t height() const { return height_; }
-    uint32_t pitch()  const { return pitch_; }
+    uint32_t pitch() const { return pitch_; }
 
     // Expose back buffer for direct inspection
     uint32_t back_pixel(uint32_t x, uint32_t y) const {
-        if (x >= width_ || y >= height_) return 0xDEAD;
+        if (x >= width_ || y >= height_)
+            return 0xDEAD;
         return back_buf_[y * (pitch_ / 4) + x];
     }
 
 private:
-    MockFramebuffer* front_buf_ = nullptr;
+    MockFramebuffer*      front_buf_ = nullptr;
     std::vector<uint32_t> back_buf_;
-    uint32_t width_  = 0;
-    uint32_t height_ = 0;
-    uint32_t pitch_  = 0;
+    uint32_t              width_  = 0;
+    uint32_t              height_ = 0;
+    uint32_t              pitch_  = 0;
 };
 
 // ============================================================
@@ -301,8 +308,8 @@ static MockCanvas make_canvas(MockFramebuffer& fb) {
 // ============================================================
 
 TEST("canvas: draw_pixel sets back buffer pixel") {
-    MockFramebuffer fb = make_fb(4, 3);
-    MockCanvas canvas = make_canvas(fb);
+    MockFramebuffer fb     = make_fb(4, 3);
+    MockCanvas      canvas = make_canvas(fb);
 
     canvas.draw_pixel(2, 1, 0x00FF0000);
 
@@ -313,12 +320,12 @@ TEST("canvas: draw_pixel sets back buffer pixel") {
 }
 
 TEST("canvas: draw_pixel out of bounds is ignored") {
-    MockFramebuffer fb = make_fb(4, 3);
-    MockCanvas canvas = make_canvas(fb);
+    MockFramebuffer fb     = make_fb(4, 3);
+    MockCanvas      canvas = make_canvas(fb);
 
-    canvas.draw_pixel(4, 0, 0x00FF0000);     // x out of range
-    canvas.draw_pixel(0, 3, 0x00FF0000);     // y out of range
-    canvas.draw_pixel(999, 999, 0x00FF0000); // both out of range
+    canvas.draw_pixel(4, 0, 0x00FF0000);      // x out of range
+    canvas.draw_pixel(0, 3, 0x00FF0000);      // y out of range
+    canvas.draw_pixel(999, 999, 0x00FF0000);  // both out of range
 
     // Front buffer still all zeros
     for (uint32_t y = 0; y < 3; y++) {
@@ -329,8 +336,8 @@ TEST("canvas: draw_pixel out of bounds is ignored") {
 }
 
 TEST("canvas: draw_pixel at origin") {
-    MockFramebuffer fb = make_fb(4, 3);
-    MockCanvas canvas = make_canvas(fb);
+    MockFramebuffer fb     = make_fb(4, 3);
+    MockCanvas      canvas = make_canvas(fb);
 
     canvas.draw_pixel(0, 0, 0x00ABCDEF);
     canvas.flip();
@@ -343,8 +350,8 @@ TEST("canvas: draw_pixel at origin") {
 // ============================================================
 
 TEST("canvas: draw_rect fills entire area") {
-    MockFramebuffer fb = make_fb(4, 3);
-    MockCanvas canvas = make_canvas(fb);
+    MockFramebuffer fb     = make_fb(4, 3);
+    MockCanvas      canvas = make_canvas(fb);
 
     canvas.draw_rect(1, 0, 2, 2, 0x00FF0000);
     canvas.flip();
@@ -362,8 +369,8 @@ TEST("canvas: draw_rect fills entire area") {
 }
 
 TEST("canvas: draw_rect clamped to canvas bounds") {
-    MockFramebuffer fb = make_fb(4, 3);
-    MockCanvas canvas = make_canvas(fb);
+    MockFramebuffer fb     = make_fb(4, 3);
+    MockCanvas      canvas = make_canvas(fb);
 
     // Rect extends beyond canvas: (2,1) w=5 h=5 -> clamped to (2,1) w=2 h=2
     canvas.draw_rect(2, 1, 5, 5, 0x0000FF00);
@@ -382,8 +389,8 @@ TEST("canvas: draw_rect clamped to canvas bounds") {
 // ============================================================
 
 TEST("canvas: draw_rect_outline draws border only") {
-    MockFramebuffer fb = make_fb(4, 3);
-    MockCanvas canvas = make_canvas(fb);
+    MockFramebuffer fb     = make_fb(4, 3);
+    MockCanvas      canvas = make_canvas(fb);
 
     canvas.draw_rect_outline(1, 0, 2, 2, 0x00FFFFFF);
     canvas.flip();
@@ -396,8 +403,8 @@ TEST("canvas: draw_rect_outline draws border only") {
 }
 
 TEST("canvas: draw_rect_outline 3x3 has hollow center") {
-    MockFramebuffer fb = make_fb(5, 5);
-    MockCanvas canvas = make_canvas(fb);
+    MockFramebuffer fb     = make_fb(5, 5);
+    MockCanvas      canvas = make_canvas(fb);
 
     canvas.draw_rect_outline(1, 1, 3, 3, 0x00FFFFFF);
     canvas.flip();
@@ -417,8 +424,8 @@ TEST("canvas: draw_rect_outline 3x3 has hollow center") {
 }
 
 TEST("canvas: draw_rect_outline 1x1 is a single pixel") {
-    MockFramebuffer fb = make_fb(4, 3);
-    MockCanvas canvas = make_canvas(fb);
+    MockFramebuffer fb     = make_fb(4, 3);
+    MockCanvas      canvas = make_canvas(fb);
 
     canvas.draw_rect_outline(2, 1, 1, 1, 0x00FFFF00);
     canvas.flip();
@@ -435,8 +442,8 @@ TEST("canvas: draw_rect_outline 1x1 is a single pixel") {
 // ============================================================
 
 TEST("canvas: clear fills back buffer with color") {
-    MockFramebuffer fb = make_fb(4, 3);
-    MockCanvas canvas = make_canvas(fb);
+    MockFramebuffer fb     = make_fb(4, 3);
+    MockCanvas      canvas = make_canvas(fb);
 
     canvas.draw_rect(0, 0, 4, 3, 0x00FF0000);
     canvas.clear(0x000000FF);
@@ -451,8 +458,8 @@ TEST("canvas: clear fills back buffer with color") {
 }
 
 TEST("canvas: clear default is black") {
-    MockFramebuffer fb = make_fb(4, 3);
-    MockCanvas canvas = make_canvas(fb);
+    MockFramebuffer fb     = make_fb(4, 3);
+    MockCanvas      canvas = make_canvas(fb);
 
     canvas.draw_rect(0, 0, 4, 3, 0x00FFFFFF);
     canvas.clear();
@@ -470,8 +477,8 @@ TEST("canvas: clear default is black") {
 // ============================================================
 
 TEST("canvas: flip copies back buffer to front buffer") {
-    MockFramebuffer fb = make_fb(4, 3);
-    MockCanvas canvas = make_canvas(fb);
+    MockFramebuffer fb     = make_fb(4, 3);
+    MockCanvas      canvas = make_canvas(fb);
 
     canvas.draw_pixel(0, 0, 0x00AA0000);
     canvas.draw_pixel(3, 2, 0x0000AA00);
@@ -487,8 +494,8 @@ TEST("canvas: flip copies back buffer to front buffer") {
 }
 
 TEST("canvas: flip overwrites front buffer completely") {
-    MockFramebuffer fb = make_fb(4, 3);
-    MockCanvas canvas = make_canvas(fb);
+    MockFramebuffer fb     = make_fb(4, 3);
+    MockCanvas      canvas = make_canvas(fb);
 
     // First frame: draw red
     canvas.draw_rect(0, 0, 4, 3, 0x00FF0000);
@@ -503,8 +510,8 @@ TEST("canvas: flip overwrites front buffer completely") {
 }
 
 TEST("canvas: flip does not affect unmodified back buffer pixels") {
-    MockFramebuffer fb = make_fb(4, 3);
-    MockCanvas canvas = make_canvas(fb);
+    MockFramebuffer fb     = make_fb(4, 3);
+    MockCanvas      canvas = make_canvas(fb);
 
     canvas.draw_pixel(0, 0, 0x00FF0000);
     canvas.flip();
@@ -556,8 +563,8 @@ TEST("canvas: respects pitch with padding") {
 // ============================================================
 
 TEST("canvas: draw_line horizontal") {
-    MockFramebuffer fb = make_fb(8, 4);
-    MockCanvas canvas = make_canvas(fb);
+    MockFramebuffer fb     = make_fb(8, 4);
+    MockCanvas      canvas = make_canvas(fb);
 
     canvas.draw_line(1, 2, 5, 2, 0x00FF0000);
 
@@ -571,8 +578,8 @@ TEST("canvas: draw_line horizontal") {
 }
 
 TEST("canvas: draw_line vertical") {
-    MockFramebuffer fb = make_fb(8, 8);
-    MockCanvas canvas = make_canvas(fb);
+    MockFramebuffer fb     = make_fb(8, 8);
+    MockCanvas      canvas = make_canvas(fb);
 
     canvas.draw_line(3, 1, 3, 6, 0x0000FF00);
 
@@ -586,8 +593,8 @@ TEST("canvas: draw_line vertical") {
 }
 
 TEST("canvas: draw_line diagonal 45 degrees") {
-    MockFramebuffer fb = make_fb(8, 8);
-    MockCanvas canvas = make_canvas(fb);
+    MockFramebuffer fb     = make_fb(8, 8);
+    MockCanvas      canvas = make_canvas(fb);
 
     canvas.draw_line(0, 0, 4, 4, 0x00FFFFFF);
 
@@ -601,8 +608,8 @@ TEST("canvas: draw_line diagonal 45 degrees") {
 }
 
 TEST("canvas: draw_line steep slope") {
-    MockFramebuffer fb = make_fb(8, 8);
-    MockCanvas canvas = make_canvas(fb);
+    MockFramebuffer fb     = make_fb(8, 8);
+    MockCanvas      canvas = make_canvas(fb);
 
     // Nearly vertical: dx=1, dy=5
     canvas.draw_line(2, 0, 3, 5, 0x00FFFF00);
@@ -615,8 +622,8 @@ TEST("canvas: draw_line steep slope") {
 }
 
 TEST("canvas: draw_line single point") {
-    MockFramebuffer fb = make_fb(8, 8);
-    MockCanvas canvas = make_canvas(fb);
+    MockFramebuffer fb     = make_fb(8, 8);
+    MockCanvas      canvas = make_canvas(fb);
 
     canvas.draw_line(3, 3, 3, 3, 0x00FF00FF);
 
@@ -665,9 +672,9 @@ static MockPSFFont make_test_font() {
 }
 
 TEST("canvas: draw_text renders single character") {
-    MockFramebuffer fb = make_fb(10, 10);
-    MockCanvas canvas = make_canvas(fb);
-    MockPSFFont font = make_test_font();
+    MockFramebuffer fb     = make_fb(10, 10);
+    MockCanvas      canvas = make_canvas(fb);
+    MockPSFFont     font   = make_test_font();
 
     canvas.draw_text(1, 1, "A", 0x00FFFFFF, font);
 
@@ -689,9 +696,9 @@ TEST("canvas: draw_text renders single character") {
 }
 
 TEST("canvas: draw_text renders two characters side by side") {
-    MockFramebuffer fb = make_fb(16, 10);
-    MockCanvas canvas = make_canvas(fb);
-    MockPSFFont font = make_test_font();
+    MockFramebuffer fb     = make_fb(16, 10);
+    MockCanvas      canvas = make_canvas(fb);
+    MockPSFFont     font   = make_test_font();
 
     canvas.draw_text(0, 0, "AB", 0x00FF0000, font);
 
@@ -706,9 +713,9 @@ TEST("canvas: draw_text renders two characters side by side") {
 }
 
 TEST("canvas: draw_text empty string renders nothing") {
-    MockFramebuffer fb = make_fb(8, 8);
-    MockCanvas canvas = make_canvas(fb);
-    MockPSFFont font = make_test_font();
+    MockFramebuffer fb     = make_fb(8, 8);
+    MockCanvas      canvas = make_canvas(fb);
+    MockPSFFont     font   = make_test_font();
 
     canvas.draw_text(0, 0, "", 0x00FFFFFF, font);
 
@@ -721,9 +728,9 @@ TEST("canvas: draw_text empty string renders nothing") {
 }
 
 TEST("canvas: draw_text handles newline") {
-    MockFramebuffer fb = make_fb(10, 10);
-    MockCanvas canvas = make_canvas(fb);
-    MockPSFFont font = make_test_font();
+    MockFramebuffer fb     = make_fb(10, 10);
+    MockCanvas      canvas = make_canvas(fb);
+    MockPSFFont     font   = make_test_font();
 
     // 'C' followed by newline then 'C' again
     canvas.draw_text(1, 1, "C\nC", 0x00FFFFFF, font);
@@ -739,9 +746,9 @@ TEST("canvas: draw_text handles newline") {
 }
 
 TEST("canvas: draw_text clips to canvas bounds") {
-    MockFramebuffer fb = make_fb(4, 4);
-    MockCanvas canvas = make_canvas(fb);
-    MockPSFFont font = make_test_font();
+    MockFramebuffer fb     = make_fb(4, 4);
+    MockCanvas      canvas = make_canvas(fb);
+    MockPSFFont     font   = make_test_font();
 
     // Draw 'B' (full 3x3 block) at (2,2) — partially out of bounds
     canvas.draw_text(2, 2, "B", 0x00FF0000, font);
@@ -762,8 +769,8 @@ TEST("canvas: draw_text clips to canvas bounds") {
 TEST("canvas: blit copies region from source to destination") {
     MockFramebuffer fb1 = make_fb(8, 8);
     MockFramebuffer fb2 = make_fb(8, 8);
-    MockCanvas src = make_canvas(fb1);
-    MockCanvas dst = make_canvas(fb2);
+    MockCanvas      src = make_canvas(fb1);
+    MockCanvas      dst = make_canvas(fb2);
 
     // Draw a 3x2 red rectangle on source at (1,1)
     src.draw_rect(1, 1, 3, 2, 0x00FF0000);
@@ -788,8 +795,8 @@ TEST("canvas: blit copies region from source to destination") {
 TEST("canvas: blit clamps to destination bounds") {
     MockFramebuffer fb1 = make_fb(4, 4);
     MockFramebuffer fb2 = make_fb(4, 4);
-    MockCanvas src = make_canvas(fb1);
-    MockCanvas dst = make_canvas(fb2);
+    MockCanvas      src = make_canvas(fb1);
+    MockCanvas      dst = make_canvas(fb2);
 
     // Fill source entirely with green
     src.draw_rect(0, 0, 4, 4, 0x0000FF00);
@@ -810,8 +817,8 @@ TEST("canvas: blit clamps to destination bounds") {
 TEST("canvas: blit clamps to source bounds") {
     MockFramebuffer fb1 = make_fb(4, 4);
     MockFramebuffer fb2 = make_fb(8, 8);
-    MockCanvas src = make_canvas(fb1);
-    MockCanvas dst = make_canvas(fb2);
+    MockCanvas      src = make_canvas(fb1);
+    MockCanvas      dst = make_canvas(fb2);
 
     // Draw red in top-left 2x2 of source
     src.draw_rect(0, 0, 2, 2, 0x00FF0000);
@@ -830,8 +837,8 @@ TEST("canvas: blit clamps to source bounds") {
 TEST("canvas: blit zero size copies nothing") {
     MockFramebuffer fb1 = make_fb(4, 4);
     MockFramebuffer fb2 = make_fb(4, 4);
-    MockCanvas src = make_canvas(fb1);
-    MockCanvas dst = make_canvas(fb2);
+    MockCanvas      src = make_canvas(fb1);
+    MockCanvas      dst = make_canvas(fb2);
 
     src.draw_rect(0, 0, 4, 4, 0x00FF0000);
 

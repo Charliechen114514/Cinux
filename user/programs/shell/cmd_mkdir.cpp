@@ -6,9 +6,9 @@
  * Usage: mkdir <path>
  */
 
-#include "shell.hpp"
 #include "libc/string.hpp"
 #include "libc/syscall.h"
+#include "shell.hpp"
 
 using cinux::user::strlen;
 
@@ -26,8 +26,8 @@ void cmd_mkdir(int argc, char** argv) {
         return;
     }
 
-    const char* path = argv[1];
-    int64_t result = sys_mkdir(path);
+    const char* path   = argv[1];
+    int64_t     result = sys_mkdir(path);
 
     if (result < 0) {
         write_str("mkdir: cannot create directory '");

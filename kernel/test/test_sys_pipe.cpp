@@ -19,7 +19,6 @@
  */
 
 #include "big_kernel_test.h"
-
 #include "kernel/fs/file.hpp"
 #include "kernel/fs/inode.hpp"
 #include "kernel/ipc/pipe.hpp"
@@ -41,10 +40,10 @@ using cinux::ipc::PipeWriteOps;
 
 void test_sys_pipe_fdtable_set_slot0() {
     FDTable table;
-    Inode inode{};
+    Inode   inode{};
 
-    File* f = new File(&inode, 0, OpenFlags::RDONLY);
-    bool ok = table.set(0, f);
+    File* f  = new File(&inode, 0, OpenFlags::RDONLY);
+    bool  ok = table.set(0, f);
     TEST_ASSERT_TRUE(ok);
 
     File* retrieved = table.get(0);
@@ -56,10 +55,10 @@ void test_sys_pipe_fdtable_set_slot0() {
 
 void test_sys_pipe_fdtable_set_slot1() {
     FDTable table;
-    Inode inode{};
+    Inode   inode{};
 
-    File* f = new File(&inode, 0, OpenFlags::WRONLY);
-    bool ok = table.set(1, f);
+    File* f  = new File(&inode, 0, OpenFlags::WRONLY);
+    bool  ok = table.set(1, f);
     TEST_ASSERT_TRUE(ok);
 
     File* retrieved = table.get(1);
@@ -75,19 +74,18 @@ void test_sys_pipe_fdtable_set_slot1() {
 
 void test_sys_pipe_fdtable_set_negative() {
     FDTable table;
-    Inode inode{};
-    File f(&inode, 0, OpenFlags::RDONLY);
+    Inode   inode{};
+    File    f(&inode, 0, OpenFlags::RDONLY);
 
     TEST_ASSERT_FALSE(table.set(-1, &f));
 }
 
 void test_sys_pipe_fdtable_set_at_table_size() {
     FDTable table;
-    Inode inode{};
-    File f(&inode, 0, OpenFlags::RDONLY);
+    Inode   inode{};
+    File    f(&inode, 0, OpenFlags::RDONLY);
 
     TEST_ASSERT_FALSE(table.set(static_cast<int>(cinux::fs::FD_TABLE_SIZE), &f));
-
 }
 
 // ============================================================
@@ -98,20 +96,20 @@ void test_sys_pipe_write_read_roundtrip() {
     FDTable table;
 
     // Create pipe with Inodes
-    Pipe* pipe = new Pipe();
+    Pipe* pipe      = new Pipe();
     auto* read_ops  = new PipeReadOps(pipe);
     auto* write_ops = new PipeWriteOps(pipe);
 
     Inode* read_inode = new Inode();
-    read_inode->ops  = read_ops;
-    read_inode->type = InodeType::Regular;
+    read_inode->ops   = read_ops;
+    read_inode->type  = InodeType::Regular;
 
     Inode* write_inode = new Inode();
-    write_inode->ops  = write_ops;
-    write_inode->type = InodeType::Regular;
+    write_inode->ops   = write_ops;
+    write_inode->type  = InodeType::Regular;
 
     // Install at slots 0 (read) and 1 (write)
-    File* read_file  = new File(read_inode,  0, OpenFlags::RDONLY);
+    File* read_file  = new File(read_inode, 0, OpenFlags::RDONLY);
     File* write_file = new File(write_inode, 0, OpenFlags::WRONLY);
 
     TEST_ASSERT_TRUE(table.set(0, read_file));
@@ -119,12 +117,12 @@ void test_sys_pipe_write_read_roundtrip() {
 
     // Write data through write inode's ops
     const char msg[] = "KernelPipe";
-    int64_t w = write_inode->ops->write(write_inode, 0, msg, 10);
+    int64_t    w     = write_inode->ops->write(write_inode, 0, msg, 10);
     TEST_ASSERT_EQ(w, 10);
 
     // Read data through read inode's ops
-    char buf[16] = {};
-    int64_t r = read_inode->ops->read(read_inode, 0, buf, 10);
+    char    buf[16] = {};
+    int64_t r       = read_inode->ops->read(read_inode, 0, buf, 10);
     TEST_ASSERT_EQ(r, 10);
 
     // Verify content
@@ -156,17 +154,17 @@ void test_sys_pipe_write_read_roundtrip() {
 void test_sys_pipe_write_after_close_reader() {
     FDTable table;
 
-    Pipe* pipe = new Pipe();
+    Pipe* pipe      = new Pipe();
     auto* read_ops  = new PipeReadOps(pipe);
     auto* write_ops = new PipeWriteOps(pipe);
 
     Inode* read_inode = new Inode();
-    read_inode->ops  = read_ops;
+    read_inode->ops   = read_ops;
 
     Inode* write_inode = new Inode();
-    write_inode->ops  = write_ops;
+    write_inode->ops   = write_ops;
 
-    File* read_file  = new File(read_inode,  0, OpenFlags::RDONLY);
+    File* read_file  = new File(read_inode, 0, OpenFlags::RDONLY);
     File* write_file = new File(write_inode, 0, OpenFlags::WRONLY);
 
     table.set(0, read_file);
@@ -195,17 +193,17 @@ void test_sys_pipe_write_after_close_reader() {
 void test_sys_pipe_read_eof_after_close_writer() {
     FDTable table;
 
-    Pipe* pipe = new Pipe();
+    Pipe* pipe      = new Pipe();
     auto* read_ops  = new PipeReadOps(pipe);
     auto* write_ops = new PipeWriteOps(pipe);
 
     Inode* read_inode = new Inode();
-    read_inode->ops  = read_ops;
+    read_inode->ops   = read_ops;
 
     Inode* write_inode = new Inode();
-    write_inode->ops  = write_ops;
+    write_inode->ops   = write_ops;
 
-    File* read_file  = new File(read_inode,  0, OpenFlags::RDONLY);
+    File* read_file  = new File(read_inode, 0, OpenFlags::RDONLY);
     File* write_file = new File(write_inode, 0, OpenFlags::WRONLY);
 
     table.set(0, read_file);
@@ -215,8 +213,8 @@ void test_sys_pipe_read_eof_after_close_writer() {
     pipe->close_writer();
 
     // Read should return 0 (EOF)
-    char buf[16] = {};
-    int64_t r = read_inode->ops->read(read_inode, 0, buf, 8);
+    char    buf[16] = {};
+    int64_t r       = read_inode->ops->read(read_inode, 0, buf, 8);
     TEST_ASSERT_EQ(r, 0);
 
     delete write_file;
@@ -235,17 +233,17 @@ void test_sys_pipe_read_eof_after_close_writer() {
 void test_sys_pipe_drain_then_eof() {
     FDTable table;
 
-    Pipe* pipe = new Pipe();
+    Pipe* pipe      = new Pipe();
     auto* read_ops  = new PipeReadOps(pipe);
     auto* write_ops = new PipeWriteOps(pipe);
 
     Inode* read_inode = new Inode();
-    read_inode->ops  = read_ops;
+    read_inode->ops   = read_ops;
 
     Inode* write_inode = new Inode();
-    write_inode->ops  = write_ops;
+    write_inode->ops   = write_ops;
 
-    File* read_file  = new File(read_inode,  0, OpenFlags::RDONLY);
+    File* read_file  = new File(read_inode, 0, OpenFlags::RDONLY);
     File* write_file = new File(write_inode, 0, OpenFlags::WRONLY);
 
     table.set(0, read_file);
@@ -259,8 +257,8 @@ void test_sys_pipe_drain_then_eof() {
     pipe->close_writer();
 
     // Drain remaining data
-    char buf[16] = {};
-    int64_t r = read_inode->ops->read(read_inode, 0, buf, 8);
+    char    buf[16] = {};
+    int64_t r       = read_inode->ops->read(read_inode, 0, buf, 8);
     TEST_ASSERT_EQ(r, 2);
     TEST_ASSERT_EQ(buf[0], 'A');
     TEST_ASSERT_EQ(buf[1], 'B');
@@ -285,17 +283,17 @@ void test_sys_pipe_drain_then_eof() {
 void test_sys_pipe_multiple_cycles() {
     FDTable table;
 
-    Pipe* pipe = new Pipe();
+    Pipe* pipe      = new Pipe();
     auto* read_ops  = new PipeReadOps(pipe);
     auto* write_ops = new PipeWriteOps(pipe);
 
     Inode* read_inode = new Inode();
-    read_inode->ops  = read_ops;
+    read_inode->ops   = read_ops;
 
     Inode* write_inode = new Inode();
-    write_inode->ops  = write_ops;
+    write_inode->ops   = write_ops;
 
-    File* read_file  = new File(read_inode,  0, OpenFlags::RDONLY);
+    File* read_file  = new File(read_inode, 0, OpenFlags::RDONLY);
     File* write_file = new File(write_inode, 0, OpenFlags::WRONLY);
 
     table.set(0, read_file);
@@ -331,8 +329,8 @@ void test_sys_pipe_multiple_cycles() {
 
 void test_sys_pipe_set_then_close() {
     FDTable table;
-    Inode inode{};
-    File* f = new File(&inode, 0, OpenFlags::RDONLY);
+    Inode   inode{};
+    File*   f = new File(&inode, 0, OpenFlags::RDONLY);
 
     TEST_ASSERT_TRUE(table.set(0, f));
     TEST_ASSERT_NOT_NULL(table.get(0));
@@ -348,8 +346,8 @@ void test_sys_pipe_set_then_close() {
 
 void test_sys_pipe_set_replaces() {
     FDTable table;
-    Inode inode1{};
-    Inode inode2{};
+    Inode   inode1{};
+    Inode   inode2{};
 
     File* f1 = new File(&inode1, 0, OpenFlags::RDONLY);
     File* f2 = new File(&inode2, 0, OpenFlags::WRONLY);
@@ -391,7 +389,7 @@ void test_sys_pipe_rejects_kernel_addr() {
 
 void test_sys_pipe_set_preserves_fields() {
     FDTable table;
-    Inode inode{};
+    Inode   inode{};
     inode.ino  = 42;
     inode.size = 1024;
 

@@ -25,8 +25,8 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstring>
+#    include <cstdint>
+#    include <cstring>
 
 // ============================================================
 // Replicate PS/2 constants from mouse.cpp
@@ -36,14 +36,14 @@ namespace Ps2Port {
 constexpr uint16_t DATA    = 0x60;
 constexpr uint16_t STATUS  = 0x64;
 constexpr uint16_t COMMAND = 0x64;
-}
+}  // namespace Ps2Port
 
 namespace Ps2Cmd {
 constexpr uint8_t READ_CONFIG  = 0x20;
 constexpr uint8_t WRITE_CONFIG = 0x60;
 constexpr uint8_t ENABLE_AUX   = 0xA8;
 constexpr uint8_t WRITE_AUX    = 0xD4;
-}
+}  // namespace Ps2Cmd
 
 namespace Ps2Status {
 // Constants for reference (used indirectly via trace_inb mock)
@@ -52,7 +52,7 @@ namespace Ps2Status {
 namespace MouseCmd {
 constexpr uint8_t ENABLE_STREAMING = 0xF4;
 constexpr uint8_t ACK              = 0xFA;
-}
+}  // namespace MouseCmd
 
 namespace Packet0 {
 constexpr uint8_t LEFT_BTN   = 0x01;
@@ -61,7 +61,7 @@ constexpr uint8_t MIDDLE_BTN = 0x04;
 constexpr uint8_t ALWAYS_1   = 0x08;
 constexpr uint8_t X_SIGN     = 0x10;
 constexpr uint8_t Y_SIGN     = 0x20;
-}
+}  // namespace Packet0
 
 // ============================================================
 // Replicate event types from kernel/gui/event.hpp
@@ -76,14 +76,14 @@ enum class EventType : uint8_t {
 };
 
 struct MouseEvent {
-    int32_t  x;
-    int32_t  y;
-    int32_t  dx;
-    int32_t  dy;
-    uint8_t  buttons;
-    bool     left;
-    bool     right;
-    bool     middle;
+    int32_t x;
+    int32_t y;
+    int32_t dx;
+    int32_t dy;
+    uint8_t buttons;
+    bool    left;
+    bool    right;
+    bool    middle;
 };
 
 struct KeyEvent {
@@ -120,21 +120,19 @@ struct EventQueue {
             return;  // drop on full
         }
         buf_[tail_] = ev;
-        tail_ = next;
+        tail_       = next;
     }
 
     bool dequeue(Event& out) {
         if (head_ == tail_) {
             return false;
         }
-        out = buf_[head_];
+        out   = buf_[head_];
         head_ = (head_ + 1) % EVENT_BUF_SIZE;
         return true;
     }
 
-    bool empty() const {
-        return head_ == tail_;
-    }
+    bool empty() const { return head_ == tail_; }
 
     void clear() {
         head_ = 0;
@@ -153,8 +151,8 @@ struct IoTraceEntry {
 };
 
 static constexpr uint32_t MAX_IO_TRACE = 64;
-static IoTraceEntry io_trace[MAX_IO_TRACE];
-static uint32_t io_trace_count = 0;
+static IoTraceEntry       io_trace[MAX_IO_TRACE];
+static uint32_t           io_trace_count = 0;
 
 static void io_trace_reset() {
     io_trace_count = 0;
@@ -416,10 +414,9 @@ TEST("mouse: init writes config via WRITE_CONFIG (0x60) with IRQ12 bit") {
 
     // Find the WRITE_CONFIG command in the trace
     bool found_write_config = false;
-    bool found_config_data = false;
+    bool found_config_data  = false;
     for (uint32_t i = 0; i < io_trace_count; i++) {
-        if (io_trace[i].is_write &&
-            io_trace[i].port == Ps2Port::COMMAND &&
+        if (io_trace[i].is_write && io_trace[i].port == Ps2Port::COMMAND &&
             io_trace[i].value == Ps2Cmd::WRITE_CONFIG) {
             found_write_config = true;
             // The next outb to DATA port should have bit 1 set
@@ -445,8 +442,7 @@ TEST("mouse: init sends WRITE_AUX (0xD4) then 0xF4") {
     // Find WRITE_AUX command
     bool found_write_aux = false;
     for (uint32_t i = 0; i < io_trace_count; i++) {
-        if (io_trace[i].is_write &&
-            io_trace[i].port == Ps2Port::COMMAND &&
+        if (io_trace[i].is_write && io_trace[i].port == Ps2Port::COMMAND &&
             io_trace[i].value == Ps2Cmd::WRITE_AUX) {
             found_write_aux = true;
             // Next outb to DATA should be 0xF4
@@ -681,7 +677,8 @@ TEST("mouse: left release generates MouseUp event") {
     feed_packet(m, Packet0::ALWAYS_1 | Packet0::LEFT_BTN, 0, 0);
     // Clear queue
     Event ev;
-    while (m.g_event_queue_.dequeue(ev)) {}
+    while (m.g_event_queue_.dequeue(ev)) {
+    }
 
     // Release
     feed_packet(m, Packet0::ALWAYS_1, 0, 0);
@@ -699,7 +696,7 @@ TEST("mouse: same button held across packets -> single MouseDown") {
     // First packet: left button pressed + movement
     feed_packet(m, Packet0::ALWAYS_1 | Packet0::LEFT_BTN, 5, 0);
 
-    int mouse_down_count = 0;
+    int   mouse_down_count = 0;
     Event ev;
     while (m.g_event_queue_.dequeue(ev)) {
         if (ev.type_ == EventType::MouseDown) {
@@ -711,7 +708,7 @@ TEST("mouse: same button held across packets -> single MouseDown") {
     // Second packet: left button still held + more movement
     feed_packet(m, Packet0::ALWAYS_1 | Packet0::LEFT_BTN, 3, 0);
 
-    mouse_down_count = 0;
+    mouse_down_count     = 0;
     int mouse_move_count = 0;
     while (m.g_event_queue_.dequeue(ev)) {
         if (ev.type_ == EventType::MouseDown) {
@@ -739,8 +736,8 @@ TEST("mouse: release then press generates MouseUp then MouseDown") {
     feed_packet(m, Packet0::ALWAYS_1 | Packet0::LEFT_BTN, 0, 0);
 
     Event ev;
-    int down_count = 0;
-    int up_count = 0;
+    int   down_count = 0;
+    int   up_count   = 0;
     while (m.g_event_queue_.dequeue(ev)) {
         if (ev.type_ == EventType::MouseDown) {
             down_count++;
@@ -762,10 +759,12 @@ TEST("mouse: right button press and release events") {
     feed_packet(m, Packet0::ALWAYS_1, 0, 0);
 
     Event ev;
-    int down = 0, up = 0;
+    int   down = 0, up = 0;
     while (m.g_event_queue_.dequeue(ev)) {
-        if (ev.type_ == EventType::MouseDown) down++;
-        if (ev.type_ == EventType::MouseUp) up++;
+        if (ev.type_ == EventType::MouseDown)
+            down++;
+        if (ev.type_ == EventType::MouseUp)
+            up++;
     }
     ASSERT_EQ(down, 1);
     ASSERT_EQ(up, 1);
@@ -854,8 +853,8 @@ TEST("mouse: cumulative position across 3 packets") {
     MockMouse m;
     m.reset();
 
-    feed_packet(m, Packet0::ALWAYS_1, 10, 5);   // x=10, y=5
-    feed_packet(m, Packet0::ALWAYS_1, 3, 2);    // x=13, y=7
+    feed_packet(m, Packet0::ALWAYS_1, 10, 5);         // x=10, y=5
+    feed_packet(m, Packet0::ALWAYS_1, 3, 2);          // x=13, y=7
     feed_packet(m, Packet0::ALWAYS_1, -1 & 0xFF, 0);  // dx=255, no sign -> x=268
 
     ASSERT_EQ(m.mouse_x_, 268);  // 10 + 3 + 255
@@ -872,8 +871,8 @@ TEST("mouse: negative movement reduces position") {
     feed_packet(m, Packet0::ALWAYS_1 | Packet0::X_SIGN | Packet0::Y_SIGN, 10, 20);
     // dx = 10 - 256 = -246, dy = 20 - 256 = -236
 
-    ASSERT_EQ(m.mouse_x_, 0);   // 100 - 246 = -146, clamped to 0
-    ASSERT_EQ(m.mouse_y_, 0);   // 100 - 236 = -136, clamped to 0
+    ASSERT_EQ(m.mouse_x_, 0);  // 100 - 246 = -146, clamped to 0
+    ASSERT_EQ(m.mouse_y_, 0);  // 100 - 236 = -136, clamped to 0
 }
 
 // ============================================================
@@ -886,9 +885,9 @@ TEST("mouse: init resets all state") {
     m.reset();
 
     // Move cursor and press a button
-    m.mouse_x_ = 500;
-    m.mouse_y_ = 300;
-    m.buttons_ = Packet0::LEFT_BTN;
+    m.mouse_x_      = 500;
+    m.mouse_y_      = 300;
+    m.buttons_      = Packet0::LEFT_BTN;
     m.prev_buttons_ = Packet0::LEFT_BTN;
 
     m.init();  // This calls reset() internally
@@ -954,11 +953,13 @@ TEST("mouse: movement + left press generates MouseMove and MouseDown") {
     feed_packet(m, Packet0::ALWAYS_1 | Packet0::LEFT_BTN, 5, 3);
 
     Event ev;
-    int move_count = 0;
-    int down_count = 0;
+    int   move_count = 0;
+    int   down_count = 0;
     while (m.g_event_queue_.dequeue(ev)) {
-        if (ev.type_ == EventType::MouseMove) move_count++;
-        if (ev.type_ == EventType::MouseDown) down_count++;
+        if (ev.type_ == EventType::MouseMove)
+            move_count++;
+        if (ev.type_ == EventType::MouseDown)
+            down_count++;
     }
     ASSERT_EQ(move_count, 1);
     ASSERT_EQ(down_count, 1);
@@ -971,7 +972,7 @@ TEST("mouse: poll discards non-mouse events") {
 
     // Enqueue a keyboard event directly
     Event key_ev{};
-    key_ev.type_ = EventType::KeyDown;
+    key_ev.type_     = EventType::KeyDown;
     key_ev.key.ascii = 'A';
     m.g_event_queue_.enqueue(key_ev);
 
@@ -993,16 +994,14 @@ TEST("mouse: MouseEvent fields match packet data") {
     m.mouse_y_ = 30;
 
     // Left + right buttons, dx=10, dy=20
-    feed_packet(m,
-        Packet0::ALWAYS_1 | Packet0::LEFT_BTN | Packet0::RIGHT_BTN,
-        10, 20);
+    feed_packet(m, Packet0::ALWAYS_1 | Packet0::LEFT_BTN | Packet0::RIGHT_BTN, 10, 20);
 
     Event ev;
     ASSERT_TRUE(m.g_event_queue_.dequeue(ev));
     // First event is MouseMove (movement)
     ASSERT_EQ(ev.type_, EventType::MouseMove);
-    ASSERT_EQ(ev.mouse.x, 60);   // 50 + 10
-    ASSERT_EQ(ev.mouse.y, 50);   // 30 + 20
+    ASSERT_EQ(ev.mouse.x, 60);  // 50 + 10
+    ASSERT_EQ(ev.mouse.y, 50);  // 30 + 20
     ASSERT_EQ(ev.mouse.dx, 10);
     ASSERT_EQ(ev.mouse.dy, 20);
     ASSERT_EQ(ev.mouse.buttons, Packet0::LEFT_BTN | Packet0::RIGHT_BTN);

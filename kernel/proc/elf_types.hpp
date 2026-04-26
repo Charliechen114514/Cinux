@@ -58,20 +58,20 @@ constexpr uint32_t PF_R = 4;
  * program and section header tables.
  */
 struct Elf64_Ehdr {
-    uint8_t  e_ident[16];    ///< ELF identification bytes
-    uint16_t e_type;         ///< Object file type (ET_EXEC = 2)
-    uint16_t e_machine;      ///< Target architecture (EM_X86_64 = 62)
-    uint32_t e_version;      ///< Object file version
-    uint64_t e_entry;        ///< Virtual entry point address
-    uint64_t e_phoff;        ///< Program header table file offset
-    uint64_t e_shoff;        ///< Section header table file offset
-    uint32_t e_flags;        ///< Processor-specific flags
-    uint16_t e_ehsize;       ///< ELF header size (64 bytes)
-    uint16_t e_phentsize;    ///< Program header entry size (56 bytes)
-    uint16_t e_phnum;        ///< Number of program header entries
-    uint16_t e_shentsize;    ///< Section header entry size
-    uint16_t e_shnum;        ///< Number of section header entries
-    uint16_t e_shstrndx;     ///< Section name string table index
+    uint8_t  e_ident[16];  ///< ELF identification bytes
+    uint16_t e_type;       ///< Object file type (ET_EXEC = 2)
+    uint16_t e_machine;    ///< Target architecture (EM_X86_64 = 62)
+    uint32_t e_version;    ///< Object file version
+    uint64_t e_entry;      ///< Virtual entry point address
+    uint64_t e_phoff;      ///< Program header table file offset
+    uint64_t e_shoff;      ///< Section header table file offset
+    uint32_t e_flags;      ///< Processor-specific flags
+    uint16_t e_ehsize;     ///< ELF header size (64 bytes)
+    uint16_t e_phentsize;  ///< Program header entry size (56 bytes)
+    uint16_t e_phnum;      ///< Number of program header entries
+    uint16_t e_shentsize;  ///< Section header entry size
+    uint16_t e_shnum;      ///< Number of section header entries
+    uint16_t e_shstrndx;   ///< Section name string table index
 } __attribute__((packed));
 
 static_assert(sizeof(Elf64_Ehdr) == 64, "Elf64_Ehdr must be 64 bytes");
@@ -89,14 +89,14 @@ static_assert(sizeof(Elf64_Ehdr) == 64, "Elf64_Ehdr must be 64 bytes");
  * address space.
  */
 struct Elf64_Phdr {
-    uint32_t p_type;     ///< Segment type (PT_LOAD = 1)
-    uint32_t p_flags;    ///< Segment flags (PF_R | PF_W | PF_X)
-    uint64_t p_offset;   ///< Segment file offset
-    uint64_t p_vaddr;    ///< Segment virtual address (target load address)
-    uint64_t p_paddr;    ///< Segment physical address
-    uint64_t p_filesz;   ///< Segment size in the file (bytes to copy)
-    uint64_t p_memsz;    ///< Segment size in memory (filesz + BSS)
-    uint64_t p_align;    ///< Segment alignment (usually 0x1000)
+    uint32_t p_type;    ///< Segment type (PT_LOAD = 1)
+    uint32_t p_flags;   ///< Segment flags (PF_R | PF_W | PF_X)
+    uint64_t p_offset;  ///< Segment file offset
+    uint64_t p_vaddr;   ///< Segment virtual address (target load address)
+    uint64_t p_paddr;   ///< Segment physical address
+    uint64_t p_filesz;  ///< Segment size in the file (bytes to copy)
+    uint64_t p_memsz;   ///< Segment size in memory (filesz + BSS)
+    uint64_t p_align;   ///< Segment alignment (usually 0x1000)
 } __attribute__((packed));
 
 static_assert(sizeof(Elf64_Phdr) == 56, "Elf64_Phdr must be 56 bytes");
@@ -109,15 +109,15 @@ static_assert(sizeof(Elf64_Phdr) == 56, "Elf64_Phdr must be 56 bytes");
  * @brief Result codes from ELF header validation
  */
 enum class ElfValidateResult : int {
-    Ok = 0,           ///< Valid ELF64 x86_64 executable
-    BadMagic,         ///< Magic number mismatch
-    BadClass,         ///< Not a 64-bit ELF
-    BadEndian,        ///< Not little-endian
-    BadMachine,       ///< Not x86-64
-    BadType,          ///< Not an executable
-    BadPhoff,         ///< Program header offset too large
-    BadPhdrSize,      ///< Program header entry size is not 56
-    NoPhdrs,          ///< No program headers
+    Ok = 0,       ///< Valid ELF64 x86_64 executable
+    BadMagic,     ///< Magic number mismatch
+    BadClass,     ///< Not a 64-bit ELF
+    BadEndian,    ///< Not little-endian
+    BadMachine,   ///< Not x86-64
+    BadType,      ///< Not an executable
+    BadPhoff,     ///< Program header offset too large
+    BadPhdrSize,  ///< Program header entry size is not 56
+    NoPhdrs,      ///< No program headers
 };
 
 // ============================================================

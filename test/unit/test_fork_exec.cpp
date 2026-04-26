@@ -26,16 +26,16 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstddef>
-#include <cstring>
+#    include <cstddef>
+#    include <cstdint>
+#    include <cstring>
 
-#include "proc/pid.hpp"
-#include "proc/process.hpp"
-#include "proc/elf_types.hpp"
-#include "arch/x86_64/paging_config.hpp"
-#include "arch/x86_64/paging.hpp"
-#include "syscall/syscall_nums.hpp"
+#    include "arch/x86_64/paging.hpp"
+#    include "arch/x86_64/paging_config.hpp"
+#    include "proc/elf_types.hpp"
+#    include "proc/pid.hpp"
+#    include "proc/process.hpp"
+#    include "syscall/syscall_nums.hpp"
 
 using namespace cinux::proc;
 
@@ -84,7 +84,7 @@ TEST("pid_allocator: count increments on alloc") {
 
 TEST("pid_allocator: free makes PID available again") {
     PidAllocator alloc;
-    int pid = alloc.alloc();
+    int          pid = alloc.alloc();
     ASSERT_EQ(alloc.count(), 1);
     alloc.free(pid);
     ASSERT_EQ(alloc.count(), 0);
@@ -104,9 +104,9 @@ TEST("pid_allocator: alloc reuses lowest freed PID") {
 
 TEST("pid_allocator: free then alloc cycles correctly") {
     PidAllocator alloc;
-    int a = alloc.alloc();  // 1
-    int b = alloc.alloc();  // 2
-    int c = alloc.alloc();  // 3
+    int          a = alloc.alloc();  // 1
+    int          b = alloc.alloc();  // 2
+    int          c = alloc.alloc();  // 3
     (void)c;
 
     alloc.free(a);
@@ -171,7 +171,7 @@ TEST("pid_allocator: free out-of-range PID is safe") {
 
 TEST("pid_allocator: double free is safe") {
     PidAllocator alloc;
-    int pid = alloc.alloc();
+    int          pid = alloc.alloc();
     alloc.free(pid);
     alloc.free(pid);  // second free should be no-op
     ASSERT_EQ(alloc.count(), 0);
@@ -189,13 +189,13 @@ TEST("pid_allocator: is_allocated false for unallocated") {
 
 TEST("pid_allocator: is_allocated true after alloc") {
     PidAllocator alloc;
-    int pid = alloc.alloc();
+    int          pid = alloc.alloc();
     ASSERT_TRUE(alloc.is_allocated(pid));
 }
 
 TEST("pid_allocator: is_allocated false after free") {
     PidAllocator alloc;
-    int pid = alloc.alloc();
+    int          pid = alloc.alloc();
     alloc.free(pid);
     ASSERT_FALSE(alloc.is_allocated(pid));
 }
@@ -236,11 +236,11 @@ TEST("task_fields: parent defaults to nullptr") {
 
 TEST("task_fields: pid and ppid are assignable") {
     Task t{};
-    t.pid = 42;
-    t.ppid = 1;
+    t.pid         = 42;
+    t.ppid        = 1;
     t.exit_status = 0;
-    t.children = nullptr;
-    t.parent = nullptr;
+    t.children    = nullptr;
+    t.parent      = nullptr;
     ASSERT_EQ(t.pid, 42);
     ASSERT_EQ(t.ppid, 1);
     ASSERT_EQ(t.exit_status, 0);
@@ -341,11 +341,11 @@ TEST("fork_semantics: negative return indicates error") {
 TEST("fork_semantics: parent-child pid/ppid linkage") {
     Task parent{};
     Task child{};
-    parent.pid = 10;
-    parent.ppid = 1;
-    child.pid = 11;
-    child.ppid = parent.pid;
-    child.parent = &parent;
+    parent.pid      = 10;
+    parent.ppid     = 1;
+    child.pid       = 11;
+    child.ppid      = parent.pid;
+    child.parent    = &parent;
     parent.children = &child;
 
     ASSERT_EQ(child.pid, 11);
@@ -451,7 +451,7 @@ TEST("cow_pte: read-only non-user page is not CoW") {
     cinux::arch::PageEntry pte{};
     pte.raw = 0x7000ULL | FLAG_PRESENT | FLAG_GLOBAL;
 
-    bool is_cow = (pte.raw & FLAG_COW) != 0;
+    bool is_cow      = (pte.raw & FLAG_COW) != 0;
     bool is_writable = (pte.raw & FLAG_WRITABLE) != 0;
     ASSERT_FALSE(is_cow);
     ASSERT_FALSE(is_writable);
@@ -493,11 +493,11 @@ TEST("execve_result: all error values are negative (Linux errno)") {
 TEST("execve_result: error codes with distinct errno values") {
     using R = cinux::proc::ExecveResult;
     // These map to different errno values
-    ASSERT_TRUE(R::BadPath != R::FileNotFound);       // -22 vs -2
-    ASSERT_TRUE(R::BadPath != R::BadElfMagic);        // -22 vs -8
-    ASSERT_TRUE(R::FileNotFound != R::FileNotRegular); // -2 vs -21
-    ASSERT_TRUE(R::BadElfMagic != R::MapFailed);      // -8 vs -12
-    ASSERT_TRUE(R::MapFailed != R::NoCurrentTask);    // -12 vs -3
+    ASSERT_TRUE(R::BadPath != R::FileNotFound);         // -22 vs -2
+    ASSERT_TRUE(R::BadPath != R::BadElfMagic);          // -22 vs -8
+    ASSERT_TRUE(R::FileNotFound != R::FileNotRegular);  // -2 vs -21
+    ASSERT_TRUE(R::BadElfMagic != R::MapFailed);        // -8 vs -12
+    ASSERT_TRUE(R::MapFailed != R::NoCurrentTask);      // -12 vs -3
 }
 
 TEST("execve_result: ELF errors share ENOEXEC") {
@@ -588,18 +588,18 @@ TEST("elf_validation: valid x86_64 ELF header passes") {
 
     // Construct a valid ELF64 header
     Elf64_Ehdr ehdr{};
-    ehdr.e_ident[0] = 0x7F;
-    ehdr.e_ident[1] = 'E';
-    ehdr.e_ident[2] = 'L';
-    ehdr.e_ident[3] = 'F';
-    ehdr.e_ident[4] = ELF_CLASS_64;
-    ehdr.e_ident[5] = ELF_DATA_LSB;
-    ehdr.e_type = ET_EXEC;
-    ehdr.e_machine = EM_X86_64;
-    ehdr.e_phoff = sizeof(Elf64_Ehdr);
+    ehdr.e_ident[0]  = 0x7F;
+    ehdr.e_ident[1]  = 'E';
+    ehdr.e_ident[2]  = 'L';
+    ehdr.e_ident[3]  = 'F';
+    ehdr.e_ident[4]  = ELF_CLASS_64;
+    ehdr.e_ident[5]  = ELF_DATA_LSB;
+    ehdr.e_type      = ET_EXEC;
+    ehdr.e_machine   = EM_X86_64;
+    ehdr.e_phoff     = sizeof(Elf64_Ehdr);
     ehdr.e_phentsize = sizeof(Elf64_Phdr);
-    ehdr.e_phnum = 1;
-    ehdr.e_entry = 0x400000;
+    ehdr.e_phnum     = 1;
+    ehdr.e_entry     = 0x400000;
 
     auto result = validate_elf_header(&ehdr, 4096);
     ASSERT_EQ(result, ElfValidateResult::Ok);
@@ -613,17 +613,17 @@ TEST("elf_validation: bad magic fails") {
     using namespace cinux::proc::elf;
 
     Elf64_Ehdr ehdr{};
-    ehdr.e_ident[0] = 0x00;  // wrong magic
-    ehdr.e_ident[1] = 0x00;
-    ehdr.e_ident[2] = 0x00;
-    ehdr.e_ident[3] = 0x00;
-    ehdr.e_ident[4] = ELF_CLASS_64;
-    ehdr.e_ident[5] = ELF_DATA_LSB;
-    ehdr.e_type = ET_EXEC;
-    ehdr.e_machine = EM_X86_64;
-    ehdr.e_phoff = sizeof(Elf64_Ehdr);
+    ehdr.e_ident[0]  = 0x00;  // wrong magic
+    ehdr.e_ident[1]  = 0x00;
+    ehdr.e_ident[2]  = 0x00;
+    ehdr.e_ident[3]  = 0x00;
+    ehdr.e_ident[4]  = ELF_CLASS_64;
+    ehdr.e_ident[5]  = ELF_DATA_LSB;
+    ehdr.e_type      = ET_EXEC;
+    ehdr.e_machine   = EM_X86_64;
+    ehdr.e_phoff     = sizeof(Elf64_Ehdr);
     ehdr.e_phentsize = sizeof(Elf64_Phdr);
-    ehdr.e_phnum = 1;
+    ehdr.e_phnum     = 1;
 
     auto result = validate_elf_header(&ehdr, 4096);
     ASSERT_EQ(result, ElfValidateResult::BadMagic);
@@ -637,17 +637,17 @@ TEST("elf_validation: bad class (32-bit) fails") {
     using namespace cinux::proc::elf;
 
     Elf64_Ehdr ehdr{};
-    ehdr.e_ident[0] = 0x7F;
-    ehdr.e_ident[1] = 'E';
-    ehdr.e_ident[2] = 'L';
-    ehdr.e_ident[3] = 'F';
-    ehdr.e_ident[4] = 1;  // ELFCLASS32
-    ehdr.e_ident[5] = ELF_DATA_LSB;
-    ehdr.e_type = ET_EXEC;
-    ehdr.e_machine = EM_X86_64;
-    ehdr.e_phoff = sizeof(Elf64_Ehdr);
+    ehdr.e_ident[0]  = 0x7F;
+    ehdr.e_ident[1]  = 'E';
+    ehdr.e_ident[2]  = 'L';
+    ehdr.e_ident[3]  = 'F';
+    ehdr.e_ident[4]  = 1;  // ELFCLASS32
+    ehdr.e_ident[5]  = ELF_DATA_LSB;
+    ehdr.e_type      = ET_EXEC;
+    ehdr.e_machine   = EM_X86_64;
+    ehdr.e_phoff     = sizeof(Elf64_Ehdr);
     ehdr.e_phentsize = sizeof(Elf64_Phdr);
-    ehdr.e_phnum = 1;
+    ehdr.e_phnum     = 1;
 
     auto result = validate_elf_header(&ehdr, 4096);
     ASSERT_EQ(result, ElfValidateResult::BadClass);
@@ -661,17 +661,17 @@ TEST("elf_validation: bad endianness fails") {
     using namespace cinux::proc::elf;
 
     Elf64_Ehdr ehdr{};
-    ehdr.e_ident[0] = 0x7F;
-    ehdr.e_ident[1] = 'E';
-    ehdr.e_ident[2] = 'L';
-    ehdr.e_ident[3] = 'F';
-    ehdr.e_ident[4] = ELF_CLASS_64;
-    ehdr.e_ident[5] = 2;  // big-endian
-    ehdr.e_type = ET_EXEC;
-    ehdr.e_machine = EM_X86_64;
-    ehdr.e_phoff = sizeof(Elf64_Ehdr);
+    ehdr.e_ident[0]  = 0x7F;
+    ehdr.e_ident[1]  = 'E';
+    ehdr.e_ident[2]  = 'L';
+    ehdr.e_ident[3]  = 'F';
+    ehdr.e_ident[4]  = ELF_CLASS_64;
+    ehdr.e_ident[5]  = 2;  // big-endian
+    ehdr.e_type      = ET_EXEC;
+    ehdr.e_machine   = EM_X86_64;
+    ehdr.e_phoff     = sizeof(Elf64_Ehdr);
     ehdr.e_phentsize = sizeof(Elf64_Phdr);
-    ehdr.e_phnum = 1;
+    ehdr.e_phnum     = 1;
 
     auto result = validate_elf_header(&ehdr, 4096);
     ASSERT_EQ(result, ElfValidateResult::BadEndian);
@@ -685,17 +685,17 @@ TEST("elf_validation: bad machine fails") {
     using namespace cinux::proc::elf;
 
     Elf64_Ehdr ehdr{};
-    ehdr.e_ident[0] = 0x7F;
-    ehdr.e_ident[1] = 'E';
-    ehdr.e_ident[2] = 'L';
-    ehdr.e_ident[3] = 'F';
-    ehdr.e_ident[4] = ELF_CLASS_64;
-    ehdr.e_ident[5] = ELF_DATA_LSB;
-    ehdr.e_type = ET_EXEC;
-    ehdr.e_machine = 0;  // wrong machine
-    ehdr.e_phoff = sizeof(Elf64_Ehdr);
+    ehdr.e_ident[0]  = 0x7F;
+    ehdr.e_ident[1]  = 'E';
+    ehdr.e_ident[2]  = 'L';
+    ehdr.e_ident[3]  = 'F';
+    ehdr.e_ident[4]  = ELF_CLASS_64;
+    ehdr.e_ident[5]  = ELF_DATA_LSB;
+    ehdr.e_type      = ET_EXEC;
+    ehdr.e_machine   = 0;  // wrong machine
+    ehdr.e_phoff     = sizeof(Elf64_Ehdr);
     ehdr.e_phentsize = sizeof(Elf64_Phdr);
-    ehdr.e_phnum = 1;
+    ehdr.e_phnum     = 1;
 
     auto result = validate_elf_header(&ehdr, 4096);
     ASSERT_EQ(result, ElfValidateResult::BadMachine);
@@ -709,17 +709,17 @@ TEST("elf_validation: bad type (not executable) fails") {
     using namespace cinux::proc::elf;
 
     Elf64_Ehdr ehdr{};
-    ehdr.e_ident[0] = 0x7F;
-    ehdr.e_ident[1] = 'E';
-    ehdr.e_ident[2] = 'L';
-    ehdr.e_ident[3] = 'F';
-    ehdr.e_ident[4] = ELF_CLASS_64;
-    ehdr.e_ident[5] = ELF_DATA_LSB;
-    ehdr.e_type = 1;  // ET_REL (relocatable)
-    ehdr.e_machine = EM_X86_64;
-    ehdr.e_phoff = sizeof(Elf64_Ehdr);
+    ehdr.e_ident[0]  = 0x7F;
+    ehdr.e_ident[1]  = 'E';
+    ehdr.e_ident[2]  = 'L';
+    ehdr.e_ident[3]  = 'F';
+    ehdr.e_ident[4]  = ELF_CLASS_64;
+    ehdr.e_ident[5]  = ELF_DATA_LSB;
+    ehdr.e_type      = 1;  // ET_REL (relocatable)
+    ehdr.e_machine   = EM_X86_64;
+    ehdr.e_phoff     = sizeof(Elf64_Ehdr);
     ehdr.e_phentsize = sizeof(Elf64_Phdr);
-    ehdr.e_phnum = 1;
+    ehdr.e_phnum     = 1;
 
     auto result = validate_elf_header(&ehdr, 4096);
     ASSERT_EQ(result, ElfValidateResult::BadType);
@@ -734,7 +734,7 @@ TEST("elf_validation: buffer smaller than header fails") {
 
     Elf64_Ehdr ehdr{};
     // Don't bother filling it -- the size check should fail first
-    auto result = validate_elf_header(&ehdr, 32);
+    auto       result = validate_elf_header(&ehdr, 32);
     ASSERT_EQ(result, ElfValidateResult::BadMagic);
 }
 
@@ -746,17 +746,17 @@ TEST("elf_validation: no program headers fails") {
     using namespace cinux::proc::elf;
 
     Elf64_Ehdr ehdr{};
-    ehdr.e_ident[0] = 0x7F;
-    ehdr.e_ident[1] = 'E';
-    ehdr.e_ident[2] = 'L';
-    ehdr.e_ident[3] = 'F';
-    ehdr.e_ident[4] = ELF_CLASS_64;
-    ehdr.e_ident[5] = ELF_DATA_LSB;
-    ehdr.e_type = ET_EXEC;
-    ehdr.e_machine = EM_X86_64;
-    ehdr.e_phoff = sizeof(Elf64_Ehdr);
+    ehdr.e_ident[0]  = 0x7F;
+    ehdr.e_ident[1]  = 'E';
+    ehdr.e_ident[2]  = 'L';
+    ehdr.e_ident[3]  = 'F';
+    ehdr.e_ident[4]  = ELF_CLASS_64;
+    ehdr.e_ident[5]  = ELF_DATA_LSB;
+    ehdr.e_type      = ET_EXEC;
+    ehdr.e_machine   = EM_X86_64;
+    ehdr.e_phoff     = sizeof(Elf64_Ehdr);
     ehdr.e_phentsize = sizeof(Elf64_Phdr);
-    ehdr.e_phnum = 0;  // no program headers
+    ehdr.e_phnum     = 0;  // no program headers
 
     auto result = validate_elf_header(&ehdr, 4096);
     ASSERT_EQ(result, ElfValidateResult::NoPhdrs);
@@ -770,17 +770,17 @@ TEST("elf_validation: phdr offset beyond file fails") {
     using namespace cinux::proc::elf;
 
     Elf64_Ehdr ehdr{};
-    ehdr.e_ident[0] = 0x7F;
-    ehdr.e_ident[1] = 'E';
-    ehdr.e_ident[2] = 'L';
-    ehdr.e_ident[3] = 'F';
-    ehdr.e_ident[4] = ELF_CLASS_64;
-    ehdr.e_ident[5] = ELF_DATA_LSB;
-    ehdr.e_type = ET_EXEC;
-    ehdr.e_machine = EM_X86_64;
-    ehdr.e_phoff = 100000;  // way beyond file size
+    ehdr.e_ident[0]  = 0x7F;
+    ehdr.e_ident[1]  = 'E';
+    ehdr.e_ident[2]  = 'L';
+    ehdr.e_ident[3]  = 'F';
+    ehdr.e_ident[4]  = ELF_CLASS_64;
+    ehdr.e_ident[5]  = ELF_DATA_LSB;
+    ehdr.e_type      = ET_EXEC;
+    ehdr.e_machine   = EM_X86_64;
+    ehdr.e_phoff     = 100000;  // way beyond file size
     ehdr.e_phentsize = sizeof(Elf64_Phdr);
-    ehdr.e_phnum = 1;
+    ehdr.e_phnum     = 1;
 
     auto result = validate_elf_header(&ehdr, 4096);
     ASSERT_EQ(result, ElfValidateResult::BadPhoff);
@@ -805,17 +805,17 @@ TEST("elf_phdr: PT_LOAD segment with BSS") {
     using namespace cinux::proc::elf;
 
     Elf64_Phdr phdr{};
-    phdr.p_type = PT_LOAD;
-    phdr.p_flags = PF_R | PF_W | PF_X;
+    phdr.p_type   = PT_LOAD;
+    phdr.p_flags  = PF_R | PF_W | PF_X;
     phdr.p_offset = 0;
-    phdr.p_vaddr = 0x400000;
+    phdr.p_vaddr  = 0x400000;
     phdr.p_filesz = 0x1000;  // 4 KB of file data
-    phdr.p_memsz = 0x2000;   // 8 KB total (4 KB BSS)
-    phdr.p_align = 0x1000;
+    phdr.p_memsz  = 0x2000;  // 8 KB total (4 KB BSS)
+    phdr.p_align  = 0x1000;
 
     ASSERT_EQ(phdr.p_type, PT_LOAD);
     ASSERT_EQ(phdr.p_vaddr, 0x400000ULL);
-    ASSERT_GT(phdr.p_memsz, phdr.p_filesz);  // has BSS
+    ASSERT_GT(phdr.p_memsz, phdr.p_filesz);              // has BSS
     ASSERT_EQ(phdr.p_memsz - phdr.p_filesz, 0x1000ULL);  // 4 KB BSS
 }
 
@@ -918,16 +918,16 @@ TEST("waitpid_result: NotExited maps to -1") {
 TEST("waitpid_semantics: zombie child can be reaped") {
     // Simulate the waitpid reap logic with raw Task structs
     PidAllocator alloc;
-    Task parent{};
-    parent.pid = 10;
+    Task         parent{};
+    parent.pid  = 10;
     parent.ppid = 1;
 
     Task child{};
-    child.pid = 11;
-    child.ppid = 10;
-    child.state = TaskState::Zombie;
+    child.pid         = 11;
+    child.ppid        = 10;
+    child.state       = TaskState::Zombie;
     child.exit_status = 42;
-    child.parent = &parent;
+    child.parent      = &parent;
 
     // Link child into parent's children list
     child.wait_next = parent.children;
@@ -940,7 +940,7 @@ TEST("waitpid_semantics: zombie child can be reaped") {
 
     // Simulate reap: collect exit status
     int status = 0;
-    status = child.exit_status;
+    status     = child.exit_status;
     ASSERT_EQ(status, 42);
 
     // Simulate reap: unlink from children list
@@ -962,19 +962,19 @@ TEST("waitpid_semantics: reap preserves sibling list") {
     parent.pid = 10;
 
     Task child1{};
-    child1.pid = 11;
-    child1.state = TaskState::Zombie;
+    child1.pid         = 11;
+    child1.state       = TaskState::Zombie;
     child1.exit_status = 0;
 
     Task child2{};
-    child2.pid = 12;
-    child2.state = TaskState::Zombie;
+    child2.pid         = 12;
+    child2.state       = TaskState::Zombie;
     child2.exit_status = 1;
 
     // children list: child1 -> child2
     child1.wait_next = &child2;
     child2.wait_next = nullptr;
-    parent.children = &child1;
+    parent.children  = &child1;
 
     // Reap child1 (head of list)
     parent.children = child1.wait_next;
@@ -990,7 +990,7 @@ TEST("waitpid_semantics: reap middle child from list") {
     child1.pid = 11;
 
     Task child2{};
-    child2.pid = 12;
+    child2.pid   = 12;
     child2.state = TaskState::Zombie;
 
     Task child3{};
@@ -1000,14 +1000,14 @@ TEST("waitpid_semantics: reap middle child from list") {
     child1.wait_next = &child2;
     child2.wait_next = &child3;
     child3.wait_next = nullptr;
-    parent.children = &child1;
+    parent.children  = &child1;
 
     // Reap child2 (middle): find prev (child1), skip child2
     Task* prev = nullptr;
-    Task* cur = parent.children;
+    Task* cur  = parent.children;
     while (cur != nullptr && cur->pid != 12) {
         prev = cur;
-        cur = cur->wait_next;
+        cur  = cur->wait_next;
     }
     ASSERT_NOT_NULL(cur);
     ASSERT_EQ(prev, &child1);
@@ -1022,7 +1022,7 @@ TEST("waitpid_semantics: reap middle child from list") {
 
 TEST("waitpid_semantics: no children returns ECHILD") {
     Task parent{};
-    parent.pid = 10;
+    parent.pid      = 10;
     parent.children = nullptr;
 
     // No children: should return ECHILD
@@ -1034,7 +1034,7 @@ TEST("waitpid_semantics: non-zombie child returns NotExited") {
     parent.pid = 10;
 
     Task child{};
-    child.pid = 11;
+    child.pid   = 11;
     child.state = TaskState::Running;
 
     child.wait_next = nullptr;
@@ -1050,32 +1050,32 @@ TEST("waitpid_semantics: pid=-1 waits for any zombie child") {
     parent.pid = 10;
 
     Task child1{};
-    child1.pid = 11;
+    child1.pid   = 11;
     child1.state = TaskState::Running;
 
     Task child2{};
-    child2.pid = 12;
-    child2.state = TaskState::Zombie;
+    child2.pid         = 12;
+    child2.state       = TaskState::Zombie;
     child2.exit_status = 7;
 
     // children list: child1 -> child2
     child1.wait_next = &child2;
     child2.wait_next = nullptr;
-    parent.children = &child1;
+    parent.children  = &child1;
 
     // Scan for first zombie (pid=-1 semantics)
-    Task* target = nullptr;
-    Task* prev = nullptr;
-    Task* cur = parent.children;
+    Task* target   = nullptr;
+    Task* prev     = nullptr;
+    Task* cur      = parent.children;
     Task* cur_prev = nullptr;
     while (cur != nullptr) {
         if (cur->state == TaskState::Zombie) {
             target = cur;
-            prev = cur_prev;
+            prev   = cur_prev;
             break;
         }
         cur_prev = cur;
-        cur = cur->wait_next;
+        cur      = cur->wait_next;
     }
 
     // Should find child2 (the zombie), skipping child1 (running)
@@ -1090,20 +1090,20 @@ TEST("waitpid_semantics: pid=-1 no zombie returns NotExited") {
     parent.pid = 10;
 
     Task child1{};
-    child1.pid = 11;
+    child1.pid   = 11;
     child1.state = TaskState::Running;
 
     Task child2{};
-    child2.pid = 12;
+    child2.pid   = 12;
     child2.state = TaskState::Ready;
 
     child1.wait_next = &child2;
     child2.wait_next = nullptr;
-    parent.children = &child1;
+    parent.children  = &child1;
 
     // Scan for any zombie: none found
     Task* target = nullptr;
-    Task* cur = parent.children;
+    Task* cur    = parent.children;
     while (cur != nullptr) {
         if (cur->state == TaskState::Zombie) {
             target = cur;
@@ -1117,7 +1117,7 @@ TEST("waitpid_semantics: pid=-1 no zombie returns NotExited") {
 
 TEST("waitpid_semantics: reap frees PID for reuse") {
     PidAllocator alloc;
-    int freed_pid = alloc.alloc();  // pid = 1
+    int          freed_pid = alloc.alloc();  // pid = 1
     ASSERT_EQ(freed_pid, 1);
 
     // Simulate reap: free the PID

@@ -43,11 +43,9 @@ void PIC::init(uint8_t master_offset, uint8_t slave_offset) {
     uint8_t slave_mask  = io_inb(PicPort::SLAVE_DATA);
 
     // ICW1: start initialisation in cascade mode, ICW4 needed
-    io_outb(PicPort::MASTER_CMD,
-            PicICW::ICW1_INIT | PicICW::ICW1_ICW4);
+    io_outb(PicPort::MASTER_CMD, PicICW::ICW1_INIT | PicICW::ICW1_ICW4);
     io_wait();
-    io_outb(PicPort::SLAVE_CMD,
-            PicICW::ICW1_INIT | PicICW::ICW1_ICW4);
+    io_outb(PicPort::SLAVE_CMD, PicICW::ICW1_INIT | PicICW::ICW1_ICW4);
     io_wait();
 
     // ICW2: vector offsets

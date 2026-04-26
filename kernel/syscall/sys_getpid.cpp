@@ -11,8 +11,7 @@
 
 namespace cinux::syscall {
 
-int64_t sys_getpid(uint64_t, uint64_t, uint64_t,
-                   uint64_t, uint64_t, uint64_t) {
+int64_t sys_getpid(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) {
     auto* task = cinux::proc::Scheduler::current();
     if (task == nullptr) {
         return -1;

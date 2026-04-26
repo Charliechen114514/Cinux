@@ -18,10 +18,10 @@ ElfValidateResult validate_elf_header(const Elf64_Ehdr* ehdr, uint64_t total_siz
     }
 
     // Check magic number: 0x7F 'E' 'L' 'F'
-    uint32_t magic = static_cast<uint32_t>(ehdr->e_ident[0])
-                   | (static_cast<uint32_t>(ehdr->e_ident[1]) << 8)
-                   | (static_cast<uint32_t>(ehdr->e_ident[2]) << 16)
-                   | (static_cast<uint32_t>(ehdr->e_ident[3]) << 24);
+    uint32_t magic = static_cast<uint32_t>(ehdr->e_ident[0]) |
+                     (static_cast<uint32_t>(ehdr->e_ident[1]) << 8) |
+                     (static_cast<uint32_t>(ehdr->e_ident[2]) << 16) |
+                     (static_cast<uint32_t>(ehdr->e_ident[3]) << 24);
     if (magic != ELF_MAGIC) {
         return ElfValidateResult::BadMagic;
     }

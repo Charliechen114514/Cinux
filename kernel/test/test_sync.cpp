@@ -23,15 +23,14 @@
  *   - Scheduler initialised
  */
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "big_kernel_test.h"
-
-#include "kernel/proc/sync.hpp"
+#include "kernel/proc/per_cpu.hpp"
 #include "kernel/proc/process.hpp"
 #include "kernel/proc/scheduler.hpp"
-#include "kernel/proc/per_cpu.hpp"
+#include "kernel/proc/sync.hpp"
 
 using cinux::proc::Spinlock;
 using cinux::proc::Mutex;
@@ -86,10 +85,7 @@ void test_lock_unlock() {
     Scheduler::init();
 
     // Create a task and set it as current
-    Task* task = TaskBuilder()
-        .set_entry(dummy_entry)
-        .set_name("mutex_owner")
-        .build();
+    Task* task = TaskBuilder().set_entry(dummy_entry).set_name("mutex_owner").build();
     TEST_ASSERT_NOT_NULL(task);
 
     g_per_cpu.current = task;
@@ -105,26 +101,20 @@ void test_lock_unlock() {
 void test_try_lock_free() {
     Scheduler::init();
 
-    Task* task = TaskBuilder()
-        .set_entry(dummy_entry)
-        .set_name("trylock_free")
-        .build();
+    Task* task = TaskBuilder().set_entry(dummy_entry).set_name("trylock_free").build();
     TEST_ASSERT_NOT_NULL(task);
 
     g_per_cpu.current = task;
 
     Mutex m;
-    bool result = m.try_lock();
+    bool  result = m.try_lock();
     TEST_ASSERT_TRUE(result);
 }
 
 void test_try_lock_held() {
     Scheduler::init();
 
-    Task* owner = TaskBuilder()
-        .set_entry(dummy_entry)
-        .set_name("trylock_owner")
-        .build();
+    Task* owner = TaskBuilder().set_entry(dummy_entry).set_name("trylock_owner").build();
     TEST_ASSERT_NOT_NULL(owner);
 
     g_per_cpu.current = owner;
@@ -133,14 +123,11 @@ void test_try_lock_held() {
     m.lock();  // owner holds the mutex
 
     // Now simulate another task trying
-    Task* other = TaskBuilder()
-        .set_entry(dummy_entry)
-        .set_name("trylock_other")
-        .build();
+    Task* other = TaskBuilder().set_entry(dummy_entry).set_name("trylock_other").build();
     TEST_ASSERT_NOT_NULL(other);
 
     g_per_cpu.current = other;
-    bool result = m.try_lock();
+    bool result       = m.try_lock();
     TEST_ASSERT_FALSE(result);  // should fail -- mutex is held
 }
 
@@ -155,16 +142,12 @@ namespace test_mutex_contention {
 void test_lock_blocks_and_enqueues() {
     Scheduler::init();
 
-    Task* owner = TaskBuilder()
-        .set_entry(test_mutex_basic::dummy_entry)
-        .set_name("mx_owner")
-        .build();
+    Task* owner =
+        TaskBuilder().set_entry(test_mutex_basic::dummy_entry).set_name("mx_owner").build();
     TEST_ASSERT_NOT_NULL(owner);
 
-    Task* waiter = TaskBuilder()
-        .set_entry(test_mutex_basic::dummy_entry)
-        .set_name("mx_waiter")
-        .build();
+    Task* waiter =
+        TaskBuilder().set_entry(test_mutex_basic::dummy_entry).set_name("mx_waiter").build();
     TEST_ASSERT_NOT_NULL(waiter);
 
     // Owner locks the mutex
@@ -176,23 +159,18 @@ void test_lock_blocks_and_enqueues() {
     g_per_cpu.current = waiter;
     m.lock();  // this calls Scheduler::block(waiter, "mutex")
 
-    TEST_ASSERT_EQ(static_cast<int>(waiter->state),
-                   static_cast<int>(TaskState::Blocked));
+    TEST_ASSERT_EQ(static_cast<int>(waiter->state), static_cast<int>(TaskState::Blocked));
 }
 
 void test_unlock_transfers_to_waiter() {
     Scheduler::init();
 
-    Task* owner = TaskBuilder()
-        .set_entry(test_mutex_basic::dummy_entry)
-        .set_name("mx_owner2")
-        .build();
+    Task* owner =
+        TaskBuilder().set_entry(test_mutex_basic::dummy_entry).set_name("mx_owner2").build();
     TEST_ASSERT_NOT_NULL(owner);
 
-    Task* waiter = TaskBuilder()
-        .set_entry(test_mutex_basic::dummy_entry)
-        .set_name("mx_waiter2")
-        .build();
+    Task* waiter =
+        TaskBuilder().set_entry(test_mutex_basic::dummy_entry).set_name("mx_waiter2").build();
     TEST_ASSERT_NOT_NULL(waiter);
 
     // Owner locks
@@ -203,39 +181,26 @@ void test_unlock_transfers_to_waiter() {
     // Waiter blocks
     g_per_cpu.current = waiter;
     m.lock();
-    TEST_ASSERT_EQ(static_cast<int>(waiter->state),
-                   static_cast<int>(TaskState::Blocked));
+    TEST_ASSERT_EQ(static_cast<int>(waiter->state), static_cast<int>(TaskState::Blocked));
 
     // Owner unlocks -- transfers to waiter
     g_per_cpu.current = owner;
     m.unlock();
 
     // Waiter should now be unblocked (Ready)
-    TEST_ASSERT_EQ(static_cast<int>(waiter->state),
-                   static_cast<int>(TaskState::Ready));
+    TEST_ASSERT_EQ(static_cast<int>(waiter->state), static_cast<int>(TaskState::Ready));
 }
 
 void test_fifo_ordering() {
     Scheduler::init();
 
-    Task* owner = TaskBuilder()
-        .set_entry(test_mutex_basic::dummy_entry)
-        .set_name("fifo_owner")
-        .build();
+    Task* owner =
+        TaskBuilder().set_entry(test_mutex_basic::dummy_entry).set_name("fifo_owner").build();
     TEST_ASSERT_NOT_NULL(owner);
 
-    Task* w1 = TaskBuilder()
-        .set_entry(test_mutex_basic::dummy_entry)
-        .set_name("fifo_w1")
-        .build();
-    Task* w2 = TaskBuilder()
-        .set_entry(test_mutex_basic::dummy_entry)
-        .set_name("fifo_w2")
-        .build();
-    Task* w3 = TaskBuilder()
-        .set_entry(test_mutex_basic::dummy_entry)
-        .set_name("fifo_w3")
-        .build();
+    Task* w1 = TaskBuilder().set_entry(test_mutex_basic::dummy_entry).set_name("fifo_w1").build();
+    Task* w2 = TaskBuilder().set_entry(test_mutex_basic::dummy_entry).set_name("fifo_w2").build();
+    Task* w3 = TaskBuilder().set_entry(test_mutex_basic::dummy_entry).set_name("fifo_w3").build();
     TEST_ASSERT_NOT_NULL(w1);
     TEST_ASSERT_NOT_NULL(w2);
     TEST_ASSERT_NOT_NULL(w3);
@@ -255,18 +220,15 @@ void test_fifo_ordering() {
 
     // First unlock: should wake w1
     m.unlock();
-    TEST_ASSERT_EQ(static_cast<int>(w1->state),
-                   static_cast<int>(TaskState::Ready));
+    TEST_ASSERT_EQ(static_cast<int>(w1->state), static_cast<int>(TaskState::Ready));
 
     // Second unlock: should wake w2
     m.unlock();
-    TEST_ASSERT_EQ(static_cast<int>(w2->state),
-                   static_cast<int>(TaskState::Ready));
+    TEST_ASSERT_EQ(static_cast<int>(w2->state), static_cast<int>(TaskState::Ready));
 
     // Third unlock: should wake w3
     m.unlock();
-    TEST_ASSERT_EQ(static_cast<int>(w3->state),
-                   static_cast<int>(TaskState::Ready));
+    TEST_ASSERT_EQ(static_cast<int>(w3->state), static_cast<int>(TaskState::Ready));
 }
 
 }  // namespace test_mutex_contention
@@ -280,10 +242,8 @@ namespace test_mutex_guard {
 void test_guard_scope() {
     Scheduler::init();
 
-    Task* task = TaskBuilder()
-        .set_entry(test_mutex_basic::dummy_entry)
-        .set_name("guard_task")
-        .build();
+    Task* task =
+        TaskBuilder().set_entry(test_mutex_basic::dummy_entry).set_name("guard_task").build();
     TEST_ASSERT_NOT_NULL(task);
 
     g_per_cpu.current = task;
@@ -328,10 +288,8 @@ void test_post_increments() {
 void test_wait_decrements_when_positive() {
     Scheduler::init();
 
-    Task* task = TaskBuilder()
-        .set_entry(test_mutex_basic::dummy_entry)
-        .set_name("sem_waiter")
-        .build();
+    Task* task =
+        TaskBuilder().set_entry(test_mutex_basic::dummy_entry).set_name("sem_waiter").build();
     TEST_ASSERT_NOT_NULL(task);
 
     g_per_cpu.current = task;
@@ -339,17 +297,14 @@ void test_wait_decrements_when_positive() {
     Semaphore s(3);
     s.wait();
     TEST_ASSERT_EQ(s.count(), 2);
-    TEST_ASSERT_EQ(static_cast<int>(task->state),
-                   static_cast<int>(TaskState::Ready));
+    TEST_ASSERT_EQ(static_cast<int>(task->state), static_cast<int>(TaskState::Ready));
 }
 
 void test_wait_blocks_when_zero() {
     Scheduler::init();
 
-    Task* task = TaskBuilder()
-        .set_entry(test_mutex_basic::dummy_entry)
-        .set_name("sem_block")
-        .build();
+    Task* task =
+        TaskBuilder().set_entry(test_mutex_basic::dummy_entry).set_name("sem_block").build();
     TEST_ASSERT_NOT_NULL(task);
 
     g_per_cpu.current = task;
@@ -357,8 +312,7 @@ void test_wait_blocks_when_zero() {
     Semaphore s(0);
     s.wait();
     TEST_ASSERT_EQ(s.count(), -1);
-    TEST_ASSERT_EQ(static_cast<int>(task->state),
-                   static_cast<int>(TaskState::Blocked));
+    TEST_ASSERT_EQ(static_cast<int>(task->state), static_cast<int>(TaskState::Blocked));
 }
 
 }  // namespace test_semaphore_basic
@@ -371,14 +325,14 @@ namespace test_semaphore_try {
 
 void test_try_wait_success() {
     Semaphore s(2);
-    bool result = s.try_wait();
+    bool      result = s.try_wait();
     TEST_ASSERT_TRUE(result);
     TEST_ASSERT_EQ(s.count(), 1);
 }
 
 void test_try_wait_fail_zero() {
     Semaphore s(0);
-    bool result = s.try_wait();
+    bool      result = s.try_wait();
     TEST_ASSERT_FALSE(result);
     TEST_ASSERT_EQ(s.count(), 0);
 }
@@ -402,40 +356,27 @@ namespace test_semaphore_wake {
 void test_post_wakes_blocked_waiter() {
     Scheduler::init();
 
-    Task* task = TaskBuilder()
-        .set_entry(test_mutex_basic::dummy_entry)
-        .set_name("sem_wake")
-        .build();
+    Task* task =
+        TaskBuilder().set_entry(test_mutex_basic::dummy_entry).set_name("sem_wake").build();
     TEST_ASSERT_NOT_NULL(task);
 
     g_per_cpu.current = task;
 
     Semaphore s(0);
     s.wait();  // count -> -1, blocks
-    TEST_ASSERT_EQ(static_cast<int>(task->state),
-                   static_cast<int>(TaskState::Blocked));
+    TEST_ASSERT_EQ(static_cast<int>(task->state), static_cast<int>(TaskState::Blocked));
 
     s.post();  // count -> 0, unblocks
     TEST_ASSERT_EQ(s.count(), 0);
-    TEST_ASSERT_EQ(static_cast<int>(task->state),
-                   static_cast<int>(TaskState::Ready));
+    TEST_ASSERT_EQ(static_cast<int>(task->state), static_cast<int>(TaskState::Ready));
 }
 
 void test_fifo_ordering() {
     Scheduler::init();
 
-    Task* t1 = TaskBuilder()
-        .set_entry(test_mutex_basic::dummy_entry)
-        .set_name("sem_f1")
-        .build();
-    Task* t2 = TaskBuilder()
-        .set_entry(test_mutex_basic::dummy_entry)
-        .set_name("sem_f2")
-        .build();
-    Task* t3 = TaskBuilder()
-        .set_entry(test_mutex_basic::dummy_entry)
-        .set_name("sem_f3")
-        .build();
+    Task* t1 = TaskBuilder().set_entry(test_mutex_basic::dummy_entry).set_name("sem_f1").build();
+    Task* t2 = TaskBuilder().set_entry(test_mutex_basic::dummy_entry).set_name("sem_f2").build();
+    Task* t3 = TaskBuilder().set_entry(test_mutex_basic::dummy_entry).set_name("sem_f3").build();
     TEST_ASSERT_NOT_NULL(t1);
     TEST_ASSERT_NOT_NULL(t2);
     TEST_ASSERT_NOT_NULL(t3);
@@ -450,29 +391,22 @@ void test_fifo_ordering() {
     s.wait();
 
     // All three should be blocked
-    TEST_ASSERT_EQ(static_cast<int>(t1->state),
-                   static_cast<int>(TaskState::Blocked));
-    TEST_ASSERT_EQ(static_cast<int>(t2->state),
-                   static_cast<int>(TaskState::Blocked));
-    TEST_ASSERT_EQ(static_cast<int>(t3->state),
-                   static_cast<int>(TaskState::Blocked));
+    TEST_ASSERT_EQ(static_cast<int>(t1->state), static_cast<int>(TaskState::Blocked));
+    TEST_ASSERT_EQ(static_cast<int>(t2->state), static_cast<int>(TaskState::Blocked));
+    TEST_ASSERT_EQ(static_cast<int>(t3->state), static_cast<int>(TaskState::Blocked));
 
     // First post wakes t1
     s.post();
-    TEST_ASSERT_EQ(static_cast<int>(t1->state),
-                   static_cast<int>(TaskState::Ready));
-    TEST_ASSERT_EQ(static_cast<int>(t2->state),
-                   static_cast<int>(TaskState::Blocked));
+    TEST_ASSERT_EQ(static_cast<int>(t1->state), static_cast<int>(TaskState::Ready));
+    TEST_ASSERT_EQ(static_cast<int>(t2->state), static_cast<int>(TaskState::Blocked));
 
     // Second post wakes t2
     s.post();
-    TEST_ASSERT_EQ(static_cast<int>(t2->state),
-                   static_cast<int>(TaskState::Ready));
+    TEST_ASSERT_EQ(static_cast<int>(t2->state), static_cast<int>(TaskState::Ready));
 
     // Third post wakes t3
     s.post();
-    TEST_ASSERT_EQ(static_cast<int>(t3->state),
-                   static_cast<int>(TaskState::Ready));
+    TEST_ASSERT_EQ(static_cast<int>(t3->state), static_cast<int>(TaskState::Ready));
 }
 
 }  // namespace test_semaphore_wake
@@ -486,10 +420,7 @@ namespace test_semaphore_counting {
 void test_producer_consumer_no_blocking() {
     Scheduler::init();
 
-    Task* task = TaskBuilder()
-        .set_entry(test_mutex_basic::dummy_entry)
-        .set_name("pc_task")
-        .build();
+    Task* task = TaskBuilder().set_entry(test_mutex_basic::dummy_entry).set_name("pc_task").build();
     TEST_ASSERT_NOT_NULL(task);
 
     g_per_cpu.current = task;
@@ -516,8 +447,7 @@ void test_producer_consumer_no_blocking() {
     TEST_ASSERT_EQ(sem_used.count(), 0);
 
     // No blocking should have occurred (task should still be Ready)
-    TEST_ASSERT_EQ(static_cast<int>(task->state),
-                   static_cast<int>(TaskState::Ready));
+    TEST_ASSERT_EQ(static_cast<int>(task->state), static_cast<int>(TaskState::Ready));
 }
 
 }  // namespace test_semaphore_counting
@@ -532,10 +462,8 @@ void test_wait_next_null_after_build() {
     // Build a task and verify wait_next is not in an invalid state
     // Note: TaskBuilder does not explicitly zero wait_next,
     // but the underlying heap allocation (knew) should zero it.
-    Task* task = TaskBuilder()
-        .set_entry(test_mutex_basic::dummy_entry)
-        .set_name("waitnext_test")
-        .build();
+    Task* task =
+        TaskBuilder().set_entry(test_mutex_basic::dummy_entry).set_name("waitnext_test").build();
     TEST_ASSERT_NOT_NULL(task);
     // Verify wait_next is accessible and null
     TEST_ASSERT_NULL(task->wait_next);

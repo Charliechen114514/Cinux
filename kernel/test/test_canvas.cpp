@@ -14,13 +14,12 @@
  */
 
 #include "big_kernel_test.h"
-
 #include "boot/boot_info.h"
 #include "kernel/drivers/video/font.hpp"
 #include "kernel/drivers/video/framebuffer.hpp"
 
 #ifdef CINUX_GUI
-#include "kernel/drivers/canvas.hpp"
+#    include "kernel/drivers/canvas.hpp"
 #endif
 
 using cinux::drivers::Framebuffer;
@@ -31,7 +30,7 @@ static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
 namespace {
 
 Framebuffer g_fb;
-PSFFont g_font;
+PSFFont     g_font;
 
 #ifdef CINUX_GUI
 
@@ -200,20 +199,20 @@ void test_canvas_gui_demo() {
 
     // Draw 10 random-colour rectangles scattered across the screen
     for (int i = 0; i < 10; i++) {
-        uint32_t x = rng.next() % (canvas.width() - 100);
-        uint32_t y = rng.next() % (canvas.height() - 60);
-        uint32_t w = 40 + (rng.next() % 120);
-        uint32_t h = 30 + (rng.next() % 80);
+        uint32_t x     = rng.next() % (canvas.width() - 100);
+        uint32_t y     = rng.next() % (canvas.height() - 60);
+        uint32_t w     = 40 + (rng.next() % 120);
+        uint32_t h     = 30 + (rng.next() % 80);
         uint32_t color = rng.next_color();
 
         canvas.draw_rect(x, y, w, h, color);
     }
 
     // Draw title "Cinux GUI" in white, centered near the top
-    const char* title = "Cinux GUI";
-    uint32_t text_w = 9 * g_font.width();  // 9 chars * glyph width
-    uint32_t text_x = (canvas.width() - text_w) / 2;
-    uint32_t text_y = 10;
+    const char* title  = "Cinux GUI";
+    uint32_t    text_w = 9 * g_font.width();  // 9 chars * glyph width
+    uint32_t    text_x = (canvas.width() - text_w) / 2;
+    uint32_t    text_y = 10;
     canvas.draw_text(text_x, text_y, title, 0x00FFFFFF, g_font);
 
     // Flip to front buffer -- this is what the user sees

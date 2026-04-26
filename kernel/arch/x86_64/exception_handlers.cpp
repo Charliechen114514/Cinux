@@ -32,36 +32,36 @@ using cinux::lib::kprintf;
 using cinux::mm::g_vmm;
 
 void dump_registers(const InterruptFrame* frame, const char* name, uint8_t vector) {
-	kprintf("\n");
-	kprintf("==== EXCEPTION: %s (vector %u) ====\n", name, vector);
-	kprintf("  RIP   = %p   CS  = 0x%04x\n", reinterpret_cast<void*>(frame->rip),
-			static_cast<unsigned>(frame->cs));
-	kprintf("  RFLAGS= %p\n", reinterpret_cast<void*>(frame->rflags));
-	kprintf("  RSP   = %p   SS  = 0x%04x\n", reinterpret_cast<void*>(frame->rsp),
-			static_cast<unsigned>(frame->ss));
-	kprintf("  RAX=%p  RBX=%p\n", reinterpret_cast<void*>(frame->rax),
-			reinterpret_cast<void*>(frame->rbx));
-	kprintf("  RCX=%p  RDX=%p\n", reinterpret_cast<void*>(frame->rcx),
-			reinterpret_cast<void*>(frame->rdx));
-	kprintf("  RSI=%p  RDI=%p\n", reinterpret_cast<void*>(frame->rsi),
-			reinterpret_cast<void*>(frame->rdi));
-	kprintf("  RBP=%p  R8 =%p\n", reinterpret_cast<void*>(frame->rbp),
-			reinterpret_cast<void*>(frame->r8));
-	kprintf("  R9 =%p  R10=%p\n", reinterpret_cast<void*>(frame->r9),
-			reinterpret_cast<void*>(frame->r10));
-	kprintf("  R11=%p  R12=%p\n", reinterpret_cast<void*>(frame->r11),
-			reinterpret_cast<void*>(frame->r12));
-	kprintf("  R13=%p  R14=%p\n", reinterpret_cast<void*>(frame->r13),
-			reinterpret_cast<void*>(frame->r14));
-	kprintf("  R15=%p\n", reinterpret_cast<void*>(frame->r15));
-	kprintf("  ERROR CODE = %p\n", reinterpret_cast<void*>(frame->error_code));
-	kprintf("========================================\n");
+    kprintf("\n");
+    kprintf("==== EXCEPTION: %s (vector %u) ====\n", name, vector);
+    kprintf("  RIP   = %p   CS  = 0x%04x\n", reinterpret_cast<void*>(frame->rip),
+            static_cast<unsigned>(frame->cs));
+    kprintf("  RFLAGS= %p\n", reinterpret_cast<void*>(frame->rflags));
+    kprintf("  RSP   = %p   SS  = 0x%04x\n", reinterpret_cast<void*>(frame->rsp),
+            static_cast<unsigned>(frame->ss));
+    kprintf("  RAX=%p  RBX=%p\n", reinterpret_cast<void*>(frame->rax),
+            reinterpret_cast<void*>(frame->rbx));
+    kprintf("  RCX=%p  RDX=%p\n", reinterpret_cast<void*>(frame->rcx),
+            reinterpret_cast<void*>(frame->rdx));
+    kprintf("  RSI=%p  RDI=%p\n", reinterpret_cast<void*>(frame->rsi),
+            reinterpret_cast<void*>(frame->rdi));
+    kprintf("  RBP=%p  R8 =%p\n", reinterpret_cast<void*>(frame->rbp),
+            reinterpret_cast<void*>(frame->r8));
+    kprintf("  R9 =%p  R10=%p\n", reinterpret_cast<void*>(frame->r9),
+            reinterpret_cast<void*>(frame->r10));
+    kprintf("  R11=%p  R12=%p\n", reinterpret_cast<void*>(frame->r11),
+            reinterpret_cast<void*>(frame->r12));
+    kprintf("  R13=%p  R14=%p\n", reinterpret_cast<void*>(frame->r13),
+            reinterpret_cast<void*>(frame->r14));
+    kprintf("  R15=%p\n", reinterpret_cast<void*>(frame->r15));
+    kprintf("  ERROR CODE = %p\n", reinterpret_cast<void*>(frame->error_code));
+    kprintf("========================================\n");
 }
 
 [[noreturn]] void fatal_halt() {
-	while (1) {
-		__asm__ volatile("cli; hlt");
-	}
+    while (1) {
+        __asm__ volatile("cli; hlt");
+    }
 }
 
 }  // anonymous namespace
@@ -73,210 +73,206 @@ void dump_registers(const InterruptFrame* frame, const char* name, uint8_t vecto
 extern "C" {
 
 void handle_db(InterruptFrame* frame) {
-	dump_registers(frame, "#DB", 1);
-	kprintf("[EXCEPTION] Debug exception, continuing...\n");
+    dump_registers(frame, "#DB", 1);
+    kprintf("[EXCEPTION] Debug exception, continuing...\n");
 }
 
 void handle_bp(InterruptFrame* frame) {
-	dump_registers(frame, "#BP", 3);
-	kprintf("[EXCEPTION] Breakpoint at RIP=%p\n", reinterpret_cast<void*>(frame->rip));
-	kprintf("[EXCEPTION] Continuing...\n");
+    dump_registers(frame, "#BP", 3);
+    kprintf("[EXCEPTION] Breakpoint at RIP=%p\n", reinterpret_cast<void*>(frame->rip));
+    kprintf("[EXCEPTION] Continuing...\n");
 }
 
 void handle_de(InterruptFrame* frame) {
-	dump_registers(frame, "#DE", 0);
-	kprintf("[FATAL] Divide Error -- halting.\n");
-	fatal_halt();
+    dump_registers(frame, "#DE", 0);
+    kprintf("[FATAL] Divide Error -- halting.\n");
+    fatal_halt();
 }
 
 void handle_nmi(InterruptFrame* frame) {
-	dump_registers(frame, "NMI", 2);
-	kprintf("[FATAL] Non-maskable Interrupt -- halting.\n");
-	fatal_halt();
+    dump_registers(frame, "NMI", 2);
+    kprintf("[FATAL] Non-maskable Interrupt -- halting.\n");
+    fatal_halt();
 }
 
 void handle_of(InterruptFrame* frame) {
-	dump_registers(frame, "#OF", 4);
-	kprintf("[FATAL] Overflow -- halting.\n");
-	fatal_halt();
+    dump_registers(frame, "#OF", 4);
+    kprintf("[FATAL] Overflow -- halting.\n");
+    fatal_halt();
 }
 
 void handle_br(InterruptFrame* frame) {
-	dump_registers(frame, "#BR", 5);
-	kprintf("[FATAL] BOUND Range Exceeded -- halting.\n");
-	fatal_halt();
+    dump_registers(frame, "#BR", 5);
+    kprintf("[FATAL] BOUND Range Exceeded -- halting.\n");
+    fatal_halt();
 }
 
 void handle_ud(InterruptFrame* frame) {
-	dump_registers(frame, "#UD", 6);
-	kprintf("[FATAL] Invalid Opcode -- halting.\n");
-	fatal_halt();
+    dump_registers(frame, "#UD", 6);
+    kprintf("[FATAL] Invalid Opcode -- halting.\n");
+    fatal_halt();
 }
 
 void handle_nm(InterruptFrame* frame) {
-	dump_registers(frame, "#NM", 7);
-	kprintf("[FATAL] Device Not Available -- halting.\n");
-	fatal_halt();
+    dump_registers(frame, "#NM", 7);
+    kprintf("[FATAL] Device Not Available -- halting.\n");
+    fatal_halt();
 }
 
 void handle_df(InterruptFrame* frame) {
-	dump_registers(frame, "#DF", 8);
-	kprintf("[FATAL] Double Fault (error code=%p) -- halting.\n",
-			reinterpret_cast<void*>(frame->error_code));
-	fatal_halt();
+    dump_registers(frame, "#DF", 8);
+    kprintf("[FATAL] Double Fault (error code=%p) -- halting.\n",
+            reinterpret_cast<void*>(frame->error_code));
+    fatal_halt();
 }
 
 void handle_ts(InterruptFrame* frame) {
-	dump_registers(frame, "#TS", 10);
-	kprintf("[FATAL] Invalid TSS (error code=%p) -- halting.\n",
-			reinterpret_cast<void*>(frame->error_code));
-	fatal_halt();
+    dump_registers(frame, "#TS", 10);
+    kprintf("[FATAL] Invalid TSS (error code=%p) -- halting.\n",
+            reinterpret_cast<void*>(frame->error_code));
+    fatal_halt();
 }
 
 void handle_np(InterruptFrame* frame) {
-	dump_registers(frame, "#NP", 11);
-	kprintf("[FATAL] Segment Not Present (error code=%p) -- halting.\n",
-			reinterpret_cast<void*>(frame->error_code));
-	fatal_halt();
+    dump_registers(frame, "#NP", 11);
+    kprintf("[FATAL] Segment Not Present (error code=%p) -- halting.\n",
+            reinterpret_cast<void*>(frame->error_code));
+    fatal_halt();
 }
 
 void handle_ss(InterruptFrame* frame) {
-	dump_registers(frame, "#SS", 12);
-	kprintf("[FATAL] Stack Fault (error code=%p) -- halting.\n",
-			reinterpret_cast<void*>(frame->error_code));
-	fatal_halt();
+    dump_registers(frame, "#SS", 12);
+    kprintf("[FATAL] Stack Fault (error code=%p) -- halting.\n",
+            reinterpret_cast<void*>(frame->error_code));
+    fatal_halt();
 }
 
 void handle_gp(InterruptFrame* frame) {
-	dump_registers(frame, "#GP", 13);
+    dump_registers(frame, "#GP", 13);
 
-	bool from_user = (frame->cs & 0x03) != 0;
+    bool from_user = (frame->cs & 0x03) != 0;
 
-	if (from_user) {
-		kprintf("[EXCEPTION] #GP at RIP=%p from user mode (Ring 3)\n",
-				reinterpret_cast<void*>(frame->rip));
-		kprintf("[EXCEPTION] Privileged instruction executed in Ring 3 -- protection works!\n");
-	} else {
-		kprintf("[FATAL] General Protection Fault in kernel mode (error code=%p)\n",
-				reinterpret_cast<void*>(frame->error_code));
-	}
+    if (from_user) {
+        kprintf("[EXCEPTION] #GP at RIP=%p from user mode (Ring 3)\n",
+                reinterpret_cast<void*>(frame->rip));
+        kprintf("[EXCEPTION] Privileged instruction executed in Ring 3 -- protection works!\n");
+    } else {
+        kprintf("[FATAL] General Protection Fault in kernel mode (error code=%p)\n",
+                reinterpret_cast<void*>(frame->error_code));
+    }
 
-	fatal_halt();
+    fatal_halt();
 }
 
 void handle_pf(InterruptFrame* frame) {
-	uint64_t fault_addr;
-	__asm__ volatile("movq %%cr2, %0" : "=r"(fault_addr));
+    uint64_t fault_addr;
+    __asm__ volatile("movq %%cr2, %0" : "=r"(fault_addr));
 
-	uint64_t err = frame->error_code;
+    uint64_t err = frame->error_code;
 
-	// ---- Stack guard page detection (scheduler task stacks) ----
-	{
-		auto* cur = cinux::proc::Scheduler::current();
-		if (cur != nullptr && cur->kernel_stack_guard_page != 0) {
-			uint64_t guard_base = cur->kernel_stack_guard_page;
-			uint64_t guard_end = guard_base + cinux::arch::PAGE_SIZE;
-			if (fault_addr >= guard_base && fault_addr < guard_end) {
-				kprintf("\n");
-				kprintf("========================================================\n");
-				kprintf("  KERNEL STACK OVERFLOW DETECTED\n");
-				kprintf("========================================================\n");
-				kprintf("  Task: tid=%u pid=%d name='%s'\n", cur->tid, cur->pid,
-						cur->name ? cur->name : "(null)");
-				kprintf("  Fault address (CR2): %p\n", reinterpret_cast<void*>(fault_addr));
-				kprintf("  Guard page range:    [%p, %p)\n",
-						reinterpret_cast<void*>(guard_base),
-						reinterpret_cast<void*>(guard_end));
-				kprintf("  Stack range:         [%p, %p)\n",
-						reinterpret_cast<void*>(cur->kernel_stack),
-						reinterpret_cast<void*>(cur->kernel_stack_top));
-				kprintf("  Current RSP:         %p\n", reinterpret_cast<void*>(frame->rsp));
-				kprintf("  RIP:                 %p\n", reinterpret_cast<void*>(frame->rip));
-				kprintf("========================================================\n");
-				cinux::lib::kpanic(
-					"kernel stack overflow: task '%s' (tid=%u pid=%d) "
-					"exceeded stack [%p, %p)",
-					cur->name ? cur->name : "(null)", cur->tid, cur->pid,
-					reinterpret_cast<void*>(cur->kernel_stack),
-					reinterpret_cast<void*>(cur->kernel_stack_top));
-			}
-		}
+    // ---- Stack guard page detection (scheduler task stacks) ----
+    {
+        auto* cur = cinux::proc::Scheduler::current();
+        if (cur != nullptr && cur->kernel_stack_guard_page != 0) {
+            uint64_t guard_base = cur->kernel_stack_guard_page;
+            uint64_t guard_end  = guard_base + cinux::arch::PAGE_SIZE;
+            if (fault_addr >= guard_base && fault_addr < guard_end) {
+                kprintf("\n");
+                kprintf("========================================================\n");
+                kprintf("  KERNEL STACK OVERFLOW DETECTED\n");
+                kprintf("========================================================\n");
+                kprintf("  Task: tid=%u pid=%d name='%s'\n", cur->tid, cur->pid,
+                        cur->name ? cur->name : "(null)");
+                kprintf("  Fault address (CR2): %p\n", reinterpret_cast<void*>(fault_addr));
+                kprintf("  Guard page range:    [%p, %p)\n", reinterpret_cast<void*>(guard_base),
+                        reinterpret_cast<void*>(guard_end));
+                kprintf("  Stack range:         [%p, %p)\n",
+                        reinterpret_cast<void*>(cur->kernel_stack),
+                        reinterpret_cast<void*>(cur->kernel_stack_top));
+                kprintf("  Current RSP:         %p\n", reinterpret_cast<void*>(frame->rsp));
+                kprintf("  RIP:                 %p\n", reinterpret_cast<void*>(frame->rip));
+                kprintf("========================================================\n");
+                cinux::lib::kpanic(
+                    "kernel stack overflow: task '%s' (tid=%u pid=%d) "
+                    "exceeded stack [%p, %p)",
+                    cur->name ? cur->name : "(null)", cur->tid, cur->pid,
+                    reinterpret_cast<void*>(cur->kernel_stack),
+                    reinterpret_cast<void*>(cur->kernel_stack_top));
+            }
+        }
 
-		// ---- Boot stack overflow detection ----
-		// Tests run on the boot stack (no scheduler task).
-		// Guard pages between __boot_guard_start and __boot_guard_end
-		// are unmapped at test startup.  If the fault address falls in
-		// this range, the boot stack has overflowed.
-		if (cur == nullptr) {
-			uint64_t guard_start = reinterpret_cast<uint64_t>(__boot_guard_start);
-			uint64_t guard_end = reinterpret_cast<uint64_t>(__boot_guard_end);
-			if (fault_addr >= guard_start && fault_addr < guard_end) {
-				uint64_t boot_stack_top = reinterpret_cast<uint64_t>(__kernel_stack_top);
-				kprintf("\n");
-				kprintf("========================================================\n");
-				kprintf("  BOOT STACK OVERFLOW DETECTED\n");
-				kprintf("========================================================\n");
-				kprintf("  Fault address (CR2): %p\n", reinterpret_cast<void*>(fault_addr));
-				kprintf("  Guard page range:    [%p, %p)\n",
-						reinterpret_cast<void*>(guard_start),
-						reinterpret_cast<void*>(guard_end));
-				kprintf("  Boot stack range:    [%p, %p)\n",
-						reinterpret_cast<void*>(guard_end),
-						reinterpret_cast<void*>(boot_stack_top));
-				kprintf("  Current RSP:         %p\n", reinterpret_cast<void*>(frame->rsp));
-				kprintf("  RIP:                 %p\n", reinterpret_cast<void*>(frame->rip));
-				kprintf("========================================================\n");
-				cinux::lib::kpanic(
-					"boot stack overflow: fault at %p, "
-					"stack [%p, %p)",
-					reinterpret_cast<void*>(fault_addr),
-					reinterpret_cast<void*>(guard_end),
-					reinterpret_cast<void*>(boot_stack_top));
-			}
-		}
-	}
+        // ---- Boot stack overflow detection ----
+        // Tests run on the boot stack (no scheduler task).
+        // Guard pages between __boot_guard_start and __boot_guard_end
+        // are unmapped at test startup.  If the fault address falls in
+        // this range, the boot stack has overflowed.
+        if (cur == nullptr) {
+            uint64_t guard_start = reinterpret_cast<uint64_t>(__boot_guard_start);
+            uint64_t guard_end   = reinterpret_cast<uint64_t>(__boot_guard_end);
+            if (fault_addr >= guard_start && fault_addr < guard_end) {
+                uint64_t boot_stack_top = reinterpret_cast<uint64_t>(__kernel_stack_top);
+                kprintf("\n");
+                kprintf("========================================================\n");
+                kprintf("  BOOT STACK OVERFLOW DETECTED\n");
+                kprintf("========================================================\n");
+                kprintf("  Fault address (CR2): %p\n", reinterpret_cast<void*>(fault_addr));
+                kprintf("  Guard page range:    [%p, %p)\n", reinterpret_cast<void*>(guard_start),
+                        reinterpret_cast<void*>(guard_end));
+                kprintf("  Boot stack range:    [%p, %p)\n", reinterpret_cast<void*>(guard_end),
+                        reinterpret_cast<void*>(boot_stack_top));
+                kprintf("  Current RSP:         %p\n", reinterpret_cast<void*>(frame->rsp));
+                kprintf("  RIP:                 %p\n", reinterpret_cast<void*>(frame->rip));
+                kprintf("========================================================\n");
+                cinux::lib::kpanic(
+                    "boot stack overflow: fault at %p, "
+                    "stack [%p, %p)",
+                    reinterpret_cast<void*>(fault_addr), reinterpret_cast<void*>(guard_end),
+                    reinterpret_cast<void*>(boot_stack_top));
+            }
+        }
+    }
 
-	// Demand-paging: try to allocate a page for not-present faults
-	// Use lock-free allocation paths — the PF handler runs under an
-	// Interrupt gate (IF=0) so no concurrent VMM/PMM access is possible
-	// on this CPU.  Taking locks here would deadlock on recursive faults.
-	if ((err & 0x01) == 0) {
-		uint64_t virt_page = fault_addr & ~0xFFFULL;
-		uint64_t map_flags = cinux::arch::FLAG_PRESENT | cinux::arch::FLAG_WRITABLE;
-		if (cinux::arch::is_user_vaddr(fault_addr)) {
-			map_flags |= cinux::arch::FLAG_USER;
-		}
-		uint64_t phys = cinux::mm::g_pmm.alloc_page_locked();
-		if (phys != 0) {
-			uint64_t cur_cr3 = cinux::arch::read_cr3();
-			bool ok = g_vmm.map_nolock(virt_page, phys, map_flags, &cur_cr3);
-			if (ok) {
-				kprintf("[VMM] Demand-paged %p -> phys %p\n", reinterpret_cast<void*>(virt_page),
-						reinterpret_cast<void*>(phys));
-				return;
-			}
-			cinux::mm::g_pmm.free_page_locked(phys);
-		}
-	}
+    // Demand-paging: try to allocate a page for not-present faults
+    // Use lock-free allocation paths — the PF handler runs under an
+    // Interrupt gate (IF=0) so no concurrent VMM/PMM access is possible
+    // on this CPU.  Taking locks here would deadlock on recursive faults.
+    if ((err & 0x01) == 0) {
+        uint64_t virt_page = fault_addr & ~0xFFFULL;
+        uint64_t map_flags = cinux::arch::FLAG_PRESENT | cinux::arch::FLAG_WRITABLE;
+        if (cinux::arch::is_user_vaddr(fault_addr)) {
+            map_flags |= cinux::arch::FLAG_USER;
+        }
+        uint64_t phys = cinux::mm::g_pmm.alloc_page_locked();
+        if (phys != 0) {
+            uint64_t cur_cr3 = cinux::arch::read_cr3();
+            bool     ok      = g_vmm.map_nolock(virt_page, phys, map_flags, &cur_cr3);
+            if (ok) {
+                kprintf("[VMM] Demand-paged %p -> phys %p\n", reinterpret_cast<void*>(virt_page),
+                        reinterpret_cast<void*>(phys));
+                return;
+            }
+            cinux::mm::g_pmm.free_page_locked(phys);
+        }
+    }
 
-	// CoW fault: page is present but write-protected (fork marks shared pages CoW)
-	if ((err & 0x01) && (err & 0x02) && (err & 0x04)) {
-		if (cinux::proc::handle_cow_fault(fault_addr)) {
-			return;
-		}
-	}
+    // CoW fault: page is present but write-protected (fork marks shared pages CoW)
+    if ((err & 0x01) && (err & 0x02) && (err & 0x04)) {
+        if (cinux::proc::handle_cow_fault(fault_addr)) {
+            return;
+        }
+    }
 
-	const char* present = (err & 0x01) ? "protection violation" : "page not present";
-	const char* access = (err & 0x02) ? "write" : "read";
-	const char* mode = (err & 0x04) ? "user" : "kernel";
-	const char* reserved = (err & 0x08) ? ", reserved bits" : "";
-	const char* fetch = (err & 0x10) ? ", instruction fetch" : "";
+    const char* present  = (err & 0x01) ? "protection violation" : "page not present";
+    const char* access   = (err & 0x02) ? "write" : "read";
+    const char* mode     = (err & 0x04) ? "user" : "kernel";
+    const char* reserved = (err & 0x08) ? ", reserved bits" : "";
+    const char* fetch    = (err & 0x10) ? ", instruction fetch" : "";
 
-	dump_registers(frame, "#PF", 14);
-	kprintf("[FATAL] Page Fault: %s %s %s%s%s\n", present, access, mode, reserved, fetch);
-	kprintf("[FATAL] Faulting address (CR2) = %p -- halting.\n",
-			reinterpret_cast<void*>(fault_addr));
-	fatal_halt();
+    dump_registers(frame, "#PF", 14);
+    kprintf("[FATAL] Page Fault: %s %s %s%s%s\n", present, access, mode, reserved, fetch);
+    kprintf("[FATAL] Faulting address (CR2) = %p -- halting.\n",
+            reinterpret_cast<void*>(fault_addr));
+    fatal_halt();
 }
 
 }  // extern "C"

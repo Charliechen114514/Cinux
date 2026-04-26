@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 namespace cinux::mini::lib::detail {
 
@@ -41,4 +41,4 @@ int format_hex(uint64_t value, char* buffer, int buffer_size, bool lowercase);
  */
 int format_binary(uint64_t value, char* buffer, int buffer_size);
 
-} // namespace cinux::mini::lib::detail
+}  // namespace cinux::mini::lib::detail

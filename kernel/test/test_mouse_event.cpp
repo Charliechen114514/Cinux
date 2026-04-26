@@ -23,7 +23,7 @@
 
 #ifdef CINUX_GUI
 
-#include "kernel/gui/event.hpp"
+#    include "kernel/gui/event.hpp"
 
 using cinux::gui::Event;
 using cinux::gui::EventQueue;
@@ -46,13 +46,13 @@ void test_event_queue_enqueue_dequeue_mouse() {
     EventQueue q;
 
     Event in{};
-    in.type_ = EventType::MouseMove;
-    in.mouse.x = 42;
-    in.mouse.y = 99;
-    in.mouse.dx = 5;
-    in.mouse.dy = -3;
+    in.type_         = EventType::MouseMove;
+    in.mouse.x       = 42;
+    in.mouse.y       = 99;
+    in.mouse.dx      = 5;
+    in.mouse.dy      = -3;
     in.mouse.buttons = 0x01;
-    in.mouse.left = true;
+    in.mouse.left    = true;
 
     q.enqueue(in);
 
@@ -72,13 +72,13 @@ void test_event_queue_enqueue_dequeue_key() {
     EventQueue q;
 
     Event in{};
-    in.type_ = EventType::KeyDown;
-    in.key.ascii = 'X';
+    in.type_        = EventType::KeyDown;
+    in.key.ascii    = 'X';
     in.key.scancode = 0x2D;
-    in.key.pressed = true;
-    in.key.shift = true;
-    in.key.ctrl = false;
-    in.key.alt = false;
+    in.key.pressed  = true;
+    in.key.shift    = true;
+    in.key.ctrl     = false;
+    in.key.alt      = false;
 
     q.enqueue(in);
 
@@ -94,7 +94,7 @@ void test_event_queue_enqueue_dequeue_key() {
 /// Verify dequeue on empty queue returns false
 void test_event_queue_dequeue_empty() {
     EventQueue q;
-    Event out{};
+    Event      out{};
     TEST_ASSERT_FALSE(q.dequeue(out));
 }
 
@@ -105,20 +105,20 @@ void test_event_queue_full_drops() {
     // Capacity is 127 (128 - 1)
     for (uint32_t i = 0; i < 127; i++) {
         Event ev{};
-        ev.type_ = EventType::MouseMove;
+        ev.type_   = EventType::MouseMove;
         ev.mouse.x = static_cast<int32_t>(i);
         q.enqueue(ev);
     }
 
     // This 128th event should be dropped
     Event overflow{};
-    overflow.type_ = EventType::KeyDown;
+    overflow.type_     = EventType::KeyDown;
     overflow.key.ascii = 'Z';
     q.enqueue(overflow);
 
     // Drain and verify no 'Z' event
     int32_t last_x = -1;
-    Event out{};
+    Event   out{};
     while (q.dequeue(out)) {
         last_x = out.mouse.x;
     }
@@ -132,7 +132,7 @@ void test_event_queue_wrap_around() {
     // Fill to capacity
     for (uint32_t i = 0; i < 127; i++) {
         Event ev{};
-        ev.type_ = EventType::MouseMove;
+        ev.type_   = EventType::MouseMove;
         ev.mouse.x = static_cast<int32_t>(i);
         q.enqueue(ev);
     }
@@ -146,7 +146,7 @@ void test_event_queue_wrap_around() {
     // Enqueue 10 more (wraps tail around)
     for (uint32_t i = 0; i < 10; i++) {
         Event ev{};
-        ev.type_ = EventType::KeyDown;
+        ev.type_     = EventType::KeyDown;
         ev.key.ascii = static_cast<char>('0' + i);
         q.enqueue(ev);
     }
@@ -181,15 +181,15 @@ void test_event_queue_fifo_ordering() {
     EventQueue q;
 
     Event a{};
-    a.type_ = EventType::MouseMove;
+    a.type_   = EventType::MouseMove;
     a.mouse.x = 1;
 
     Event b{};
-    b.type_ = EventType::MouseDown;
+    b.type_      = EventType::MouseDown;
     b.mouse.left = true;
 
     Event c{};
-    c.type_ = EventType::KeyDown;
+    c.type_     = EventType::KeyDown;
     c.key.ascii = 'K';
 
     Event d{};
@@ -237,14 +237,14 @@ void test_mouse_event_default_init() {
 /// Verify MouseEvent field assignment
 void test_mouse_event_field_assignment() {
     MouseEvent me{};
-    me.x = 640;
-    me.y = 480;
-    me.dx = -10;
-    me.dy = 5;
+    me.x       = 640;
+    me.y       = 480;
+    me.dx      = -10;
+    me.dy      = 5;
     me.buttons = 0x05;  // left + middle
-    me.left = true;
-    me.right = false;
-    me.middle = true;
+    me.left    = true;
+    me.right   = false;
+    me.middle  = true;
 
     TEST_ASSERT_EQ(me.x, 640);
     TEST_ASSERT_EQ(me.y, 480);
@@ -259,14 +259,14 @@ void test_mouse_event_field_assignment() {
 /// Verify MouseEvent copy via Event union
 void test_mouse_event_via_union() {
     MouseEvent me{};
-    me.x = 100;
-    me.y = 200;
-    me.dx = 3;
-    me.dy = -7;
+    me.x       = 100;
+    me.y       = 200;
+    me.dx      = 3;
+    me.dy      = -7;
     me.buttons = 0x02;
-    me.left = false;
-    me.right = true;
-    me.middle = false;
+    me.left    = false;
+    me.right   = true;
+    me.middle  = false;
 
     Event ev{};
     ev.type_ = EventType::MouseDown;
@@ -302,12 +302,12 @@ void test_key_event_default_init() {
 /// Verify KeyEvent field assignment
 void test_key_event_field_assignment() {
     KeyEvent ke{};
-    ke.ascii = 'G';
+    ke.ascii    = 'G';
     ke.scancode = 0x22;
-    ke.pressed = true;
-    ke.shift = true;
-    ke.ctrl = false;
-    ke.alt = true;
+    ke.pressed  = true;
+    ke.shift    = true;
+    ke.ctrl     = false;
+    ke.alt      = true;
 
     TEST_ASSERT_EQ(ke.ascii, 'G');
     TEST_ASSERT_EQ(ke.scancode, 0x22u);
@@ -320,14 +320,14 @@ void test_key_event_field_assignment() {
 /// Verify KeyEvent copy via Event union
 void test_key_event_via_union() {
     KeyEvent ke{};
-    ke.ascii = 'A';
+    ke.ascii    = 'A';
     ke.scancode = 0x1E;
-    ke.pressed = true;
-    ke.shift = false;
+    ke.pressed  = true;
+    ke.shift    = false;
 
     Event ev{};
     ev.type_ = EventType::KeyDown;
-    ev.key = ke;
+    ev.key   = ke;
 
     TEST_ASSERT_EQ(static_cast<int>(ev.type_), static_cast<int>(EventType::KeyDown));
     TEST_ASSERT_EQ(ev.key.ascii, 'A');
@@ -384,8 +384,8 @@ void test_button_edge_detection() {
     TEST_ASSERT_EQ(released, 0x00u);  // Nothing released
 
     // Now release left
-    prev = 0x01;
-    curr = 0x00;
+    prev     = 0x01;
+    curr     = 0x00;
     pressed  = curr & ~prev;
     released = prev & ~curr;
 

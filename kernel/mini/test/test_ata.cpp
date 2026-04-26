@@ -12,9 +12,9 @@
  *   - Read data is non-trivial (not all zeros)
  */
 
-#include "kernel_test.h"
 #include "../driver/ata.hpp"
 #include "../lib/string.h"
+#include "kernel_test.h"
 
 using namespace cinux::mini::driver::ata;
 
@@ -28,91 +28,90 @@ static uint8_t g_sector_buf[ATA_SECTOR_SIZE] __attribute__((aligned(16)));
 // ============================================================
 namespace test_ata_init {
 
-    void test_init_no_crash() {
-        // init() performs software reset and drive selection.
-        // In QEMU this should succeed without hanging.
-        init();
-        // If we reach here, init completed without triple fault.
-    }
+void test_init_no_crash() {
+    // init() performs software reset and drive selection.
+    // In QEMU this should succeed without hanging.
+    init();
+    // If we reach here, init completed without triple fault.
 }
+}  // namespace test_ata_init
 
 // ============================================================
 // Test 2: Read MBR and verify boot signature
 // ============================================================
 namespace test_ata_mbr {
 
-    void test_read_mbr_signature() {
-        memset(g_sector_buf, 0, ATA_SECTOR_SIZE);
-        read(0, 1, g_sector_buf);
+void test_read_mbr_signature() {
+    memset(g_sector_buf, 0, ATA_SECTOR_SIZE);
+    read(0, 1, g_sector_buf);
 
-        // MBR boot signature is at offset 510-511
-        uint8_t sig_lo = g_sector_buf[510];
-        uint8_t sig_hi = g_sector_buf[511];
-        uint16_t signature = static_cast<uint16_t>(sig_lo) |
-                             (static_cast<uint16_t>(sig_hi) << 8);
+    // MBR boot signature is at offset 510-511
+    uint8_t  sig_lo    = g_sector_buf[510];
+    uint8_t  sig_hi    = g_sector_buf[511];
+    uint16_t signature = static_cast<uint16_t>(sig_lo) | (static_cast<uint16_t>(sig_hi) << 8);
 
-        kprintf("  MBR signature: 0x%x\n", signature);
-        TEST_ASSERT_EQ(signature, 0xAA55);
-    }
+    kprintf("  MBR signature: 0x%x\n", signature);
+    TEST_ASSERT_EQ(signature, 0xAA55);
 }
+}  // namespace test_ata_mbr
 
 // ============================================================
 // Test 3: Read data is non-trivial
 // ============================================================
 namespace test_ata_data {
 
-    void test_read_non_zero() {
-        memset(g_sector_buf, 0, ATA_SECTOR_SIZE);
+void test_read_non_zero() {
+    memset(g_sector_buf, 0, ATA_SECTOR_SIZE);
 
-        // Read stage2 area (LBA 1)
-        read(1, 1, g_sector_buf);
+    // Read stage2 area (LBA 1)
+    read(1, 1, g_sector_buf);
 
-        // Verify at least some bytes are non-zero
-        bool has_non_zero = false;
-        for (int i = 0; i < ATA_SECTOR_SIZE; i++) {
-            if (g_sector_buf[i] != 0) {
-                has_non_zero = true;
-                break;
-            }
+    // Verify at least some bytes are non-zero
+    bool has_non_zero = false;
+    for (int i = 0; i < ATA_SECTOR_SIZE; i++) {
+        if (g_sector_buf[i] != 0) {
+            has_non_zero = true;
+            break;
         }
-        TEST_ASSERT_TRUE(has_non_zero);
     }
+    TEST_ASSERT_TRUE(has_non_zero);
 }
+}  // namespace test_ata_data
 
 // ============================================================
 // Test 4: Read multiple sectors
 // ============================================================
 namespace test_ata_multi {
 
-    void test_read_multi_sector() {
-        memset(g_sector_buf, 0, ATA_SECTOR_SIZE);
+void test_read_multi_sector() {
+    memset(g_sector_buf, 0, ATA_SECTOR_SIZE);
 
-        // Read 4 sectors starting from mini kernel LBA (16)
-        read(16, 4, g_sector_buf);
+    // Read 4 sectors starting from mini kernel LBA (16)
+    read(16, 4, g_sector_buf);
 
-        // First few bytes should contain kernel code (non-zero)
-        bool has_non_zero = false;
-        for (int i = 0; i < 64; i++) {
-            if (g_sector_buf[i] != 0) {
-                has_non_zero = true;
-                break;
-            }
+    // First few bytes should contain kernel code (non-zero)
+    bool has_non_zero = false;
+    for (int i = 0; i < 64; i++) {
+        if (g_sector_buf[i] != 0) {
+            has_non_zero = true;
+            break;
         }
-        TEST_ASSERT_TRUE(has_non_zero);
     }
+    TEST_ASSERT_TRUE(has_non_zero);
 }
+}  // namespace test_ata_multi
 
 // ============================================================
 // Test 5: DMA availability
 // ============================================================
 namespace test_ata_dma {
 
-    void test_dma_available() {
-        // QEMU's PIIX4 IDE controller supports Bus Master DMA.
-        // Using static PRDT buffer so DMA works regardless of PMM state.
-        TEST_ASSERT_TRUE(is_dma_available());
-    }
+void test_dma_available() {
+    // QEMU's PIIX4 IDE controller supports Bus Master DMA.
+    // Using static PRDT buffer so DMA works regardless of PMM state.
+    TEST_ASSERT_TRUE(is_dma_available());
 }
+}  // namespace test_ata_dma
 
 // ============================================================
 // Test Entry Point

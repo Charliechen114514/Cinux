@@ -82,8 +82,7 @@ public:
      * @param offset   Register offset (must be dword-aligned)
      * @return         The 32-bit value read from the configuration register
      */
-    static uint32_t pci_read(uint8_t bus, uint8_t slot, uint8_t func,
-                             uint8_t offset);
+    static uint32_t pci_read(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset);
 
     /**
      * @brief Write a 32-bit dword to PCI configuration space
@@ -94,8 +93,7 @@ public:
      * @param offset   Register offset (must be dword-aligned)
      * @param value    The 32-bit value to write
      */
-    static void pci_write(uint8_t bus, uint8_t slot, uint8_t func,
-                          uint8_t offset, uint32_t value);
+    static void pci_write(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset, uint32_t value);
 
     /**
      * @brief Enumerate PCI buses and locate an AHCI HBA
@@ -134,8 +132,7 @@ private:
      * @param dev   Output device descriptor
      * @return      true if a device was found at this location
      */
-    static bool scan_function(uint8_t bus, uint8_t slot, uint8_t func,
-                              PCIDevice& dev);
+    static bool scan_function(uint8_t bus, uint8_t slot, uint8_t func, PCIDevice& dev);
 };
 
 }  // namespace cinux::drivers::pci

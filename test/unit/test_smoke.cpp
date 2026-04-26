@@ -33,24 +33,24 @@
  *   - Whether ASSERT_TRUE() correctly evaluates boolean values
  */
 TEST("smoke: 1+1=2") {
-	// TODO: Prepare test data
-	int a		 = 1;
-	int b		 = 1;
-	int expected = 2;
+    // TODO: Prepare test data
+    int a        = 1;
+    int b        = 1;
+    int expected = 2;
 
-	// TODO: Perform addition
-	int result = a + b;
+    // TODO: Perform addition
+    int result = a + b;
 
-	// TODO: Verify result
-	ASSERT_EQ(result, expected);
+    // TODO: Verify result
+    ASSERT_EQ(result, expected);
 
-	// TODO: Additional assertion verification
-	ASSERT_TRUE(result == expected);
-	ASSERT_FALSE(result != expected);
-	ASSERT_GT(result, 1);  // result > 1
-	ASSERT_GE(result, 2);  // result >= 2
-	ASSERT_LE(result, 2);  // result <= 2
-	ASSERT_LT(result, 3);  // result < 3
+    // TODO: Additional assertion verification
+    ASSERT_TRUE(result == expected);
+    ASSERT_FALSE(result != expected);
+    ASSERT_GT(result, 1);  // result > 1
+    ASSERT_GE(result, 2);  // result >= 2
+    ASSERT_LE(result, 2);  // result <= 2
+    ASSERT_LT(result, 3);  // result < 3
 }
 
 // ============================================================
@@ -66,23 +66,23 @@ TEST("smoke: 1+1=2") {
  *   - Equality comparisons
  */
 TEST("smoke: boundary values") {
-	// TODO: Test zero value
-	int zero = 0;
-	ASSERT_EQ(zero, 0);
-	ASSERT_TRUE(zero == 0);
-	ASSERT_FALSE(zero != 0);
-	ASSERT_GE(zero, 0);
-	ASSERT_LE(zero, 0);
+    // TODO: Test zero value
+    int zero = 0;
+    ASSERT_EQ(zero, 0);
+    ASSERT_TRUE(zero == 0);
+    ASSERT_FALSE(zero != 0);
+    ASSERT_GE(zero, 0);
+    ASSERT_LE(zero, 0);
 
-	// TODO: Test negative number
-	int negative = -1;
-	ASSERT_EQ(negative, -1);
-	ASSERT_LT(negative, 0);
-	ASSERT_TRUE(negative < 0);
+    // TODO: Test negative number
+    int negative = -1;
+    ASSERT_EQ(negative, -1);
+    ASSERT_LT(negative, 0);
+    ASSERT_TRUE(negative < 0);
 
-	// TODO: Test equality comparison
-	ASSERT_EQ(negative, negative);	// A value equals itself
-	ASSERT_NE(negative, zero);		// Different values are not equal
+    // TODO: Test equality comparison
+    ASSERT_EQ(negative, negative);  // A value equals itself
+    ASSERT_NE(negative, zero);      // Different values are not equal
 }
 
 // ============================================================
@@ -95,19 +95,19 @@ TEST("smoke: boundary values") {
  * Verify ASSERT_NULL and ASSERT_NOT_NULL macro functionality
  */
 TEST("smoke: pointer assertions") {
-	// TODO: Test null pointer
-	int* null_ptr = nullptr;
-	ASSERT_NULL(null_ptr);
-	ASSERT_EQ(null_ptr, nullptr);
+    // TODO: Test null pointer
+    int* null_ptr = nullptr;
+    ASSERT_NULL(null_ptr);
+    ASSERT_EQ(null_ptr, nullptr);
 
-	// TODO: Test non-null pointer
-	int	 value	   = 42;
-	int* valid_ptr = &value;
-	ASSERT_NOT_NULL(valid_ptr);
-	ASSERT_NE(valid_ptr, nullptr);
+    // TODO: Test non-null pointer
+    int  value     = 42;
+    int* valid_ptr = &value;
+    ASSERT_NOT_NULL(valid_ptr);
+    ASSERT_NE(valid_ptr, nullptr);
 
-	// TODO: Verify pointer dereference
-	ASSERT_EQ(*valid_ptr, 42);
+    // TODO: Verify pointer dereference
+    ASSERT_EQ(*valid_ptr, 42);
 }
 
 // ============================================================
@@ -120,16 +120,16 @@ TEST("smoke: pointer assertions") {
  * This test reserves space for future string-related tests
  */
 TEST("smoke: string placeholder") {
-	// TODO: Add string tests later
-	// Currently only verifies compilation succeeds
+    // TODO: Add string tests later
+    // Currently only verifies compilation succeeds
 
-	// Step 1: Define test string
-	// const char* str = "Hello, Cinux!";
+    // Step 1: Define test string
+    // const char* str = "Hello, Cinux!";
 
-	// Step 2: Later can test:
-	//   - String length calculation
-	//   - String comparison
-	//   - Substring search
+    // Step 2: Later can test:
+    //   - String length calculation
+    //   - String comparison
+    //   - Substring search
 }
 
 // ============================================================
@@ -142,11 +142,11 @@ TEST("smoke: string placeholder") {
  * Initialize the test framework and run all registered tests
  */
 int main() {
-	// TODO: Run all tests
-	RUN_ALL_TESTS();
+    // TODO: Run all tests
+    RUN_ALL_TESTS();
 
-	// TODO: Return exit code based on test results
-	//   - All tests passed: return 0
-	//   - Some tests failed: return 1
-	return _tests_failed > 0 ? 1 : 0;
+    // TODO: Return exit code based on test results
+    //   - All tests passed: return 0
+    //   - Some tests failed: return 1
+    return _tests_failed > 0 ? 1 : 0;
 }

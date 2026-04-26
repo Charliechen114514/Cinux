@@ -45,10 +45,10 @@
  * Type values: 1=usable RAM, 2=reserved, 3=ACPI reclaimable, 4=ACPI NVS, etc.
  */
 typedef struct {
-    uint64_t base;          // Physical base address of the region
-    uint64_t length;        // Region length in bytes
-    uint32_t type;          // Memory type (1=usable, 2=reserved, etc.)
-    uint32_t acpi;          // ACPI extended attributes (usually 0)
+    uint64_t base;    // Physical base address of the region
+    uint64_t length;  // Region length in bytes
+    uint32_t type;    // Memory type (1=usable, 2=reserved, etc.)
+    uint32_t acpi;    // ACPI extended attributes (usually 0)
 } __attribute__((packed)) MemoryMapEntry;
 
 // Static assertion: ensure struct size matches E820 format (24 bytes)
@@ -83,15 +83,15 @@ typedef struct {
     uint64_t kernel_size;       // Actual ELF file size in bytes
 
     // Framebuffer information (from VESA BIOS calls, stored at 0x6400)
-    uint64_t fb_addr;           // Physical framebuffer base address
-    uint32_t fb_width;          // Framebuffer width in pixels
-    uint32_t fb_height;         // Framebuffer height in pixels
-    uint32_t fb_pitch;          // Bytes per scan line (may be > width * bpp)
-    uint32_t fb_bpp;            // Bits per pixel (usually 32)
+    uint64_t fb_addr;    // Physical framebuffer base address
+    uint32_t fb_width;   // Framebuffer width in pixels
+    uint32_t fb_height;  // Framebuffer height in pixels
+    uint32_t fb_pitch;   // Bytes per scan line (may be > width * bpp)
+    uint32_t fb_bpp;     // Bits per pixel (usually 32)
 
     // Memory map (from E820 BIOS call, stored at 0x5000)
-    uint32_t mmap_count;        // Number of valid entries in mmap[] array
-    uint32_t _pad;              // Explicit padding for alignment
+    uint32_t       mmap_count;  // Number of valid entries in mmap[] array
+    uint32_t       _pad;        // Explicit padding for alignment
     MemoryMapEntry mmap[32];    // Memory map entries (max 32 entries)
 
 } __attribute__((packed)) BootInfo;
@@ -104,4 +104,4 @@ static_assert(sizeof(BootInfo) == 824, "BootInfo size mismatch");
 _Static_assert(sizeof(BootInfo) == 824, "BootInfo size mismatch");
 #endif
 
-#endif // BOOT_BOOT_INFO_H
+#endif  // BOOT_BOOT_INFO_H

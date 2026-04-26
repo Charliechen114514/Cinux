@@ -33,9 +33,7 @@ struct MemoryRegion {
  * @param max_regions   Capacity of the regions array
  * @return Number of regions written
  */
-uint32_t parse_memory_map(const BootInfo& info,
-                          MemoryRegion* regions,
-                          uint32_t max_regions);
+uint32_t parse_memory_map(const BootInfo& info, MemoryRegion* regions, uint32_t max_regions);
 
 /**
  * @brief Physical Memory Manager using a bitmap allocator
@@ -84,11 +82,11 @@ private:
     void mark_region_free(uint64_t phys, uint64_t length);
 
     cinux::proc::Spinlock lock_;
-    uint8_t* bitmap_{};
-    uint64_t total_pages_{};
-    uint64_t free_pages_{};
-    uint64_t highest_page_{};
-    uint64_t bitmap_size_{};
+    uint8_t*              bitmap_{};
+    uint64_t              total_pages_{};
+    uint64_t              free_pages_{};
+    uint64_t              highest_page_{};
+    uint64_t              bitmap_size_{};
 };
 
 /// Global PMM instance.

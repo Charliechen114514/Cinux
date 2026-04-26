@@ -24,11 +24,11 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstddef>
-#include <cstring>
+#    include <cstddef>
+#    include <cstdint>
+#    include <cstring>
 
-#include "fs/ext2_types.hpp"
+#    include "fs/ext2_types.hpp"
 
 using namespace cinux::fs;
 
@@ -202,58 +202,58 @@ TEST("ext2_block_size: s_log_block_size=3 yields 8192") {
 
 // Group number = (ino - 1) / inodes_per_group
 TEST("ext2_group: inode 1 -> group 0 when ipg=16") {
-    uint32_t ino = 1;
-    uint32_t ipg = 16;
+    uint32_t ino   = 1;
+    uint32_t ipg   = 16;
     uint32_t group = (ino - 1) / ipg;
     ASSERT_EQ(group, 0u);
 }
 
 TEST("ext2_group: inode 16 -> group 0 when ipg=16") {
-    uint32_t ino = 16;
-    uint32_t ipg = 16;
+    uint32_t ino   = 16;
+    uint32_t ipg   = 16;
     uint32_t group = (ino - 1) / ipg;
     ASSERT_EQ(group, 0u);
 }
 
 TEST("ext2_group: inode 17 -> group 1 when ipg=16") {
-    uint32_t ino = 17;
-    uint32_t ipg = 16;
+    uint32_t ino   = 17;
+    uint32_t ipg   = 16;
     uint32_t group = (ino - 1) / ipg;
     ASSERT_EQ(group, 1u);
 }
 
 TEST("ext2_group: inode 32 -> group 1 when ipg=16") {
-    uint32_t ino = 32;
-    uint32_t ipg = 16;
+    uint32_t ino   = 32;
+    uint32_t ipg   = 16;
     uint32_t group = (ino - 1) / ipg;
     ASSERT_EQ(group, 1u);
 }
 
 TEST("ext2_group: inode 33 -> group 2 when ipg=16") {
-    uint32_t ino = 33;
-    uint32_t ipg = 16;
+    uint32_t ino   = 33;
+    uint32_t ipg   = 16;
     uint32_t group = (ino - 1) / ipg;
     ASSERT_EQ(group, 2u);
 }
 
 // Index within group = (ino - 1) % inodes_per_group
 TEST("ext2_index: inode 1 -> index 0 when ipg=16") {
-    uint32_t ino = 1;
-    uint32_t ipg = 16;
+    uint32_t ino   = 1;
+    uint32_t ipg   = 16;
     uint32_t index = (ino - 1) % ipg;
     ASSERT_EQ(index, 0u);
 }
 
 TEST("ext2_index: inode 17 -> index 0 when ipg=16") {
-    uint32_t ino = 17;
-    uint32_t ipg = 16;
+    uint32_t ino   = 17;
+    uint32_t ipg   = 16;
     uint32_t index = (ino - 1) % ipg;
     ASSERT_EQ(index, 0u);
 }
 
 TEST("ext2_index: inode 20 -> index 3 when ipg=16") {
-    uint32_t ino = 20;
-    uint32_t ipg = 16;
+    uint32_t ino   = 20;
+    uint32_t ipg   = 16;
     uint32_t index = (ino - 1) % ipg;
     ASSERT_EQ(index, 3u);
 }

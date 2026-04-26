@@ -16,15 +16,14 @@
  */
 
 #include "big_kernel_test.h"
-
 #include "boot/boot_info.h"
 #include "kernel/drivers/video/font.hpp"
 #include "kernel/drivers/video/framebuffer.hpp"
 
 #ifdef CINUX_GUI
 
-#include "kernel/drivers/canvas.hpp"
-#include "kernel/gui/window.hpp"
+#    include "kernel/drivers/canvas.hpp"
+#    include "kernel/gui/window.hpp"
 
 using cinux::drivers::Canvas;
 using cinux::drivers::Framebuffer;
@@ -34,7 +33,7 @@ using cinux::gui::Window;
 namespace {
 
 Framebuffer g_fb;
-PSFFont g_font;
+PSFFont     g_font;
 
 }  // anonymous namespace
 
@@ -447,7 +446,7 @@ extern "C" void run_window_tests() {
 
     // Initialise framebuffer and font for pixel-verification tests
     static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
-    auto* bi = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
+    auto*                      bi             = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
     g_fb.init(*bi);
     g_font.init();
     g_fb.clear(0);

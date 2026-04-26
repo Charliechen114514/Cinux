@@ -44,8 +44,7 @@ public:
      * @param fg   Foreground colour (0x00RRGGBB)
      * @param bg   Background colour (0x00RRGGBB)
      */
-    void render_char(Framebuffer& fb, uint8_t c, uint32_t x, uint32_t y,
-                     uint32_t fg, uint32_t bg);
+    void render_char(Framebuffer& fb, uint8_t c, uint32_t x, uint32_t y, uint32_t fg, uint32_t bg);
 
     uint32_t width() const { return width_; }
     uint32_t height() const { return height_; }
@@ -68,11 +67,11 @@ public:
     uint32_t bytes_per_glyph() const { return bytes_per_glyph_; }
 
 private:
-    const uint8_t* glyphs_ = nullptr;
-    uint32_t bytes_per_glyph_ = 0;
-    uint32_t num_glyphs_ = 0;
-    uint32_t width_ = 0;
-    uint32_t height_ = 0;
+    const uint8_t* glyphs_          = nullptr;
+    uint32_t       bytes_per_glyph_ = 0;
+    uint32_t       num_glyphs_      = 0;
+    uint32_t       width_           = 0;
+    uint32_t       height_          = 0;
 };
 
 }  // namespace cinux::drivers

@@ -20,11 +20,11 @@ namespace cinux::mm {
 // Constants
 // ============================================================
 
-constexpr uint32_t HEAP_MAGIC    = 0xDEADBEEF;
-constexpr uint32_t HEADER_SIZE   = sizeof(BlockHeader);
-constexpr uint32_t MIN_SPLIT     = HEADER_SIZE + 16;   // min viable split
-constexpr uint64_t EXPAND_PAGES  = 4;                   // expand by 16 KB at a time
-constexpr uint64_t PAGE_FLAGS    = 0x03;                // present + writable
+constexpr uint32_t HEAP_MAGIC   = 0xDEADBEEF;
+constexpr uint32_t HEADER_SIZE  = sizeof(BlockHeader);
+constexpr uint32_t MIN_SPLIT    = HEADER_SIZE + 16;  // min viable split
+constexpr uint64_t EXPAND_PAGES = 4;                 // expand by 16 KB at a time
+constexpr uint64_t PAGE_FLAGS   = 0x03;              // present + writable
 
 // ============================================================
 // Global instance
@@ -45,8 +45,7 @@ uint64_t align_up(uint64_t value, uint64_t align) {
 
 /** Get the BlockHeader that precedes a user payload pointer. */
 BlockHeader* header_from_ptr(void* ptr) {
-    return reinterpret_cast<BlockHeader*>(
-        reinterpret_cast<uintptr_t>(ptr) - HEADER_SIZE);
+    return reinterpret_cast<BlockHeader*>(reinterpret_cast<uintptr_t>(ptr) - HEADER_SIZE);
 }
 
 /** Zero-fill a range of bytes. */
@@ -81,22 +80,21 @@ void Heap::init(uint64_t virt_base, uint64_t initial_size) {
     memzero(reinterpret_cast<void*>(virt_base), static_cast<size_t>(aligned_size));
 
     // Step 4: Set up the initial free block spanning the whole region
-    auto* first = reinterpret_cast<BlockHeader*>(virt_base);
+    auto* first  = reinterpret_cast<BlockHeader*>(virt_base);
     first->magic = HEAP_MAGIC;
     first->size  = static_cast<uint32_t>(aligned_size - HEADER_SIZE);
     first->free  = 1;
     first->next  = nullptr;
 
     // Step 5: Store heap metadata
-    base_     = virt_base;
-    size_     = aligned_size;
-    max_size_ = cinux::arch::KMEM_HEAP_SIZE;
-    used_     = 0;
+    base_      = virt_base;
+    size_      = aligned_size;
+    max_size_  = cinux::arch::KMEM_HEAP_SIZE;
+    used_      = 0;
     free_list_ = first;
 
     cinux::lib::kprintf("[HEAP] Initialised at 0x%p, size %u KB, max %u MB\n",
-                        reinterpret_cast<void*>(virt_base),
-                        aligned_size / 1024,
+                        reinterpret_cast<void*>(virt_base), aligned_size / 1024,
                         max_size_ / (1024 * 1024));
 }
 
@@ -124,10 +122,10 @@ void* Heap::alloc_locked(size_t size, size_t align) {
         }
 
         if (curr->free && curr->size >= needed) {
-            uintptr_t curr_addr = reinterpret_cast<uintptr_t>(curr);
-            uintptr_t block_end = curr_addr + HEADER_SIZE + curr->size;
+            uintptr_t curr_addr       = reinterpret_cast<uintptr_t>(curr);
+            uintptr_t block_end       = curr_addr + HEADER_SIZE + curr->size;
             uintptr_t aligned_payload = align_up(curr_addr + HEADER_SIZE, align);
-            uintptr_t hdr_addr = aligned_payload - HEADER_SIZE;
+            uintptr_t hdr_addr        = aligned_payload - HEADER_SIZE;
 
             size_t usable = static_cast<size_t>(block_end - aligned_payload);
             if (usable < size) {
@@ -136,7 +134,7 @@ void* Heap::alloc_locked(size_t size, size_t align) {
                 continue;
             }
 
-            size_t front_pad = static_cast<size_t>(hdr_addr - curr_addr);
+            size_t front_pad  = static_cast<size_t>(hdr_addr - curr_addr);
             size_t tail_space = static_cast<size_t>(block_end - (aligned_payload + size));
 
             // Remove curr from free list first
@@ -157,7 +155,7 @@ void* Heap::alloc_locked(size_t size, size_t align) {
 
             // Create remainder free block after the allocation
             if (tail_space >= MIN_SPLIT) {
-                auto* rem = reinterpret_cast<BlockHeader*>(aligned_payload + size);
+                auto* rem  = reinterpret_cast<BlockHeader*>(aligned_payload + size);
                 rem->magic = HEAP_MAGIC;
                 rem->size  = static_cast<uint32_t>(tail_space - HEADER_SIZE);
                 rem->free  = 1;
@@ -166,7 +164,7 @@ void* Heap::alloc_locked(size_t size, size_t align) {
             }
 
             // Write the allocated block header at aligned_payload - HEADER_SIZE
-            auto* alloc_hdr = reinterpret_cast<BlockHeader*>(hdr_addr);
+            auto* alloc_hdr  = reinterpret_cast<BlockHeader*>(hdr_addr);
             alloc_hdr->magic = HEAP_MAGIC;
             alloc_hdr->size  = static_cast<uint32_t>(size);
             alloc_hdr->free  = 0;
@@ -221,9 +219,10 @@ void Heap::free(void* ptr) {
 
     // Step 3: Magic validation
     if (block->magic != HEAP_MAGIC) {
-        cinux::lib::kprintf("[HEAP] Double-free or corruption at 0x%p "
-                            "(magic=0x%x, expected 0x%x)\n",
-                            ptr, block->magic, HEAP_MAGIC);
+        cinux::lib::kprintf(
+            "[HEAP] Double-free or corruption at 0x%p "
+            "(magic=0x%x, expected 0x%x)\n",
+            ptr, block->magic, HEAP_MAGIC);
         return;
     }
 
@@ -249,8 +248,7 @@ void Heap::free(void* ptr) {
 
 bool Heap::expand(size_t min_bytes) {
     // Step 1: Determine how many pages to add
-    uint64_t needed_bytes = align_up(
-        min_bytes + HEADER_SIZE, cinux::arch::PAGE_SIZE);
+    uint64_t needed_bytes = align_up(min_bytes + HEADER_SIZE, cinux::arch::PAGE_SIZE);
     uint64_t needed_pages = needed_bytes / cinux::arch::PAGE_SIZE;
 
     // Always expand by at least EXPAND_PAGES
@@ -262,8 +260,8 @@ bool Heap::expand(size_t min_bytes) {
 
     // Bounds check: do not expand past the reserved heap region
     if (size_ + expand_size > max_size_) {
-        cinux::lib::kprintf("[HEAP] Expansion limit reached: %u KB / %u MB\n",
-                            size_ / 1024, max_size_ / (1024 * 1024));
+        cinux::lib::kprintf("[HEAP] Expansion limit reached: %u KB / %u MB\n", size_ / 1024,
+                            max_size_ / (1024 * 1024));
         return false;
     }
 
@@ -277,11 +275,10 @@ bool Heap::expand(size_t min_bytes) {
     }
 
     // Step 3: Zero the new region
-    memzero(reinterpret_cast<void*>(base_ + size_),
-            static_cast<size_t>(expand_size));
+    memzero(reinterpret_cast<void*>(base_ + size_), static_cast<size_t>(expand_size));
 
     // Step 4: Create a new free block in the expanded region
-    auto* new_block = reinterpret_cast<BlockHeader*>(base_ + size_);
+    auto* new_block  = reinterpret_cast<BlockHeader*>(base_ + size_);
     new_block->magic = HEAP_MAGIC;
     new_block->size  = static_cast<uint32_t>(expand_size - HEADER_SIZE);
     new_block->free  = 1;
@@ -291,8 +288,8 @@ bool Heap::expand(size_t min_bytes) {
     // Step 5: Update total heap size
     size_ += expand_size;
 
-    cinux::lib::kprintf("[HEAP] Expanded by %u KB, total %u KB\n",
-                        expand_size / 1024, size_ / 1024);
+    cinux::lib::kprintf("[HEAP] Expanded by %u KB, total %u KB\n", expand_size / 1024,
+                        size_ / 1024);
     return true;
 }
 
@@ -303,7 +300,7 @@ bool Heap::expand(size_t min_bytes) {
 void Heap::coalesce(BlockHeader* block) {
     bool changed = true;
     while (changed) {
-        changed = false;
+        changed           = false;
         BlockHeader* prev = nullptr;
         BlockHeader* curr = free_list_;
 
@@ -324,10 +321,12 @@ void Heap::coalesce(BlockHeader* block) {
                     free_list_ = block->next;
                 } else {
                     auto* p = free_list_;
-                    while (p && p->next != block) p = p->next;
-                    if (p) p->next = block->next;
+                    while (p && p->next != block)
+                        p = p->next;
+                    if (p)
+                        p->next = block->next;
                 }
-                block = curr;
+                block   = curr;
                 changed = true;
                 break;
             }
@@ -335,8 +334,10 @@ void Heap::coalesce(BlockHeader* block) {
             // block is immediately before curr
             if (block_addr + HEADER_SIZE + block->size == curr_addr) {
                 block->size += HEADER_SIZE + curr->size;
-                if (prev) prev->next = curr->next;
-                else      free_list_ = curr->next;
+                if (prev)
+                    prev->next = curr->next;
+                else
+                    free_list_ = curr->next;
                 changed = true;
                 break;
             }
@@ -352,7 +353,7 @@ void Heap::coalesce(BlockHeader* block) {
 // ============================================================
 
 void Heap::dump_stats() const {
-    uint64_t free_total = 0;
+    uint64_t free_total  = 0;
     uint64_t block_count = 0;
 
     BlockHeader* curr = free_list_;
@@ -364,9 +365,10 @@ void Heap::dump_stats() const {
         curr = curr->next;
     }
 
-    cinux::lib::kprintf("[HEAP] Stats: total=%u KB, used=%u KB, free_list=%u KB, "
-                        "blocks=%u\n",
-                        size_ / 1024, used_ / 1024, free_total / 1024, block_count);
+    cinux::lib::kprintf(
+        "[HEAP] Stats: total=%u KB, used=%u KB, free_list=%u KB, "
+        "blocks=%u\n",
+        size_ / 1024, used_ / 1024, free_total / 1024, block_count);
 }
 
 }  // namespace cinux::mm

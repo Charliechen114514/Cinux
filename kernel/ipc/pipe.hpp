@@ -50,7 +50,7 @@ public:
     Pipe();
 
     // -- Non-copyable, non-movable --
-    Pipe(const Pipe&) = delete;
+    Pipe(const Pipe&)            = delete;
     Pipe& operator=(const Pipe&) = delete;
 
     // -- Public interface --------------------------------------------------

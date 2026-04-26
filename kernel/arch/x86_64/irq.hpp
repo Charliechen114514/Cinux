@@ -17,12 +17,16 @@
 
 namespace cinux::arch {
 
-inline void irq_disable() {}
-inline void irq_enable() {}
-inline uint64_t irq_save() { return 0; }
+inline void     irq_disable() {}
+inline void     irq_enable() {}
+inline uint64_t irq_save() {
+    return 0;
+}
 inline void irq_restore(uint64_t) {}
 inline void hlt() {}
-inline bool irq_enabled() { return true; }
+inline bool irq_enabled() {
+    return true;
+}
 
 }  // namespace cinux::arch
 
@@ -52,14 +56,14 @@ inline void irq_enable() {
 /// Pass the returned value to irq_restore() later.
 inline uint64_t irq_save() {
     uint64_t flags;
-    __asm__ volatile("pushfq; popq %0; cli" : "=rm"(flags) :: "memory");
+    __asm__ volatile("pushfq; popq %0; cli" : "=rm"(flags)::"memory");
     return flags;
 }
 
 /// Restore RFLAGS (including the interrupt flag) previously
 /// saved by irq_save().
 inline void irq_restore(uint64_t flags) {
-    __asm__ volatile("pushq %0; popfq" :: "rm"(flags) : "memory");
+    __asm__ volatile("pushq %0; popfq" ::"rm"(flags) : "memory");
 }
 
 /// Halt until the next interrupt (interrupts must be enabled

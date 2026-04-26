@@ -1,6 +1,7 @@
 /**
  * @file kernel/test/test_gui_integration.cpp
- * @brief QEMU in-kernel integration tests for GUI subsystem wiring (030_gui_wm_basic, sub-iteration D)
+ * @brief QEMU in-kernel integration tests for GUI subsystem wiring (030_gui_wm_basic, sub-iteration
+ * D)
  *
  * Tests the integration points introduced in sub-iteration D:
  *   - gui_init() initialises WindowManager singleton with Canvas + Font
@@ -24,18 +25,17 @@
  */
 
 #include "big_kernel_test.h"
-
 #include "boot/boot_info.h"
 #include "kernel/drivers/video/font.hpp"
 #include "kernel/drivers/video/framebuffer.hpp"
 
 #ifdef CINUX_GUI
 
-#include "kernel/drivers/canvas.hpp"
-#include "kernel/drivers/mouse.hpp"
-#include "kernel/gui/event.hpp"
-#include "kernel/gui/gui_init.hpp"
-#include "kernel/gui/window_manager.hpp"
+#    include "kernel/drivers/canvas.hpp"
+#    include "kernel/drivers/mouse.hpp"
+#    include "kernel/gui/event.hpp"
+#    include "kernel/gui/gui_init.hpp"
+#    include "kernel/gui/window_manager.hpp"
 
 using cinux::drivers::Canvas;
 using cinux::drivers::Framebuffer;
@@ -48,8 +48,8 @@ using cinux::gui::WindowManager;
 namespace {
 
 Framebuffer g_fb;
-PSFFont g_font;
-Canvas g_screen;
+PSFFont     g_font;
+Canvas      g_screen;
 
 }  // anonymous namespace
 
@@ -102,24 +102,24 @@ void test_keyboard_dual_path_to_event_queue() {
 
     // Simulate what irq1_handler does: enqueue into the GUI EventQueue
     Event gui_ev{};
-    gui_ev.type_ = EventType::KeyDown;
-    gui_ev.key.ascii = 'A';
+    gui_ev.type_        = EventType::KeyDown;
+    gui_ev.key.ascii    = 'A';
     gui_ev.key.scancode = 0x1E;
-    gui_ev.key.pressed = true;
-    gui_ev.key.shift = false;
-    gui_ev.key.ctrl = false;
-    gui_ev.key.alt = false;
+    gui_ev.key.pressed  = true;
+    gui_ev.key.shift    = false;
+    gui_ev.key.ctrl     = false;
+    gui_ev.key.alt      = false;
     eq.enqueue(gui_ev);
 
     // Simulate a second event (key release)
     Event gui_ev_up{};
-    gui_ev_up.type_ = EventType::KeyUp;
-    gui_ev_up.key.ascii = 0;
+    gui_ev_up.type_        = EventType::KeyUp;
+    gui_ev_up.key.ascii    = 0;
     gui_ev_up.key.scancode = 0x9E;  // break code for 'A'
-    gui_ev_up.key.pressed = false;
-    gui_ev_up.key.shift = false;
-    gui_ev_up.key.ctrl = false;
-    gui_ev_up.key.alt = false;
+    gui_ev_up.key.pressed  = false;
+    gui_ev_up.key.shift    = false;
+    gui_ev_up.key.ctrl     = false;
+    gui_ev_up.key.alt      = false;
     eq.enqueue(gui_ev_up);
 
     // Verify both events are in the EventQueue
@@ -145,27 +145,27 @@ void test_event_queue_mixed_key_and_mouse() {
 
     // Enqueue a key event
     Event key_ev{};
-    key_ev.type_ = EventType::KeyDown;
-    key_ev.key.ascii = 'B';
+    key_ev.type_        = EventType::KeyDown;
+    key_ev.key.ascii    = 'B';
     key_ev.key.scancode = 0x30;
-    key_ev.key.pressed = true;
+    key_ev.key.pressed  = true;
     eq.enqueue(key_ev);
 
     // Enqueue a mouse event
     Event mouse_ev{};
-    mouse_ev.type_ = EventType::MouseMove;
-    mouse_ev.mouse.x = 100;
-    mouse_ev.mouse.y = 200;
+    mouse_ev.type_    = EventType::MouseMove;
+    mouse_ev.mouse.x  = 100;
+    mouse_ev.mouse.y  = 200;
     mouse_ev.mouse.dx = 5;
     mouse_ev.mouse.dy = -3;
     eq.enqueue(mouse_ev);
 
     // Enqueue another key event
     Event key_ev2{};
-    key_ev2.type_ = EventType::KeyUp;
-    key_ev2.key.ascii = 0;
+    key_ev2.type_        = EventType::KeyUp;
+    key_ev2.key.ascii    = 0;
     key_ev2.key.scancode = 0xB0;
-    key_ev2.key.pressed = false;
+    key_ev2.key.pressed  = false;
     eq.enqueue(key_ev2);
 
     // Drain and verify ordering
@@ -206,7 +206,8 @@ void test_tick_callback_drains_and_dispatches_mouse() {
     while (wm.window_count() > 0) {
         // Find the first window's ID and destroy it
         uint32_t id = wm.focused() ? wm.focused()->id() : 0;
-        if (id == 0) break;
+        if (id == 0)
+            break;
         wm.destroy(id);
     }
 
@@ -217,11 +218,11 @@ void test_tick_callback_drains_and_dispatches_mouse() {
 
     // Enqueue a mouse event into the EventQueue
     Event mouse_down{};
-    mouse_down.type_ = EventType::MouseDown;
-    mouse_down.mouse.x = 500;   // Desktop area (outside window)
-    mouse_down.mouse.y = 500;
-    mouse_down.mouse.left = true;
-    mouse_down.mouse.right = false;
+    mouse_down.type_        = EventType::MouseDown;
+    mouse_down.mouse.x      = 500;  // Desktop area (outside window)
+    mouse_down.mouse.y      = 500;
+    mouse_down.mouse.left   = true;
+    mouse_down.mouse.right  = false;
     mouse_down.mouse.middle = false;
     eq.enqueue(mouse_down);
 
@@ -259,11 +260,11 @@ void test_tick_callback_dispatches_key_events() {
 
     // Enqueue a keyboard event
     Event key_down{};
-    key_down.type_ = EventType::KeyDown;
-    key_down.key.ascii = 'X';
+    key_down.type_        = EventType::KeyDown;
+    key_down.key.ascii    = 'X';
     key_down.key.scancode = 0x2D;
-    key_down.key.pressed = true;
-    key_down.key.shift = true;
+    key_down.key.pressed  = true;
+    key_down.key.shift    = true;
     eq.enqueue(key_down);
 
     // Simulate tick callback
@@ -302,20 +303,20 @@ void test_tick_callback_multiple_events_per_tick() {
     // Enqueue: click on Win1 content area (should raise it)
     // Win1 is at (0,0), content starts at y=20
     Event click_win1{};
-    click_win1.type_ = EventType::MouseDown;
-    click_win1.mouse.x = 10;
-    click_win1.mouse.y = 30;
-    click_win1.mouse.left = true;
-    click_win1.mouse.right = false;
+    click_win1.type_        = EventType::MouseDown;
+    click_win1.mouse.x      = 10;
+    click_win1.mouse.y      = 30;
+    click_win1.mouse.left   = true;
+    click_win1.mouse.right  = false;
     click_win1.mouse.middle = false;
     eq.enqueue(click_win1);
 
     // Enqueue: a key event
     Event key_ev{};
-    key_ev.type_ = EventType::KeyDown;
-    key_ev.key.ascii = 'T';
+    key_ev.type_        = EventType::KeyDown;
+    key_ev.key.ascii    = 'T';
     key_ev.key.scancode = 0x14;
-    key_ev.key.pressed = true;
+    key_ev.key.pressed  = true;
     eq.enqueue(key_ev);
 
     // Simulate tick callback
@@ -393,13 +394,13 @@ void test_mouse_event_flow_move_updates_wm_state() {
 
     // Enqueue mouse move
     Event move_ev{};
-    move_ev.type_ = EventType::MouseMove;
-    move_ev.mouse.x = 320;
-    move_ev.mouse.y = 240;
-    move_ev.mouse.dx = 10;
-    move_ev.mouse.dy = 5;
-    move_ev.mouse.left = false;
-    move_ev.mouse.right = false;
+    move_ev.type_        = EventType::MouseMove;
+    move_ev.mouse.x      = 320;
+    move_ev.mouse.y      = 240;
+    move_ev.mouse.dx     = 10;
+    move_ev.mouse.dy     = 5;
+    move_ev.mouse.left   = false;
+    move_ev.mouse.right  = false;
     move_ev.mouse.middle = false;
     eq.enqueue(move_ev);
 
@@ -436,31 +437,31 @@ void test_mouse_event_flow_drag_sequence() {
 
     // MouseDown on title bar
     Event down_ev{};
-    down_ev.type_ = EventType::MouseDown;
-    down_ev.mouse.x = 50;
-    down_ev.mouse.y = 5;
-    down_ev.mouse.left = true;
-    down_ev.mouse.right = false;
+    down_ev.type_        = EventType::MouseDown;
+    down_ev.mouse.x      = 50;
+    down_ev.mouse.y      = 5;
+    down_ev.mouse.left   = true;
+    down_ev.mouse.right  = false;
     down_ev.mouse.middle = false;
     eq.enqueue(down_ev);
 
     // MouseMove
     Event move_ev{};
-    move_ev.type_ = EventType::MouseMove;
-    move_ev.mouse.x = 200;
-    move_ev.mouse.y = 100;
-    move_ev.mouse.left = true;
-    move_ev.mouse.right = false;
+    move_ev.type_        = EventType::MouseMove;
+    move_ev.mouse.x      = 200;
+    move_ev.mouse.y      = 100;
+    move_ev.mouse.left   = true;
+    move_ev.mouse.right  = false;
     move_ev.mouse.middle = false;
     eq.enqueue(move_ev);
 
     // MouseUp
     Event up_ev{};
-    up_ev.type_ = EventType::MouseUp;
-    up_ev.mouse.x = 200;
-    up_ev.mouse.y = 100;
-    up_ev.mouse.left = false;
-    up_ev.mouse.right = false;
+    up_ev.type_        = EventType::MouseUp;
+    up_ev.mouse.x      = 200;
+    up_ev.mouse.y      = 100;
+    up_ev.mouse.left   = false;
+    up_ev.mouse.right  = false;
     up_ev.mouse.middle = false;
     eq.enqueue(up_ev);
 
@@ -504,11 +505,11 @@ void test_mouse_event_flow_close_button() {
     // Window at (0, 0), width=100.
     // Close button: x = 0 + 100 - 14 - 3 = 83, y = (20-14)/2 = 3
     Event close_ev{};
-    close_ev.type_ = EventType::MouseDown;
-    close_ev.mouse.x = 83;
-    close_ev.mouse.y = 3;
-    close_ev.mouse.left = true;
-    close_ev.mouse.right = false;
+    close_ev.type_        = EventType::MouseDown;
+    close_ev.mouse.x      = 83;
+    close_ev.mouse.y      = 3;
+    close_ev.mouse.left   = true;
+    close_ev.mouse.right  = false;
     close_ev.mouse.middle = false;
     eq.enqueue(close_ev);
 
@@ -572,7 +573,7 @@ extern "C" void run_gui_integration_tests() {
 
     // Initialise framebuffer, font, and off-screen canvas
     static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
-    auto* bi = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
+    auto*                      bi             = reinterpret_cast<const BootInfo*>(BOOT_INFO_PHYS);
     g_fb.init(*bi);
     g_font.init();
     g_fb.clear(0);

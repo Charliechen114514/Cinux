@@ -52,9 +52,9 @@ public:
     // Constants
     // ============================================================
 
-    static constexpr uint32_t MAX_WINDOWS    = 64;
-    static constexpr uint32_t MAX_ICONS      = 16;
-    static constexpr uint32_t DESKTOP_COLOR  = 0x00224466;  // Dark teal desktop
+    static constexpr uint32_t MAX_WINDOWS      = 64;
+    static constexpr uint32_t MAX_ICONS        = 16;
+    static constexpr uint32_t DESKTOP_COLOR    = 0x00224466;  // Dark teal desktop
     static constexpr uint32_t ICON_LABEL_COLOR = 0x00FFFFFF;  // White icon labels
 
     // ============================================================
@@ -83,7 +83,7 @@ public:
      */
     ~WindowManager();
 
-    WindowManager(const WindowManager&) = delete;
+    WindowManager(const WindowManager&)            = delete;
     WindowManager& operator=(const WindowManager&) = delete;
 
     // ============================================================
@@ -318,9 +318,9 @@ private:
     // Cursor bitmap
     // ============================================================
 
-    static constexpr uint32_t CURSOR_SIZE    = 16;
-    static constexpr uint32_t CURSOR_WHITE   = 0x00888888;
-    static constexpr uint32_t CURSOR_BLACK   = 0x00FFFFFF;
+    static constexpr uint32_t CURSOR_SIZE  = 16;
+    static constexpr uint32_t CURSOR_WHITE = 0x00888888;
+    static constexpr uint32_t CURSOR_BLACK = 0x00FFFFFF;
 
     /**
      * 16x16 classic arrow cursor bitmap (MSB-first per row).
@@ -352,21 +352,21 @@ private:
     // Members
     // ============================================================
 
-    Window* windows_[MAX_WINDOWS] = {};  ///< Z-ordered window pointer array
-    uint32_t count_ = 0;                ///< Number of active windows
-    Window* focused_ = nullptr;         ///< Currently focused window
+    Window*  windows_[MAX_WINDOWS] = {};       ///< Z-ordered window pointer array
+    uint32_t count_                = 0;        ///< Number of active windows
+    Window*  focused_              = nullptr;  ///< Currently focused window
 
-    int32_t mouse_x_ = 0;              ///< Last known mouse X
-    int32_t mouse_y_ = 0;              ///< Last known mouse Y
+    int32_t mouse_x_ = 0;  ///< Last known mouse X
+    int32_t mouse_y_ = 0;  ///< Last known mouse Y
 
     // Drag state
-    bool    dragging_      = false;    ///< True while a title-bar drag is active
-    int32_t drag_offset_x_ = 0;        ///< Mouse X offset from window origin at drag start
-    int32_t drag_offset_y_ = 0;        ///< Mouse Y offset from window origin at drag start
+    bool    dragging_      = false;  ///< True while a title-bar drag is active
+    int32_t drag_offset_x_ = 0;      ///< Mouse X offset from window origin at drag start
+    int32_t drag_offset_y_ = 0;      ///< Mouse Y offset from window origin at drag start
 
     // Desktop icon state
-    DesktopIcon icons_[MAX_ICONS] = {};  ///< Registered desktop icons
-    uint32_t    icon_count_       = 0;   ///< Number of registered icons
+    DesktopIcon icons_[MAX_ICONS]    = {};                ///< Registered desktop icons
+    uint32_t    icon_count_          = 0;                 ///< Number of registered icons
     IconAction  pending_icon_action_ = IconAction::None;  ///< Pending action from icon click
 
     // External dependencies (not owned)

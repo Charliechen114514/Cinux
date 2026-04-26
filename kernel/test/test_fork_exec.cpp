@@ -28,19 +28,19 @@
 #include <stdint.h>
 
 #include "big_kernel_test.h"
-#include "kernel/arch/x86_64/syscall.hpp"
 #include "kernel/arch/x86_64/paging.hpp"
 #include "kernel/arch/x86_64/paging_config.hpp"
+#include "kernel/arch/x86_64/syscall.hpp"
+#include "kernel/proc/elf_types.hpp"
 #include "kernel/proc/pid.hpp"
 #include "kernel/proc/process.hpp"
 #include "kernel/proc/scheduler.hpp"
+#include "kernel/syscall/sys_execve.hpp"
+#include "kernel/syscall/sys_fork.hpp"
 #include "kernel/syscall/sys_getpid.hpp"
 #include "kernel/syscall/sys_getppid.hpp"
-#include "kernel/syscall/sys_fork.hpp"
-#include "kernel/syscall/sys_execve.hpp"
 #include "kernel/syscall/sys_waitpid.hpp"
 #include "kernel/syscall/syscall_nums.hpp"
-#include "kernel/proc/elf_types.hpp"
 
 using cinux::syscall::SyscallNr;
 using cinux::syscall::sys_getpid;
@@ -91,7 +91,7 @@ void test_alloc_sequential() {
 
 void test_free_and_reuse() {
     PidAllocator alloc;
-    int pid = alloc.alloc();
+    int          pid = alloc.alloc();
     alloc.free(pid);
     TEST_ASSERT_EQ(alloc.alloc(), 1);
     TEST_ASSERT_EQ(alloc.count(), 1);
@@ -99,7 +99,7 @@ void test_free_and_reuse() {
 
 void test_is_allocated() {
     PidAllocator alloc;
-    int pid = alloc.alloc();
+    int          pid = alloc.alloc();
     TEST_ASSERT_TRUE(alloc.is_allocated(pid));
     alloc.free(pid);
     TEST_ASSERT_FALSE(alloc.is_allocated(pid));
@@ -123,8 +123,8 @@ void test_sys_getpid_returns_nonnegative() {
     // Scheduler::current() is nullptr.  Install a temporary task
     // with pid=42 so the syscall can exercise the TCB read path.
     Task tmp{};
-    tmp.pid = 42;
-    tmp.ppid = 1;
+    tmp.pid    = 42;
+    tmp.ppid   = 1;
     Task* prev = cinux::proc::Scheduler::current();
     cinux::proc::Scheduler::set_current(&tmp);
 
@@ -136,8 +136,8 @@ void test_sys_getpid_returns_nonnegative() {
 
 void test_sys_getppid_returns_nonnegative() {
     Task tmp{};
-    tmp.pid = 42;
-    tmp.ppid = 1;
+    tmp.pid    = 42;
+    tmp.ppid   = 1;
     Task* prev = cinux::proc::Scheduler::current();
     cinux::proc::Scheduler::set_current(&tmp);
 
@@ -157,14 +157,14 @@ namespace test_getpid_dispatch {
 
 void test_dispatch_getpid() {
     Task tmp{};
-    tmp.pid = 7;
-    tmp.ppid = 2;
+    tmp.pid    = 7;
+    tmp.ppid   = 2;
     Task* prev = cinux::proc::Scheduler::current();
     cinux::proc::Scheduler::set_current(&tmp);
 
     int64_t direct = sys_getpid(0, 0, 0, 0, 0, 0);
-    int64_t dispatched = syscall_dispatch(
-        static_cast<uint64_t>(SyscallNr::SYS_getpid), 0, 0, 0, 0, 0, 0);
+    int64_t dispatched =
+        syscall_dispatch(static_cast<uint64_t>(SyscallNr::SYS_getpid), 0, 0, 0, 0, 0, 0);
     TEST_ASSERT_EQ(direct, dispatched);
     TEST_ASSERT_EQ(direct, 7);
 
@@ -173,14 +173,14 @@ void test_dispatch_getpid() {
 
 void test_dispatch_getppid() {
     Task tmp{};
-    tmp.pid = 7;
-    tmp.ppid = 2;
+    tmp.pid    = 7;
+    tmp.ppid   = 2;
     Task* prev = cinux::proc::Scheduler::current();
     cinux::proc::Scheduler::set_current(&tmp);
 
     int64_t direct = sys_getppid(0, 0, 0, 0, 0, 0);
-    int64_t dispatched = syscall_dispatch(
-        static_cast<uint64_t>(SyscallNr::SYS_getppid), 0, 0, 0, 0, 0, 0);
+    int64_t dispatched =
+        syscall_dispatch(static_cast<uint64_t>(SyscallNr::SYS_getppid), 0, 0, 0, 0, 0, 0);
     TEST_ASSERT_EQ(direct, dispatched);
     TEST_ASSERT_EQ(direct, 2);
 
@@ -228,8 +228,8 @@ void test_pid_ppid_default_zero() {
 
 void test_pid_ppid_assignable() {
     Task t{};
-    t.pid = 42;
-    t.ppid = 1;
+    t.pid         = 42;
+    t.ppid        = 1;
     t.exit_status = 5;
     TEST_ASSERT_EQ(t.pid, 42);
     TEST_ASSERT_EQ(t.ppid, 1);
@@ -377,7 +377,7 @@ namespace test_sys_fork_dispatch {
 
 void test_dispatch_sys_fork() {
     Task tmp{};
-    tmp.pid = 42;
+    tmp.pid  = 42;
     tmp.ppid = 1;
     // kernel_stack_top must be set above the current RSP so fork()'s
     // stack usage calculation (kernel_stack_top - current_rsp) doesn't
@@ -385,7 +385,7 @@ void test_dispatch_sys_fork() {
     uint64_t rsp;
     __asm__ volatile("movq %%rsp, %0" : "=r"(rsp));
     tmp.kernel_stack_top = rsp + 16384;
-    Task* prev = cinux::proc::Scheduler::current();
+    Task* prev           = cinux::proc::Scheduler::current();
     cinux::proc::Scheduler::set_current(&tmp);
 
     // sys_fork will try to allocate from g_pid_alloc and call fork()
@@ -401,16 +401,16 @@ void test_dispatch_sys_fork() {
 
 void test_dispatch_sys_fork_via_table() {
     Task tmp{};
-    tmp.pid = 42;
+    tmp.pid  = 42;
     tmp.ppid = 1;
     uint64_t rsp;
     __asm__ volatile("movq %%rsp, %0" : "=r"(rsp));
     tmp.kernel_stack_top = rsp + 16384;
-    Task* prev = cinux::proc::Scheduler::current();
+    Task* prev           = cinux::proc::Scheduler::current();
     cinux::proc::Scheduler::set_current(&tmp);
 
-    int64_t dispatched = syscall_dispatch(
-        static_cast<uint64_t>(SyscallNr::SYS_fork), 0, 0, 0, 0, 0, 0);
+    int64_t dispatched =
+        syscall_dispatch(static_cast<uint64_t>(SyscallNr::SYS_fork), 0, 0, 0, 0, 0, 0);
     // Should be reachable via dispatch table (registered in syscall_init)
     TEST_ASSERT_TRUE(dispatched == -1 || dispatched >= 0);
 
@@ -547,18 +547,18 @@ void test_valid_header() {
     using namespace cinux::proc::elf;
 
     Elf64_Ehdr ehdr{};
-    ehdr.e_ident[0] = 0x7F;
-    ehdr.e_ident[1] = 'E';
-    ehdr.e_ident[2] = 'L';
-    ehdr.e_ident[3] = 'F';
-    ehdr.e_ident[4] = ELF_CLASS_64;
-    ehdr.e_ident[5] = ELF_DATA_LSB;
-    ehdr.e_type = ET_EXEC;
-    ehdr.e_machine = EM_X86_64;
-    ehdr.e_phoff = sizeof(Elf64_Ehdr);
+    ehdr.e_ident[0]  = 0x7F;
+    ehdr.e_ident[1]  = 'E';
+    ehdr.e_ident[2]  = 'L';
+    ehdr.e_ident[3]  = 'F';
+    ehdr.e_ident[4]  = ELF_CLASS_64;
+    ehdr.e_ident[5]  = ELF_DATA_LSB;
+    ehdr.e_type      = ET_EXEC;
+    ehdr.e_machine   = EM_X86_64;
+    ehdr.e_phoff     = sizeof(Elf64_Ehdr);
     ehdr.e_phentsize = sizeof(Elf64_Phdr);
-    ehdr.e_phnum = 1;
-    ehdr.e_entry = 0x400000;
+    ehdr.e_phnum     = 1;
+    ehdr.e_entry     = 0x400000;
 
     TEST_ASSERT_EQ(static_cast<int>(validate_elf_header(&ehdr, 4096)),
                    static_cast<int>(ElfValidateResult::Ok));
@@ -568,14 +568,14 @@ void test_bad_magic() {
     using namespace cinux::proc::elf;
 
     Elf64_Ehdr ehdr{};
-    ehdr.e_ident[0] = 0x00;
-    ehdr.e_ident[4] = ELF_CLASS_64;
-    ehdr.e_ident[5] = ELF_DATA_LSB;
-    ehdr.e_type = ET_EXEC;
-    ehdr.e_machine = EM_X86_64;
-    ehdr.e_phoff = sizeof(Elf64_Ehdr);
+    ehdr.e_ident[0]  = 0x00;
+    ehdr.e_ident[4]  = ELF_CLASS_64;
+    ehdr.e_ident[5]  = ELF_DATA_LSB;
+    ehdr.e_type      = ET_EXEC;
+    ehdr.e_machine   = EM_X86_64;
+    ehdr.e_phoff     = sizeof(Elf64_Ehdr);
     ehdr.e_phentsize = sizeof(Elf64_Phdr);
-    ehdr.e_phnum = 1;
+    ehdr.e_phnum     = 1;
 
     TEST_ASSERT_EQ(static_cast<int>(validate_elf_header(&ehdr, 4096)),
                    static_cast<int>(ElfValidateResult::BadMagic));
@@ -585,17 +585,17 @@ void test_bad_class() {
     using namespace cinux::proc::elf;
 
     Elf64_Ehdr ehdr{};
-    ehdr.e_ident[0] = 0x7F;
-    ehdr.e_ident[1] = 'E';
-    ehdr.e_ident[2] = 'L';
-    ehdr.e_ident[3] = 'F';
-    ehdr.e_ident[4] = 1;  // 32-bit
-    ehdr.e_ident[5] = ELF_DATA_LSB;
-    ehdr.e_type = ET_EXEC;
-    ehdr.e_machine = EM_X86_64;
-    ehdr.e_phoff = sizeof(Elf64_Ehdr);
+    ehdr.e_ident[0]  = 0x7F;
+    ehdr.e_ident[1]  = 'E';
+    ehdr.e_ident[2]  = 'L';
+    ehdr.e_ident[3]  = 'F';
+    ehdr.e_ident[4]  = 1;  // 32-bit
+    ehdr.e_ident[5]  = ELF_DATA_LSB;
+    ehdr.e_type      = ET_EXEC;
+    ehdr.e_machine   = EM_X86_64;
+    ehdr.e_phoff     = sizeof(Elf64_Ehdr);
     ehdr.e_phentsize = sizeof(Elf64_Phdr);
-    ehdr.e_phnum = 1;
+    ehdr.e_phnum     = 1;
 
     TEST_ASSERT_EQ(static_cast<int>(validate_elf_header(&ehdr, 4096)),
                    static_cast<int>(ElfValidateResult::BadClass));
@@ -605,17 +605,17 @@ void test_bad_machine() {
     using namespace cinux::proc::elf;
 
     Elf64_Ehdr ehdr{};
-    ehdr.e_ident[0] = 0x7F;
-    ehdr.e_ident[1] = 'E';
-    ehdr.e_ident[2] = 'L';
-    ehdr.e_ident[3] = 'F';
-    ehdr.e_ident[4] = ELF_CLASS_64;
-    ehdr.e_ident[5] = ELF_DATA_LSB;
-    ehdr.e_type = ET_EXEC;
-    ehdr.e_machine = 0;
-    ehdr.e_phoff = sizeof(Elf64_Ehdr);
+    ehdr.e_ident[0]  = 0x7F;
+    ehdr.e_ident[1]  = 'E';
+    ehdr.e_ident[2]  = 'L';
+    ehdr.e_ident[3]  = 'F';
+    ehdr.e_ident[4]  = ELF_CLASS_64;
+    ehdr.e_ident[5]  = ELF_DATA_LSB;
+    ehdr.e_type      = ET_EXEC;
+    ehdr.e_machine   = 0;
+    ehdr.e_phoff     = sizeof(Elf64_Ehdr);
     ehdr.e_phentsize = sizeof(Elf64_Phdr);
-    ehdr.e_phnum = 1;
+    ehdr.e_phnum     = 1;
 
     TEST_ASSERT_EQ(static_cast<int>(validate_elf_header(&ehdr, 4096)),
                    static_cast<int>(ElfValidateResult::BadMachine));
@@ -625,17 +625,17 @@ void test_no_phdrs() {
     using namespace cinux::proc::elf;
 
     Elf64_Ehdr ehdr{};
-    ehdr.e_ident[0] = 0x7F;
-    ehdr.e_ident[1] = 'E';
-    ehdr.e_ident[2] = 'L';
-    ehdr.e_ident[3] = 'F';
-    ehdr.e_ident[4] = ELF_CLASS_64;
-    ehdr.e_ident[5] = ELF_DATA_LSB;
-    ehdr.e_type = ET_EXEC;
-    ehdr.e_machine = EM_X86_64;
-    ehdr.e_phoff = sizeof(Elf64_Ehdr);
+    ehdr.e_ident[0]  = 0x7F;
+    ehdr.e_ident[1]  = 'E';
+    ehdr.e_ident[2]  = 'L';
+    ehdr.e_ident[3]  = 'F';
+    ehdr.e_ident[4]  = ELF_CLASS_64;
+    ehdr.e_ident[5]  = ELF_DATA_LSB;
+    ehdr.e_type      = ET_EXEC;
+    ehdr.e_machine   = EM_X86_64;
+    ehdr.e_phoff     = sizeof(Elf64_Ehdr);
     ehdr.e_phentsize = sizeof(Elf64_Phdr);
-    ehdr.e_phnum = 0;
+    ehdr.e_phnum     = 0;
 
     TEST_ASSERT_EQ(static_cast<int>(validate_elf_header(&ehdr, 4096)),
                    static_cast<int>(ElfValidateResult::NoPhdrs));
@@ -653,13 +653,13 @@ void test_pt_load_segment_fields() {
     using namespace cinux::proc::elf;
 
     Elf64_Phdr phdr{};
-    phdr.p_type = PT_LOAD;
-    phdr.p_flags = PF_R | PF_W | PF_X;
+    phdr.p_type   = PT_LOAD;
+    phdr.p_flags  = PF_R | PF_W | PF_X;
     phdr.p_offset = 0;
-    phdr.p_vaddr = 0x400000;
+    phdr.p_vaddr  = 0x400000;
     phdr.p_filesz = 0x1000;
-    phdr.p_memsz = 0x2000;
-    phdr.p_align = 0x1000;
+    phdr.p_memsz  = 0x2000;
+    phdr.p_align  = 0x1000;
 
     TEST_ASSERT_EQ(phdr.p_type, PT_LOAD);
     TEST_ASSERT_EQ(phdr.p_vaddr, 0x400000ULL);
@@ -694,14 +694,14 @@ void test_dispatch_sys_execve() {
     // In the test harness, VFS is not mounted, so execve with a
     // non-empty path should return an error (FileNotFound or similar).
     Task tmp{};
-    tmp.pid = 42;
-    tmp.ppid = 1;
+    tmp.pid    = 42;
+    tmp.ppid   = 1;
     Task* prev = cinux::proc::Scheduler::current();
     cinux::proc::Scheduler::set_current(&tmp);
 
     // Pass a kernel pointer to a path string
     const char* path = "/bin/test";
-    int64_t ret = sys_execve(reinterpret_cast<uint64_t>(path), 0, 0, 0, 0, 0);
+    int64_t     ret  = sys_execve(reinterpret_cast<uint64_t>(path), 0, 0, 0, 0, 0);
     // Should fail: no VFS mounted, no address space on the temp task
     TEST_ASSERT_TRUE(ret < 0);
 
@@ -710,15 +710,14 @@ void test_dispatch_sys_execve() {
 
 void test_dispatch_sys_execve_via_table() {
     Task tmp{};
-    tmp.pid = 42;
-    tmp.ppid = 1;
+    tmp.pid    = 42;
+    tmp.ppid   = 1;
     Task* prev = cinux::proc::Scheduler::current();
     cinux::proc::Scheduler::set_current(&tmp);
 
-    const char* path = "/bin/test";
-    int64_t dispatched = syscall_dispatch(
-        static_cast<uint64_t>(SyscallNr::SYS_execve),
-        reinterpret_cast<uint64_t>(path), 0, 0, 0, 0, 0);
+    const char* path       = "/bin/test";
+    int64_t     dispatched = syscall_dispatch(static_cast<uint64_t>(SyscallNr::SYS_execve),
+                                              reinterpret_cast<uint64_t>(path), 0, 0, 0, 0, 0);
     TEST_ASSERT_TRUE(dispatched < 0);
 
     cinux::proc::Scheduler::set_current(prev);
@@ -823,13 +822,13 @@ void test_waitpid_no_children() {
     // after the previous test restored the original value.
     // Install a temp task with no children.
     Task tmp{};
-    tmp.pid = 10;
-    tmp.ppid = 1;
+    tmp.pid      = 10;
+    tmp.ppid     = 1;
     tmp.children = nullptr;
-    Task* prev = cinux::proc::Scheduler::current();
+    Task* prev   = cinux::proc::Scheduler::current();
     cinux::proc::Scheduler::set_current(&tmp);
 
-    int status = 0;
+    int  status = 0;
     auto result = cinux::proc::waitpid(-1, &status, cinux::proc::g_pid_alloc);
     TEST_ASSERT_EQ(static_cast<int>(result),
                    static_cast<int>(cinux::proc::WaitpidResult::NoChildren));
@@ -839,24 +838,24 @@ void test_waitpid_no_children() {
 
 void test_waitpid_zombie_child_reaped() {
     PidAllocator local_alloc;
-    Task tmp{};
-    tmp.pid = 20;
+    Task         tmp{};
+    tmp.pid  = 20;
     tmp.ppid = 1;
 
     Task child{};
-    child.pid = 21;
-    child.ppid = 20;
-    child.state = TaskState::Zombie;
+    child.pid         = 21;
+    child.ppid        = 20;
+    child.state       = TaskState::Zombie;
     child.exit_status = 7;
 
     // Link child into parent
     child.wait_next = tmp.children;
-    tmp.children = &child;
+    tmp.children    = &child;
 
     Task* prev = cinux::proc::Scheduler::current();
     cinux::proc::Scheduler::set_current(&tmp);
 
-    int status = 0;
+    int  status = 0;
     auto result = cinux::proc::waitpid(21, &status, local_alloc);
 
     TEST_ASSERT_EQ(static_cast<int>(result), static_cast<int>(cinux::proc::WaitpidResult::Ok));
@@ -869,28 +868,28 @@ void test_waitpid_zombie_child_reaped() {
 
 void test_waitpid_any_zombie() {
     PidAllocator local_alloc;
-    Task tmp{};
-    tmp.pid = 30;
+    Task         tmp{};
+    tmp.pid  = 30;
     tmp.ppid = 1;
 
     Task child1{};
-    child1.pid = 31;
+    child1.pid   = 31;
     child1.state = TaskState::Running;
 
     Task child2{};
-    child2.pid = 32;
-    child2.state = TaskState::Zombie;
+    child2.pid         = 32;
+    child2.state       = TaskState::Zombie;
     child2.exit_status = 99;
 
     // children: child1 -> child2
     child1.wait_next = &child2;
     child2.wait_next = nullptr;
-    tmp.children = &child1;
+    tmp.children     = &child1;
 
     Task* prev = cinux::proc::Scheduler::current();
     cinux::proc::Scheduler::set_current(&tmp);
 
-    int status = 0;
+    int  status = 0;
     auto result = cinux::proc::waitpid(-1, &status, local_alloc);
 
     TEST_ASSERT_EQ(static_cast<int>(result), static_cast<int>(cinux::proc::WaitpidResult::Ok));
@@ -903,21 +902,21 @@ void test_waitpid_any_zombie() {
 
 void test_waitpid_not_exited() {
     PidAllocator local_alloc;
-    Task tmp{};
-    tmp.pid = 40;
+    Task         tmp{};
+    tmp.pid  = 40;
     tmp.ppid = 1;
 
     Task child{};
-    child.pid = 41;
+    child.pid   = 41;
     child.state = TaskState::Running;
 
     child.wait_next = nullptr;
-    tmp.children = &child;
+    tmp.children    = &child;
 
     Task* prev = cinux::proc::Scheduler::current();
     cinux::proc::Scheduler::set_current(&tmp);
 
-    int status = 0;
+    int  status = 0;
     auto result = cinux::proc::waitpid(41, &status, local_alloc);
 
     TEST_ASSERT_EQ(static_cast<int>(result),
@@ -928,20 +927,20 @@ void test_waitpid_not_exited() {
 
 void test_waitpid_not_found() {
     PidAllocator local_alloc;
-    Task tmp{};
-    tmp.pid = 50;
+    Task         tmp{};
+    tmp.pid  = 50;
     tmp.ppid = 1;
 
     Task child{};
-    child.pid = 51;
-    child.state = TaskState::Zombie;
+    child.pid       = 51;
+    child.state     = TaskState::Zombie;
     child.wait_next = nullptr;
-    tmp.children = &child;
+    tmp.children    = &child;
 
     Task* prev = cinux::proc::Scheduler::current();
     cinux::proc::Scheduler::set_current(&tmp);
 
-    int status = 0;
+    int  status = 0;
     auto result = cinux::proc::waitpid(99, &status, local_alloc);
 
     TEST_ASSERT_EQ(static_cast<int>(result),
@@ -952,20 +951,20 @@ void test_waitpid_not_found() {
 
 void test_waitpid_invalid_pid() {
     PidAllocator local_alloc;
-    Task tmp{};
-    tmp.pid = 60;
+    Task         tmp{};
+    tmp.pid  = 60;
     tmp.ppid = 1;
 
     Task child{};
-    child.pid = 61;
-    child.state = TaskState::Zombie;
+    child.pid       = 61;
+    child.state     = TaskState::Zombie;
     child.wait_next = nullptr;
-    tmp.children = &child;
+    tmp.children    = &child;
 
     Task* prev = cinux::proc::Scheduler::current();
     cinux::proc::Scheduler::set_current(&tmp);
 
-    int status = 0;
+    int  status = 0;
     auto result = cinux::proc::waitpid(0, &status, local_alloc);
 
     TEST_ASSERT_EQ(static_cast<int>(result),
@@ -984,10 +983,10 @@ namespace test_sys_waitpid_dispatch {
 
 void test_dispatch_sys_waitpid() {
     Task tmp{};
-    tmp.pid = 70;
-    tmp.ppid = 1;
+    tmp.pid      = 70;
+    tmp.ppid     = 1;
     tmp.children = nullptr;
-    Task* prev = cinux::proc::Scheduler::current();
+    Task* prev   = cinux::proc::Scheduler::current();
     cinux::proc::Scheduler::set_current(&tmp);
 
     // No children: should return negative error (ECHILD)
@@ -999,15 +998,14 @@ void test_dispatch_sys_waitpid() {
 
 void test_dispatch_sys_waitpid_via_table() {
     Task tmp{};
-    tmp.pid = 71;
-    tmp.ppid = 1;
+    tmp.pid      = 71;
+    tmp.ppid     = 1;
     tmp.children = nullptr;
-    Task* prev = cinux::proc::Scheduler::current();
+    Task* prev   = cinux::proc::Scheduler::current();
     cinux::proc::Scheduler::set_current(&tmp);
 
-    int64_t dispatched = syscall_dispatch(
-        static_cast<uint64_t>(SyscallNr::SYS_waitpid),
-        static_cast<uint64_t>(-1), 0, 0, 0, 0, 0);
+    int64_t dispatched = syscall_dispatch(static_cast<uint64_t>(SyscallNr::SYS_waitpid),
+                                          static_cast<uint64_t>(-1), 0, 0, 0, 0, 0);
     TEST_ASSERT_TRUE(dispatched < 0);
 
     cinux::proc::Scheduler::set_current(prev);
@@ -1023,8 +1021,8 @@ namespace test_waitpid_pid_reuse {
 
 void test_reaped_pid_is_freed() {
     PidAllocator local_alloc;
-    Task tmp{};
-    tmp.pid = 80;
+    Task         tmp{};
+    tmp.pid  = 80;
     tmp.ppid = 1;
 
     // Allocate a PID for the child
@@ -1032,17 +1030,17 @@ void test_reaped_pid_is_freed() {
     TEST_ASSERT_TRUE(local_alloc.is_allocated(child_pid));
 
     Task child{};
-    child.pid = child_pid;
-    child.ppid = 80;
-    child.state = TaskState::Zombie;
+    child.pid         = child_pid;
+    child.ppid        = 80;
+    child.state       = TaskState::Zombie;
     child.exit_status = 0;
-    child.wait_next = nullptr;
-    tmp.children = &child;
+    child.wait_next   = nullptr;
+    tmp.children      = &child;
 
     Task* prev = cinux::proc::Scheduler::current();
     cinux::proc::Scheduler::set_current(&tmp);
 
-    int status = 0;
+    int  status = 0;
     auto result = cinux::proc::waitpid(child_pid, &status, local_alloc);
 
     TEST_ASSERT_EQ(static_cast<int>(result), static_cast<int>(cinux::proc::WaitpidResult::Ok));

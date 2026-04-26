@@ -56,13 +56,13 @@ enum class IconAction : uint8_t {
  *   if (icon.contains(mouse_x, mouse_y)) { ... }
  */
 struct DesktopIcon {
-    int32_t      x;       ///< Icon left edge in screen pixels
-    int32_t      y;       ///< Icon top edge in screen pixels
+    int32_t         x;       ///< Icon left edge in screen pixels
+    int32_t         y;       ///< Icon top edge in screen pixels
     const uint32_t* bitmap;  ///< Pointer to pixel data (w*h uint32_t values)
-    const char*  label;   ///< Null-terminated icon label string
-    uint32_t     width;   ///< Bitmap width in pixels
-    uint32_t     height;  ///< Bitmap height in pixels
-    IconAction   action;  ///< Action to perform on activation
+    const char*     label;   ///< Null-terminated icon label string
+    uint32_t        width;   ///< Bitmap width in pixels
+    uint32_t        height;  ///< Bitmap height in pixels
+    IconAction      action;  ///< Action to perform on activation
 
     /**
      * @brief Check whether a screen coordinate falls within the icon bounds
@@ -74,8 +74,8 @@ struct DesktopIcon {
      * @return    true if the point is inside the icon's bounding rectangle
      */
     [[nodiscard]] bool contains(int32_t mx, int32_t my) const {
-        return mx >= x && mx < static_cast<int32_t>(x + width)
-            && my >= y && my < static_cast<int32_t>(y + height);
+        return mx >= x && mx < static_cast<int32_t>(x + width) && my >= y &&
+               my < static_cast<int32_t>(y + height);
     }
 };
 

@@ -26,8 +26,8 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstring>
+#    include <cstdint>
+#    include <cstring>
 
 // ============================================================
 // Replicate internal constants from keyboard.cpp for testing
@@ -37,42 +37,42 @@ static constexpr uint32_t SCAN_TABLE_SIZE = 128;
 
 /// Scan code set 1 -> lowercase ASCII (copied from keyboard.cpp)
 static constexpr char kScToLower[SCAN_TABLE_SIZE] = {
-    0,   27,  '1', '2', '3', '4', '5', '6',  // 0x00-0x07
-    '7', '8', '9', '0', '-', '=', '\b', 0,    // 0x08-0x0F
-    'q', 'w', 'e', 'r', 't', 'y', 'u', 'i',  // 0x10-0x17
-    'o', 'p', '[', ']', '\n', 0,   'a', 's',  // 0x18-0x1F
-    'd', 'f', 'g', 'h', 'j', 'k', 'l', ';',  // 0x20-0x27
-    '\'', '`', 0,   '\\', 'z', 'x', 'c', 'v', // 0x28-0x2F
-    'b', 'n', 'm', ',', '.', '/', 0,   '*',   // 0x30-0x37
-    0,   ' ', 0,   0,   0,   0,   0,   0,    // 0x38-0x3F
-    0,   0,   0,   0,   0,   0,   0,   '7',  // 0x40-0x47
-    '8', '9', '-', '4', '5', '6', '+', '1',  // 0x48-0x4F
-    '2', '3', '0', '.', 0,   0,   0,   0,    // 0x50-0x57
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x58-0x5F
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x60-0x67
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x68-0x6F
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x70-0x77
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x78-0x7F
+    0,    27,  '1', '2',  '3',  '4', '5',  '6',  // 0x00-0x07
+    '7',  '8', '9', '0',  '-',  '=', '\b', 0,    // 0x08-0x0F
+    'q',  'w', 'e', 'r',  't',  'y', 'u',  'i',  // 0x10-0x17
+    'o',  'p', '[', ']',  '\n', 0,   'a',  's',  // 0x18-0x1F
+    'd',  'f', 'g', 'h',  'j',  'k', 'l',  ';',  // 0x20-0x27
+    '\'', '`', 0,   '\\', 'z',  'x', 'c',  'v',  // 0x28-0x2F
+    'b',  'n', 'm', ',',  '.',  '/', 0,    '*',  // 0x30-0x37
+    0,    ' ', 0,   0,    0,    0,   0,    0,    // 0x38-0x3F
+    0,    0,   0,   0,    0,    0,   0,    '7',  // 0x40-0x47
+    '8',  '9', '-', '4',  '5',  '6', '+',  '1',  // 0x48-0x4F
+    '2',  '3', '0', '.',  0,    0,   0,    0,    // 0x50-0x57
+    0,    0,   0,   0,    0,    0,   0,    0,    // 0x58-0x5F
+    0,    0,   0,   0,    0,    0,   0,    0,    // 0x60-0x67
+    0,    0,   0,   0,    0,    0,   0,    0,    // 0x68-0x6F
+    0,    0,   0,   0,    0,    0,   0,    0,    // 0x70-0x77
+    0,    0,   0,   0,    0,    0,   0,    0,    // 0x78-0x7F
 };
 
 /// Scan code set 1 -> uppercase/shifted ASCII (copied from keyboard.cpp)
 static constexpr char kScToUpper[SCAN_TABLE_SIZE] = {
-    0,   27,  '!', '@', '#', '$', '%', '^',  // 0x00-0x07
-    '&', '*', '(', ')', '_', '+', '\b', 0,   // 0x08-0x0F
-    'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', // 0x10-0x17
-    'O', 'P', '{', '}', '\n', 0,   'A', 'S', // 0x18-0x1F
-    'D', 'F', 'G', 'H', 'J', 'K', 'L', ':', // 0x20-0x27
-    '"', '~', 0,   '|', 'Z', 'X', 'C', 'V',  // 0x28-0x2F
-    'B', 'N', 'M', '<', '>', '?', 0,   '*',  // 0x30-0x37
-    0,   ' ', 0,   0,   0,   0,   0,   0,    // 0x38-0x3F
-    0,   0,   0,   0,   0,   0,   0,   '7',  // 0x40-0x47
-    '8', '9', '-', '4', '5', '6', '+', '1',  // 0x48-0x4F
-    '2', '3', '0', '.', 0,   0,   0,   0,    // 0x50-0x57
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x58-0x5F
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x60-0x67
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x68-0x6F
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x70-0x77
-    0,   0,   0,   0,   0,   0,   0,   0,    // 0x78-0x7F
+    0,   27,  '!', '@', '#',  '$', '%',  '^',  // 0x00-0x07
+    '&', '*', '(', ')', '_',  '+', '\b', 0,    // 0x08-0x0F
+    'Q', 'W', 'E', 'R', 'T',  'Y', 'U',  'I',  // 0x10-0x17
+    'O', 'P', '{', '}', '\n', 0,   'A',  'S',  // 0x18-0x1F
+    'D', 'F', 'G', 'H', 'J',  'K', 'L',  ':',  // 0x20-0x27
+    '"', '~', 0,   '|', 'Z',  'X', 'C',  'V',  // 0x28-0x2F
+    'B', 'N', 'M', '<', '>',  '?', 0,    '*',  // 0x30-0x37
+    0,   ' ', 0,   0,   0,    0,   0,    0,    // 0x38-0x3F
+    0,   0,   0,   0,   0,    0,   0,    '7',  // 0x40-0x47
+    '8', '9', '-', '4', '5',  '6', '+',  '1',  // 0x48-0x4F
+    '2', '3', '0', '.', 0,    0,   0,    0,    // 0x50-0x57
+    0,   0,   0,   0,   0,    0,   0,    0,    // 0x58-0x5F
+    0,   0,   0,   0,   0,    0,   0,    0,    // 0x60-0x67
+    0,   0,   0,   0,   0,    0,   0,    0,    // 0x68-0x6F
+    0,   0,   0,   0,   0,    0,   0,    0,    // 0x70-0x77
+    0,   0,   0,   0,   0,    0,   0,    0,    // 0x78-0x7F
 };
 
 // ============================================================
@@ -121,7 +121,7 @@ static bool ring_poll(KeyEvent& out) {
     if (head_ == tail_) {
         return false;
     }
-    out = queue_[head_];
+    out   = queue_[head_];
     head_ = (head_ + 1) % KEY_QUEUE_SIZE;
     return true;
 }
@@ -132,7 +132,7 @@ static void ring_enqueue(const KeyEvent& ev) {
         return;  // drop on full
     }
     queue_[tail_] = ev;
-    tail_ = next;
+    tail_         = next;
 }
 
 // ============================================================
@@ -160,7 +160,7 @@ static bool decode_scancode(uint8_t sc, KeyEvent& out) {
         return false;
     }
 
-    bool pressed   = (sc & 0x80) == 0;
+    bool    pressed   = (sc & 0x80) == 0;
     uint8_t make_code = sc & 0x7F;
 
     // Modifier tracking
@@ -182,8 +182,7 @@ static bool decode_scancode(uint8_t sc, KeyEvent& out) {
     out.ascii    = 0;
 
     if (pressed && make_code < SCAN_TABLE_SIZE) {
-        out.ascii = shift_held ? kScToUpper[make_code]
-                               : kScToLower[make_code];
+        out.ascii = shift_held ? kScToUpper[make_code] : kScToLower[make_code];
     }
 
     return true;
@@ -296,8 +295,8 @@ TEST("keyboard: scancode 0x00 maps to 0") {
 /// Verify modifier key scan codes themselves have no printable ASCII
 TEST("keyboard: modifier scancodes have no ASCII mapping") {
     ASSERT_EQ(kScToLower[ScanCode::LSHIFT], 0);  // 0x2A
-    ASSERT_EQ(kScToLower[ScanCode::LCTRL],  0);   // 0x1D
-    ASSERT_EQ(kScToLower[ScanCode::LALT],   0);   // 0x38
+    ASSERT_EQ(kScToLower[ScanCode::LCTRL], 0);   // 0x1D
+    ASSERT_EQ(kScToLower[ScanCode::LALT], 0);    // 0x38
 }
 
 /// Verify Alt scan code (0x38) entry in the lower table is 0
@@ -312,28 +311,28 @@ TEST("keyboard: scancode 0x38 (Alt) maps to 0 in lower table") {
 
 /// Verify a make code (press) has bit 7 clear
 TEST("keyboard: make code has bit 7 clear -> pressed=true") {
-    uint8_t sc = 0x1E;  // 'a' press
-    bool pressed = (sc & 0x80) == 0;
+    uint8_t sc      = 0x1E;  // 'a' press
+    bool    pressed = (sc & 0x80) == 0;
     ASSERT_TRUE(pressed);
 }
 
 /// Verify a break code (release) has bit 7 set -> pressed=false
 TEST("keyboard: break code has bit 7 set -> pressed=false") {
-    uint8_t sc = 0x9E;  // 'a' release = 0x1E | 0x80
-    bool pressed = (sc & 0x80) == 0;
+    uint8_t sc      = 0x9E;  // 'a' release = 0x1E | 0x80
+    bool    pressed = (sc & 0x80) == 0;
     ASSERT_FALSE(pressed);
 }
 
 /// Verify make_code extraction masks off bit 7
 TEST("keyboard: break code 0x9E has make_code 0x1E") {
-    uint8_t sc = 0x9E;
+    uint8_t sc        = 0x9E;
     uint8_t make_code = sc & 0x7F;
     ASSERT_EQ(make_code, 0x1Eu);
 }
 
 /// Verify break code for LShift (0xAA) extracts make_code 0x2A
 TEST("keyboard: break code 0xAA (LShift release) -> make_code 0x2A") {
-    uint8_t sc = 0xAA;  // 0x2A | 0x80
+    uint8_t sc        = 0xAA;  // 0x2A | 0x80
     uint8_t make_code = sc & 0x7F;
     ASSERT_EQ(make_code, 0x2Au);
 }
@@ -376,7 +375,7 @@ TEST("keyboard: RShift release clears shift modifier") {
     modifier_reset();
     KeyEvent ev{};
     decode_scancode(ScanCode::RSHIFT, ev);  // press
-    decode_scancode(0xB6, ev);             // 0x36 | 0x80 = release
+    decode_scancode(0xB6, ev);              // 0x36 | 0x80 = release
     ASSERT_FALSE(shift_held);
 }
 
@@ -446,8 +445,8 @@ TEST("keyboard: shift release restores lowercase for next key") {
     decode_scancode(ScanCode::LSHIFT, ev);  // shift press
     decode_scancode(0x1E, ev);              // 'a' press -> 'A'
     ASSERT_EQ(ev.ascii, 'A');
-    decode_scancode(0xAA, ev);              // shift release
-    decode_scancode(0x1E, ev);              // 'a' press -> 'a'
+    decode_scancode(0xAA, ev);  // shift release
+    decode_scancode(0x1E, ev);  // 'a' press -> 'a'
     ASSERT_EQ(ev.ascii, 'a');
 }
 
@@ -495,7 +494,7 @@ TEST("keyboard: number row 1-9,0 produces correct digits") {
 /// Verify 0xE0 is recognized as an extended prefix (decode returns false)
 TEST("keyboard: extended prefix 0xE0 is skipped") {
     KeyEvent ev{};
-    bool result = decode_scancode(ScanCode::EXTENDED, ev);
+    bool     result = decode_scancode(ScanCode::EXTENDED, ev);
     ASSERT_FALSE(result);
 }
 

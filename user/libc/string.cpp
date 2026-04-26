@@ -4,6 +4,7 @@
  */
 
 #include "libc/string.hpp"
+
 #include <stdint.h>
 
 namespace cinux::user {
@@ -28,7 +29,7 @@ int strcmp(const char* a, const char* b) {
 }
 
 void* memset(void* dest, int c, size_t n) {
-    auto*      d = static_cast<uint8_t*>(dest);
+    auto*         d = static_cast<uint8_t*>(dest);
     const uint8_t v = static_cast<uint8_t>(c);
     for (size_t i = 0; i < n; ++i) {
         d[i] = v;

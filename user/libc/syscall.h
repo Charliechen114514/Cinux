@@ -14,8 +14,8 @@
 
 #pragma once
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 int64_t sys_open(const char* path, int flags);
 int64_t sys_close(int fd);
@@ -28,8 +28,8 @@ int64_t sys_unlink(const char* path);
 int64_t sys_rmdir(const char* path);
 int64_t sys_chdir(const char* path);
 int64_t sys_getcwd(char* buf, size_t size);
-void sys_exit(int code);
-void sys_yield(void);
+void    sys_exit(int code);
+void    sys_yield(void);
 
 struct sys_stat {
     uint64_t st_dev;

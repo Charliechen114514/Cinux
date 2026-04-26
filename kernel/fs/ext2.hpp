@@ -18,8 +18,8 @@
 
 #pragma once
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "fs/ext2_types.hpp"
 #include "fs/inode.hpp"
@@ -54,10 +54,8 @@ class Ext2FileOps : public InodeOps {
 public:
     explicit Ext2FileOps(Ext2& ext2);
 
-    int64_t read(const Inode* inode, uint64_t offset,
-                 void* buf, uint64_t count) override;
-    int64_t write(Inode* inode, uint64_t offset,
-                  const void* buf, uint64_t count) override;
+    int64_t read(const Inode* inode, uint64_t offset, void* buf, uint64_t count) override;
+    int64_t write(Inode* inode, uint64_t offset, const void* buf, uint64_t count) override;
     int64_t stat(const Inode* inode, struct stat* st) override;
 
 private:
@@ -74,10 +72,9 @@ class Ext2DirOps : public InodeOps {
 public:
     explicit Ext2DirOps(Ext2& ext2);
 
-    int64_t readdir(const Inode* inode, uint64_t index,
-                    char* name, uint64_t name_max) override;
-    Inode* create(Inode* dir, const char* name, uint32_t namelen) override;
-    Inode* mkdir(Inode* dir, const char* name, uint32_t namelen) override;
+    int64_t readdir(const Inode* inode, uint64_t index, char* name, uint64_t name_max) override;
+    Inode*  create(Inode* dir, const char* name, uint32_t namelen) override;
+    Inode*  mkdir(Inode* dir, const char* name, uint32_t namelen) override;
     int64_t unlink(Inode* dir, const char* name, uint32_t namelen) override;
     int64_t stat(const Inode* inode, struct stat* st) override;
 
@@ -320,8 +317,7 @@ public:
      * @param file_type    Ext2FileType value for the new entry
      * @return true on success, false on failure
      */
-    bool add_dir_entry(uint32_t dir_ino, Ext2Inode& dir_disk,
-                       uint32_t entry_ino, const char* name,
+    bool add_dir_entry(uint32_t dir_ino, Ext2Inode& dir_disk, uint32_t entry_ino, const char* name,
                        uint32_t name_len, Ext2FileType file_type);
 
     /**
@@ -334,9 +330,8 @@ public:
      * @param out_entry_ino  [out] Inode number of the removed entry
      * @return true on success, false on failure
      */
-    bool remove_dir_entry(uint32_t dir_ino, const Ext2Inode& dir_disk,
-                          const char* name, uint32_t name_len,
-                          uint32_t& out_entry_ino);
+    bool remove_dir_entry(uint32_t dir_ino, const Ext2Inode& dir_disk, const char* name,
+                          uint32_t name_len, uint32_t& out_entry_ino);
 
 private:
     // ============================================================

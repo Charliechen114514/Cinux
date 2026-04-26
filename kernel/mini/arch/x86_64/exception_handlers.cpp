@@ -49,7 +49,7 @@ void dump_interrupt_frame(const InterruptFrame* frame, const char* vec_name, uin
     kprintf("========================================\n");
 }
 
-} // anonymous namespace
+}  // anonymous namespace
 
 // ============================================================
 // Public Interface (extern "C", called from interrupts.S)
@@ -98,10 +98,10 @@ extern "C" void handle_bp(InterruptFrame* frame) {
 extern "C" void handle_pf(InterruptFrame* frame) {
     // Step 1: Read CR2 to get the faulting address
     uint64_t fault_addr;
-    __asm__ volatile ("movq %%cr2, %0" : "=r"(fault_addr));
+    __asm__ volatile("movq %%cr2, %0" : "=r"(fault_addr));
 
     // Step 2: Parse the error code
-    uint64_t err = frame->error_code;
+    uint64_t    err      = frame->error_code;
     const char* present  = (err & 0x01) ? "protection violation" : "page not present";
     const char* access   = (err & 0x02) ? "write" : "read";
     const char* mode     = (err & 0x04) ? "user" : "kernel";
@@ -110,8 +110,7 @@ extern "C" void handle_pf(InterruptFrame* frame) {
 
     // Step 3: Print detailed page fault information
     dump_interrupt_frame(frame, "#PF", 14);
-    kprintf("[EXCEPTION] Page Fault: %s %s %s%s%s\n",
-            present, access, mode, reserved, fetch);
+    kprintf("[EXCEPTION] Page Fault: %s %s %s%s%s\n", present, access, mode, reserved, fetch);
     kprintf("[EXCEPTION] Faulting address (CR2) = 0x%016x\n", fault_addr);
     kprintf("[EXCEPTION] Continuing execution...\n");
 }

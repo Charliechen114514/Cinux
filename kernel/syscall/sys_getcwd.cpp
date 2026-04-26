@@ -14,8 +14,7 @@
 
 namespace cinux::syscall {
 
-int64_t sys_getcwd(uint64_t buf_virt, uint64_t size, uint64_t,
-                   uint64_t, uint64_t, uint64_t) {
+int64_t sys_getcwd(uint64_t buf_virt, uint64_t size, uint64_t, uint64_t, uint64_t, uint64_t) {
     // Validate user pointer
     if (buf_virt == 0) {
         return -1;

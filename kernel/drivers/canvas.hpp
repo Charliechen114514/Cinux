@@ -38,7 +38,7 @@ public:
         }
     }
 
-    Canvas(const Canvas&) = delete;
+    Canvas(const Canvas&)            = delete;
     Canvas& operator=(const Canvas&) = delete;
 
     /**
@@ -123,8 +123,7 @@ public:
      * @param y1     End Y coordinate
      * @param color  Line colour in 0x00RRGGBB format
      */
-    void draw_line(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1,
-                   uint32_t color);
+    void draw_line(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1, uint32_t color);
 
     /**
      * @brief Render a null-terminated string to the back buffer
@@ -138,8 +137,7 @@ public:
      * @param color  Text colour in 0x00RRGGBB format
      * @param font   Reference to an initialised PSFFont
      */
-    void draw_text(uint32_t x, uint32_t y, const char* str, uint32_t color,
-                   PSFFont& font);
+    void draw_text(uint32_t x, uint32_t y, const char* str, uint32_t color, PSFFont& font);
 
     /**
      * @brief Copy a rectangular region from another canvas to this canvas
@@ -159,8 +157,8 @@ public:
      * @param w      Width of the region to copy
      * @param h      Height of the region to copy
      */
-    void blit(int32_t dst_x, int32_t dst_y, Canvas& src,
-              uint32_t sx, uint32_t sy, uint32_t w, uint32_t h);
+    void blit(int32_t dst_x, int32_t dst_y, Canvas& src, uint32_t sx, uint32_t sy, uint32_t w,
+              uint32_t h);
 
     /**
      * @brief Draw a pixel bitmap with transparency onto the back buffer
@@ -176,8 +174,7 @@ public:
      * @param h       Bitmap height in pixels
      * @param pixels  Span of w*h pixel values (row-major, top-to-bottom)
      */
-    void draw_bitmap(uint32_t x, uint32_t y, uint32_t w, uint32_t h,
-                     const uint32_t* pixels);
+    void draw_bitmap(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const uint32_t* pixels);
 
     uint32_t width() const { return width_; }
     uint32_t height() const { return height_; }

@@ -57,8 +57,7 @@ public:
      * @param h      Height in pixels
      * @param argb   Fill colour in 0x00RRGGBB format
      */
-    void fill_rect(uint32_t x, uint32_t y, uint32_t w, uint32_t h,
-                   uint32_t argb);
+    void fill_rect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t argb);
 
     /**
      * @brief Scroll the framebuffer contents upward by the given number
@@ -104,11 +103,11 @@ public:
     volatile uint32_t* data() const { return addr_; }
 
 private:
-    volatile uint32_t* addr_ = nullptr;
-    uint32_t width_ = 0;
-    uint32_t height_ = 0;
-    uint32_t pitch_ = 0;    // bytes per scan line
-    uint32_t bpp_ = 0;
+    volatile uint32_t* addr_   = nullptr;
+    uint32_t           width_  = 0;
+    uint32_t           height_ = 0;
+    uint32_t           pitch_  = 0;  // bytes per scan line
+    uint32_t           bpp_    = 0;
 };
 
 }  // namespace cinux::drivers

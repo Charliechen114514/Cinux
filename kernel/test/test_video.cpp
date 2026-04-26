@@ -12,7 +12,6 @@
  */
 
 #include "big_kernel_test.h"
-
 #include "boot/boot_info.h"
 #include "kernel/drivers/video/console.hpp"
 #include "kernel/drivers/video/font.hpp"
@@ -27,7 +26,7 @@ static constexpr uintptr_t BOOT_INFO_PHYS = 0x7000;
 namespace {
 
 Framebuffer g_fb;
-PSFFont g_font;
+PSFFont     g_font;
 
 }  // anonymous namespace
 
@@ -113,8 +112,7 @@ void test_font_init() {
 
 void test_font_render_char() {
     g_fb.clear(0);
-    g_font.render_char(g_fb, static_cast<uint8_t>('A'), 0, 0,
-                       0x00FFFFFF, 0x00000000);
+    g_font.render_char(g_fb, static_cast<uint8_t>('A'), 0, 0, 0x00FFFFFF, 0x00000000);
 
     // 'A' should have at least one foreground (white) pixel in its glyph
     bool has_fg = false;
@@ -122,8 +120,10 @@ void test_font_render_char() {
     for (uint32_t row = 0; row < g_font.height(); row++) {
         for (uint32_t col = 0; col < g_font.width(); col++) {
             uint32_t px = g_fb.get_pixel(col, row);
-            if (px == 0x00FFFFFF) has_fg = true;
-            if (px == 0) has_bg = true;
+            if (px == 0x00FFFFFF)
+                has_fg = true;
+            if (px == 0)
+                has_bg = true;
         }
     }
     TEST_ASSERT_TRUE(has_fg);
@@ -132,8 +132,7 @@ void test_font_render_char() {
 
 void test_font_render_with_bg_color() {
     g_fb.clear(0);
-    g_font.render_char(g_fb, static_cast<uint8_t>(' '), 0, 0,
-                       0x00FFFFFF, 0x00FF0000);
+    g_font.render_char(g_fb, static_cast<uint8_t>(' '), 0, 0, 0x00FFFFFF, 0x00FF0000);
 
     // Space glyph is all background -- entire 8x16 area should be red
     TEST_ASSERT_EQ(g_fb.get_pixel(0, 0), 0x00FF0000u);
@@ -160,7 +159,8 @@ void test_console_putc_visible() {
                 break;
             }
         }
-        if (has_fg) break;
+        if (has_fg)
+            break;
     }
     TEST_ASSERT_TRUE(has_fg);
 }
@@ -195,7 +195,8 @@ void test_console_multiple_chars() {
                 break;
             }
         }
-        if (has_b_fg) break;
+        if (has_b_fg)
+            break;
     }
     TEST_ASSERT_TRUE(has_b_fg);
 }

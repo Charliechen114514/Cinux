@@ -35,11 +35,11 @@ namespace cinux::mm {
  * is checked on free() to detect corruption or double-free.
  */
 struct [[gnu::packed]] BlockHeader {
-    uint32_t magic;
-    uint32_t size;       ///< Payload size (bytes, excluding this header)
-    uint32_t free;       ///< 1 = free, 0 = in use
-    uint8_t  _pad[12];   ///< Padding to reach 32 bytes total
-    BlockHeader* next;   ///< Next block in the free list
+    uint32_t     magic;
+    uint32_t     size;      ///< Payload size (bytes, excluding this header)
+    uint32_t     free;      ///< 1 = free, 0 = in use
+    uint8_t      _pad[12];  ///< Padding to reach 32 bytes total
+    BlockHeader* next;      ///< Next block in the free list
 };
 
 static_assert(sizeof(BlockHeader) == 32, "BlockHeader must be 32 bytes");
@@ -122,11 +122,11 @@ private:
      */
     void coalesce(BlockHeader* block);
 
-    uint64_t      base_{};
-    uint64_t      size_{};
-    uint64_t      max_size_{};
-    uint64_t      used_{};
-    BlockHeader*  free_list_{};
+    uint64_t              base_{};
+    uint64_t              size_{};
+    uint64_t              max_size_{};
+    uint64_t              used_{};
+    BlockHeader*          free_list_{};
     cinux::proc::Spinlock lock_;
 };
 

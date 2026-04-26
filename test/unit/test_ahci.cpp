@@ -36,12 +36,12 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstdint>
-#include <cstring>
+#    include <cstdint>
+#    include <cstring>
 
 // Include kernel AHCI headers for constants and structures
-#include "drivers/ahci/ahci_config.hpp"
-#include "drivers/pci/pci_config.hpp"
+#    include "drivers/ahci/ahci_config.hpp"
+#    include "drivers/pci/pci_config.hpp"
 
 using namespace cinux::drivers::ahci;
 using namespace cinux::drivers::pci;
@@ -59,24 +59,22 @@ using namespace cinux::drivers::pci;
  *
  * Mirrors AHCI::build_cfis() but works on a plain buffer.
  */
-static void build_cfis(uint8_t* cfis_buf, bool write_cmd,
-                       uint64_t lba, uint16_t count) {
+static void build_cfis(uint8_t* cfis_buf, bool write_cmd, uint64_t lba, uint16_t count) {
     auto* fis = reinterpret_cast<RegH2DFIS*>(cfis_buf);
 
     fis->fis_type = FisType::REG_H2D;
     fis->flags    = 0x80;
-    fis->command  = write_cmd ? AtaCmd::WRITE_DMA_EXT
-                              : AtaCmd::READ_DMA_EXT;
+    fis->command  = write_cmd ? AtaCmd::WRITE_DMA_EXT : AtaCmd::READ_DMA_EXT;
     fis->feature  = 0;
 
-    fis->lba0 = static_cast<uint8_t>(lba & 0xFF);
-    fis->lba1 = static_cast<uint8_t>((lba >> 8) & 0xFF);
-    fis->lba2 = static_cast<uint8_t>((lba >> 16) & 0xFF);
+    fis->lba0   = static_cast<uint8_t>(lba & 0xFF);
+    fis->lba1   = static_cast<uint8_t>((lba >> 8) & 0xFF);
+    fis->lba2   = static_cast<uint8_t>((lba >> 16) & 0xFF);
     fis->device = 0x40;
 
-    fis->lba3 = static_cast<uint8_t>((lba >> 24) & 0xFF);
-    fis->lba4 = static_cast<uint8_t>((lba >> 32) & 0xFF);
-    fis->lba5 = static_cast<uint8_t>((lba >> 40) & 0xFF);
+    fis->lba3        = static_cast<uint8_t>((lba >> 24) & 0xFF);
+    fis->lba4        = static_cast<uint8_t>((lba >> 32) & 0xFF);
+    fis->lba5        = static_cast<uint8_t>((lba >> 40) & 0xFF);
     fis->feature_exp = 0;
 
     fis->count0 = static_cast<uint8_t>(count & 0xFF);
@@ -90,13 +88,9 @@ static void build_cfis(uint8_t* cfis_buf, bool write_cmd,
  *
  * Mirrors PCI::pci_read address construction.
  */
-static uint32_t build_pci_address(uint8_t bus, uint8_t slot,
-                                  uint8_t func, uint8_t offset) {
-    return (1U << 31)
-         | (static_cast<uint32_t>(bus) << 16)
-         | (static_cast<uint32_t>(slot) << 11)
-         | (static_cast<uint32_t>(func) << 8)
-         | (offset & 0xFC);
+static uint32_t build_pci_address(uint8_t bus, uint8_t slot, uint8_t func, uint8_t offset) {
+    return (1U << 31) | (static_cast<uint32_t>(bus) << 16) | (static_cast<uint32_t>(slot) << 11) |
+           (static_cast<uint32_t>(func) << 8) | (offset & 0xFC);
 }
 
 // ============================================================
@@ -189,12 +183,12 @@ TEST("ahci: GHC bit flags") {
  * @brief Verify port command flag bit positions
  */
 TEST("ahci: PxCmd flags") {
-    ASSERT_EQ(PxCmd::ST,  1u << 0);
+    ASSERT_EQ(PxCmd::ST, 1u << 0);
     ASSERT_EQ(PxCmd::SUD, 1u << 1);
     ASSERT_EQ(PxCmd::POD, 1u << 2);
     ASSERT_EQ(PxCmd::FRE, 1u << 4);
-    ASSERT_EQ(PxCmd::FR,  1u << 14);
-    ASSERT_EQ(PxCmd::CR,  1u << 15);
+    ASSERT_EQ(PxCmd::FR, 1u << 14);
+    ASSERT_EQ(PxCmd::CR, 1u << 15);
 }
 
 // ============================================================
@@ -206,8 +200,8 @@ TEST("ahci: PxCmd flags") {
  */
 TEST("ahci: PxIs interrupt bits") {
     ASSERT_EQ(PxIs::DHRS, 1u << 0);
-    ASSERT_EQ(PxIs::PSS,  1u << 1);
-    ASSERT_EQ(PxIs::DSS,  1u << 2);
+    ASSERT_EQ(PxIs::PSS, 1u << 1);
+    ASSERT_EQ(PxIs::DSS, 1u << 2);
     ASSERT_EQ(PxIs::SDBS, 1u << 3);
     ASSERT_EQ(PxIs::DMPS, 1u << 23);
 }
@@ -322,8 +316,8 @@ TEST("ahci: CFIS write command selection") {
  *   lba5 = 0x11 (bits 40-47)
  */
 TEST("ahci: CFIS 48-bit LBA encoding") {
-    uint8_t buf[64] = {};
-    uint64_t lba = 0x112233445566ULL;
+    uint8_t  buf[64] = {};
+    uint64_t lba     = 0x112233445566ULL;
     build_cfis(buf, false, lba, 1);
 
     auto* fis = reinterpret_cast<RegH2DFIS*>(buf);
@@ -410,7 +404,7 @@ TEST("ahci: PRDT entry layout") {
 
     prd.dba  = 0x12345678;
     prd.dbau = 0x9ABCDEF0;
-    prd.dbc  = 0x1FFFF;   // max 22-bit value (last valid: 0x3FFFFF)
+    prd.dbc  = 0x1FFFF;  // max 22-bit value (last valid: 0x3FFFFF)
     prd.i    = 1;
 
     ASSERT_EQ(prd.dba, 0x12345678u);
@@ -443,7 +437,7 @@ TEST("ahci: PRDT byte count is 22-bit") {
  * @brief Verify byte count calculation for PRDT (count * 512 - 1)
  */
 TEST("ahci: PRDT byte count for 1 sector") {
-    uint16_t count = 1;
+    uint16_t count      = 1;
     uint32_t byte_count = static_cast<uint32_t>(count) * SECTOR_SIZE - 1;
     ASSERT_EQ(byte_count, 511u);
 }
@@ -452,7 +446,7 @@ TEST("ahci: PRDT byte count for 1 sector") {
  * @brief Verify byte count for multiple sectors
  */
 TEST("ahci: PRDT byte count for 4 sectors") {
-    uint16_t count = 4;
+    uint16_t count      = 4;
     uint32_t byte_count = static_cast<uint32_t>(count) * SECTOR_SIZE - 1;
     ASSERT_EQ(byte_count, 2047u);
 }
@@ -461,9 +455,9 @@ TEST("ahci: PRDT byte count for 4 sectors") {
  * @brief Verify byte count masking to 22-bit max
  */
 TEST("ahci: PRDT byte count 22-bit mask") {
-    uint16_t count = 1;
+    uint16_t count      = 1;
     uint32_t byte_count = static_cast<uint32_t>(count) * SECTOR_SIZE - 1;
-    uint32_t masked = byte_count & 0x3FFFFF;
+    uint32_t masked     = byte_count & 0x3FFFFF;
     ASSERT_EQ(masked, 511u);
 }
 
@@ -520,11 +514,11 @@ TEST("ahci: PCI address word bus 0 slot 0 func 0") {
  */
 TEST("ahci: PCI address word full layout") {
     uint32_t addr = build_pci_address(5, 10, 2, 0x08);
-    ASSERT_TRUE(addr & (1u << 31));                      // enable
-    ASSERT_EQ((addr >> 16) & 0xFF, 5u);                 // bus
-    ASSERT_EQ((addr >> 11) & 0x1F, 10u);                // slot
-    ASSERT_EQ((addr >> 8) & 0x07, 2u);                  // func
-    ASSERT_EQ(addr & 0xFC, 0x08u);                      // offset (dword-aligned)
+    ASSERT_TRUE(addr & (1u << 31));       // enable
+    ASSERT_EQ((addr >> 16) & 0xFF, 5u);   // bus
+    ASSERT_EQ((addr >> 11) & 0x1F, 10u);  // slot
+    ASSERT_EQ((addr >> 8) & 0x07, 2u);    // func
+    ASSERT_EQ(addr & 0xFC, 0x08u);        // offset (dword-aligned)
 }
 
 /**
@@ -544,7 +538,7 @@ TEST("ahci: PCI address masks offset low bits") {
  */
 TEST("ahci: PCI AHCI class subclass match") {
     uint8_t class_code = PciClass::MASS_STORAGE;
-    uint8_t subclass = PciClass::AHCI_SUBCLASS;
+    uint8_t subclass   = PciClass::AHCI_SUBCLASS;
 
     ASSERT_EQ(class_code, 0x01);
     ASSERT_EQ(subclass, 0x06);
@@ -556,10 +550,9 @@ TEST("ahci: PCI AHCI class subclass match") {
  */
 TEST("ahci: PCI non-AHCI device rejected") {
     uint8_t class_code = 0x02;  // Network controller
-    uint8_t subclass = 0x00;
+    uint8_t subclass   = 0x00;
 
-    ASSERT_FALSE(class_code == PciClass::MASS_STORAGE
-                 && subclass == PciClass::AHCI_SUBCLASS);
+    ASSERT_FALSE(class_code == PciClass::MASS_STORAGE && subclass == PciClass::AHCI_SUBCLASS);
 }
 
 // ============================================================
@@ -623,7 +616,7 @@ TEST("ahci: PCI enumeration limits") {
  */
 TEST("ahci: HBAPort field offsets") {
     HBAPort port{};
-    auto base = reinterpret_cast<uintptr_t>(&port);
+    auto    base = reinterpret_cast<uintptr_t>(&port);
     ASSERT_EQ(reinterpret_cast<uintptr_t>(&port.clb) - base, 0x00u);
     ASSERT_EQ(reinterpret_cast<uintptr_t>(&port.clbu) - base, 0x04u);
     ASSERT_EQ(reinterpret_cast<uintptr_t>(&port.fb) - base, 0x08u);
@@ -646,7 +639,7 @@ TEST("ahci: HBAPort field offsets") {
  */
 TEST("ahci: HBAMem field offsets") {
     HBAMem mem{};
-    auto base = reinterpret_cast<uintptr_t>(&mem);
+    auto   base = reinterpret_cast<uintptr_t>(&mem);
     ASSERT_EQ(reinterpret_cast<uintptr_t>(&mem.cap) - base, 0x00u);
     ASSERT_EQ(reinterpret_cast<uintptr_t>(&mem.ghc) - base, 0x04u);
     ASSERT_EQ(reinterpret_cast<uintptr_t>(&mem.is) - base, 0x08u);
@@ -765,8 +758,8 @@ TEST("ahci: GHC HR clear simulation") {
  * @brief Verify CI bit setting for slot 0
  */
 TEST("ahci: CI slot 0 bit") {
-    uint8_t slot = 0;
-    uint32_t ci = 1u << slot;
+    uint8_t  slot = 0;
+    uint32_t ci   = 1u << slot;
     ASSERT_EQ(ci, 1u);
 }
 

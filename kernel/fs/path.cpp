@@ -16,7 +16,7 @@ void path_canonicalize(char* buf) {
 
     uint32_t len = static_cast<uint32_t>(strlen(buf));
 
-    char out[PATH_MAX];
+    char     out[PATH_MAX];
     uint32_t out_pos = 0;
 
     // Always produce a leading '/' — result is an absolute path

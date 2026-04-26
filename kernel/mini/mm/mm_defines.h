@@ -18,9 +18,9 @@ namespace cinux::mini::mm {
 // ============================================================
 // Common Page Size Definitions
 // ============================================================
-constexpr uint64_t PAGE_SIZE_4K = 4_KB;   // 4096 bytes
-constexpr uint64_t PAGE_SIZE_2M = 2_MB;   // 2097152 bytes
-constexpr uint64_t PAGE_SIZE_1G = 1_GB;   // 1073741824 bytes
+constexpr uint64_t PAGE_SIZE_4K = 4_KB;  // 4096 bytes
+constexpr uint64_t PAGE_SIZE_2M = 2_MB;  // 2097152 bytes
+constexpr uint64_t PAGE_SIZE_1G = 1_GB;  // 1073741824 bytes
 
 // ============================================================
 // Memory Alignment Helpers
@@ -32,7 +32,7 @@ constexpr uint64_t PAGE_SIZE_1G = 1_GB;   // 1073741824 bytes
  * @return Aligned address
  */
 constexpr uint64_t align_up(uint64_t addr, uint64_t align) {
-	return (addr + align - 1) & ~(align - 1);
+    return (addr + align - 1) & ~(align - 1);
 }
 
 /**
@@ -42,7 +42,7 @@ constexpr uint64_t align_up(uint64_t addr, uint64_t align) {
  * @return Aligned address
  */
 constexpr uint64_t align_down(uint64_t addr, uint64_t align) {
-	return addr & ~(align - 1);
+    return addr & ~(align - 1);
 }
 
 /**
@@ -52,7 +52,7 @@ constexpr uint64_t align_down(uint64_t addr, uint64_t align) {
  * @return true if aligned, false otherwise
  */
 constexpr bool is_aligned(uint64_t addr, uint64_t align) {
-	return (addr & (align - 1)) == 0;
+    return (addr & (align - 1)) == 0;
 }
 
-} // namespace cinux::mini::mm
+}  // namespace cinux::mini::mm

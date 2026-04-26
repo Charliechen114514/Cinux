@@ -59,19 +59,19 @@ constexpr uint8_t AHCI_SUBCLASS = 0x06;
 // BAR Type Detection Masks
 // ============================================================
 
-constexpr uint32_t BAR_IO_SPACE      = 0x01;            ///< Bit 0: I/O space indicator
-constexpr uint32_t BAR_TYPE_MASK     = 0x06;            ///< Bits 2:1: memory type
-constexpr uint32_t BAR_TYPE_64       = 0x04;            ///< 64-bit memory mapping
-constexpr uint32_t BAR_ADDR_MASK_32  = 0xFFFFFFF0;      ///< Lower 32-bit address mask
+constexpr uint32_t BAR_IO_SPACE     = 0x01;        ///< Bit 0: I/O space indicator
+constexpr uint32_t BAR_TYPE_MASK    = 0x06;        ///< Bits 2:1: memory type
+constexpr uint32_t BAR_TYPE_64      = 0x04;        ///< 64-bit memory mapping
+constexpr uint32_t BAR_ADDR_MASK_32 = 0xFFFFFFF0;  ///< Lower 32-bit address mask
 
 // ============================================================
 // PCI Addressing Limits
 // ============================================================
 
-constexpr uint8_t  MAX_BUS     = 32;
-constexpr uint8_t  MAX_SLOT    = 32;
-constexpr uint8_t  MAX_FUNC    = 8;
-constexpr uint8_t  BAR_COUNT   = 6;
+constexpr uint8_t  MAX_BUS        = 32;
+constexpr uint8_t  MAX_SLOT       = 32;
+constexpr uint8_t  MAX_FUNC       = 8;
+constexpr uint8_t  BAR_COUNT      = 6;
 constexpr uint16_t VENDOR_INVALID = 0xFFFF;
 
 }  // namespace cinux::drivers::pci

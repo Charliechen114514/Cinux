@@ -104,7 +104,7 @@ private:
 
     /// 4 KB stack for IST1 (Double Fault recovery)
     static constexpr uint64_t DF_STACK_PAGES = 1;
-    uint64_t df_stack_phys_{};
+    uint64_t                  df_stack_phys_{};
 
     alignas(16) uint8_t df_stack_[DF_STACK_PAGES * 4096]{};
 
@@ -125,10 +125,10 @@ private:
     static constexpr Entry tss_low_entry(uint64_t base, uint32_t limit) {
         auto b = static_cast<uint32_t>(base & 0xFFFFFFFF);
         return {
-            .limit_low        = static_cast<uint16_t>(limit & 0xFFFF),
-            .base_low         = static_cast<uint16_t>(b & 0xFFFF),
-            .base_middle      = static_cast<uint8_t>((b >> 16) & 0xFF),
-            .access           = static_cast<uint8_t>(SegmentAccess::Present | SegmentAccess::TSS64Avail),
+            .limit_low   = static_cast<uint16_t>(limit & 0xFFFF),
+            .base_low    = static_cast<uint16_t>(b & 0xFFFF),
+            .base_middle = static_cast<uint8_t>((b >> 16) & 0xFF),
+            .access      = static_cast<uint8_t>(SegmentAccess::Present | SegmentAccess::TSS64Avail),
             .flags_limit_high = static_cast<uint8_t>((limit >> 16) & 0x0F),
             .base_high        = static_cast<uint8_t>((b >> 24) & 0xFF),
         };
@@ -149,8 +149,8 @@ private:
     // 6 segment descriptors + NULL + TLS placeholder + TSS (16 bytes = 2 slots) = 9 entries
     static constexpr auto kEntryCount = 9;
 
-    Entry entries_[kEntryCount]{};
-    Pointer gdtr_{};
+    Entry            entries_[kEntryCount]{};
+    Pointer          gdtr_{};
     TaskStateSegment tss_{};
 
     void load();

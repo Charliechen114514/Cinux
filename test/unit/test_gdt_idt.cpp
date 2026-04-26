@@ -22,13 +22,13 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
+#    include <cstddef>
+#    include <cstdint>
+#    include <cstring>
 
 // Big-kernel headers (cinux::arch namespace)
-#include "arch/x86_64/gdt.hpp"
-#include "arch/x86_64/idt.hpp"
+#    include "arch/x86_64/gdt.hpp"
+#    include "arch/x86_64/idt.hpp"
 
 using namespace cinux::arch;
 
@@ -96,28 +96,24 @@ static constexpr TestGdtEntry test_null_entry() {
     return {0, 0, 0, 0, 0, 0};
 }
 
-static constexpr TestGdtEntry test_segment_entry(SegmentAccess access,
-                                                  SegmentFlags flags) {
+static constexpr TestGdtEntry test_segment_entry(SegmentAccess access, SegmentFlags flags) {
     return {
         .limit_low        = 0xFFFF,
         .base_low         = 0,
         .base_middle      = 0,
         .access           = static_cast<uint8_t>(access),
-        .flags_limit_high = static_cast<uint8_t>(
-            (static_cast<uint8_t>(flags) << 4) | 0x0F),
+        .flags_limit_high = static_cast<uint8_t>((static_cast<uint8_t>(flags) << 4) | 0x0F),
         .base_high        = 0,
     };
 }
 
-static constexpr TestGdtEntry test_tss_low_entry(uint64_t base,
-                                                  uint32_t limit) {
+static constexpr TestGdtEntry test_tss_low_entry(uint64_t base, uint32_t limit) {
     auto b = static_cast<uint32_t>(base & 0xFFFFFFFF);
     return {
-        .limit_low        = static_cast<uint16_t>(limit & 0xFFFF),
-        .base_low         = static_cast<uint16_t>(b & 0xFFFF),
-        .base_middle      = static_cast<uint8_t>((b >> 16) & 0xFF),
-        .access           = static_cast<uint8_t>(
-            SegmentAccess::Present | SegmentAccess::TSS64Avail),
+        .limit_low   = static_cast<uint16_t>(limit & 0xFFFF),
+        .base_low    = static_cast<uint16_t>(b & 0xFFFF),
+        .base_middle = static_cast<uint8_t>((b >> 16) & 0xFF),
+        .access      = static_cast<uint8_t>(SegmentAccess::Present | SegmentAccess::TSS64Avail),
         .flags_limit_high = static_cast<uint8_t>((limit >> 16) & 0x0F),
         .base_high        = static_cast<uint8_t>((b >> 24) & 0xFF),
     };
@@ -135,9 +131,8 @@ static constexpr TestGdtEntry test_tss_high_entry(uint64_t base) {
     };
 }
 
-static void test_set_idt_entry(TestIdtEntry* table, uint8_t vector,
-                                uint64_t handler_addr, uint16_t selector,
-                                uint8_t type_attr, uint8_t ist) {
+static void test_set_idt_entry(TestIdtEntry* table, uint8_t vector, uint64_t handler_addr,
+                               uint16_t selector, uint8_t type_attr, uint8_t ist) {
     table[vector].offset_low  = handler_addr & 0xFFFF;
     table[vector].offset_mid  = (handler_addr >> 16) & 0xFFFF;
     table[vector].offset_high = (handler_addr >> 32) & 0xFFFFFFFF;
@@ -216,57 +211,55 @@ TEST("gdt: SegmentAccess TSS64Avail value") {
 
 /// Verify SegmentAccess OR operator combines bits
 TEST("gdt: SegmentAccess OR operator") {
-    auto combined = SegmentAccess::Present | SegmentAccess::CodeData
-                  | SegmentAccess::Executable | SegmentAccess::ReadWrite;
+    auto combined = SegmentAccess::Present | SegmentAccess::CodeData | SegmentAccess::Executable |
+                    SegmentAccess::ReadWrite;
     // Expected: 0x80 | 0x10 | 0x08 | 0x02 = 0x9A (kernel code)
     ASSERT_EQ(static_cast<uint8_t>(combined), 0x9Au);
 }
 
 /// Verify kernel code access byte composition via scoped enums
 TEST("gdt: kernel code access from scoped enums") {
-    auto access = SegmentAccess::Present | SegmentAccess::CodeData
-                | SegmentAccess::Executable | SegmentAccess::ReadWrite;
+    auto access = SegmentAccess::Present | SegmentAccess::CodeData | SegmentAccess::Executable |
+                  SegmentAccess::ReadWrite;
     uint8_t val = static_cast<uint8_t>(access);
     // P=1, DPL=00, S=1, E=1, DC=0, RW=1, A=0 => 0x9A
     ASSERT_EQ(static_cast<unsigned>(val), 0x9Au);
-    ASSERT_TRUE(val & 0x80);    // P=1
-    ASSERT_EQ((val >> 5) & 3, 0); // DPL=00
-    ASSERT_TRUE(val & 0x10);    // S=1
-    ASSERT_TRUE(val & 0x08);    // E=1
-    ASSERT_TRUE(val & 0x02);    // RW=1
+    ASSERT_TRUE(val & 0x80);       // P=1
+    ASSERT_EQ((val >> 5) & 3, 0);  // DPL=00
+    ASSERT_TRUE(val & 0x10);       // S=1
+    ASSERT_TRUE(val & 0x08);       // E=1
+    ASSERT_TRUE(val & 0x02);       // RW=1
 }
 
 /// Verify kernel data access byte composition via scoped enums
 TEST("gdt: kernel data access from scoped enums") {
-    auto access = SegmentAccess::Present | SegmentAccess::CodeData
-                | SegmentAccess::ReadWrite;
-    uint8_t val = static_cast<uint8_t>(access);
+    auto    access = SegmentAccess::Present | SegmentAccess::CodeData | SegmentAccess::ReadWrite;
+    uint8_t val    = static_cast<uint8_t>(access);
     // P=1, DPL=00, S=1, E=0, DC=0, RW=1, A=0 => 0x92
     ASSERT_EQ(static_cast<unsigned>(val), 0x92u);
-    ASSERT_TRUE(val & 0x80);    // P=1
-    ASSERT_FALSE(val & 0x08);   // E=0 (data segment)
-    ASSERT_TRUE(val & 0x02);    // RW=1
+    ASSERT_TRUE(val & 0x80);   // P=1
+    ASSERT_FALSE(val & 0x08);  // E=0 (data segment)
+    ASSERT_TRUE(val & 0x02);   // RW=1
 }
 
 /// Verify user code access byte composition
 TEST("gdt: user code access from scoped enums") {
-    auto access = SegmentAccess::Present | SegmentAccess::Ring3
-                | SegmentAccess::CodeData | SegmentAccess::Executable
-                | SegmentAccess::ReadWrite;
+    auto access = SegmentAccess::Present | SegmentAccess::Ring3 | SegmentAccess::CodeData |
+                  SegmentAccess::Executable | SegmentAccess::ReadWrite;
     uint8_t val = static_cast<uint8_t>(access);
     // P=1, DPL=11, S=1, E=1, DC=0, RW=1, A=0 => 0xFA
     ASSERT_EQ(static_cast<unsigned>(val), 0xFAu);
-    ASSERT_EQ((val >> 5) & 3, 3); // DPL=11 (ring 3)
+    ASSERT_EQ((val >> 5) & 3, 3);  // DPL=11 (ring 3)
 }
 
 /// Verify user data access byte composition
 TEST("gdt: user data access from scoped enums") {
-    auto access = SegmentAccess::Present | SegmentAccess::Ring3
-                | SegmentAccess::CodeData | SegmentAccess::ReadWrite;
+    auto access = SegmentAccess::Present | SegmentAccess::Ring3 | SegmentAccess::CodeData |
+                  SegmentAccess::ReadWrite;
     uint8_t val = static_cast<uint8_t>(access);
     // P=1, DPL=11, S=1, E=0, DC=0, RW=1, A=0 => 0xF2
     ASSERT_EQ(static_cast<unsigned>(val), 0xF2u);
-    ASSERT_EQ((val >> 5) & 3, 3); // DPL=11
+    ASSERT_EQ((val >> 5) & 3, 3);  // DPL=11
 }
 
 // ============================================================
@@ -282,16 +275,16 @@ TEST("gdt: SegmentFlags bit positions") {
 
 /// Verify code64 flags: 4K granularity + long mode (L=1, D=0)
 TEST("gdt: code64 flags combination") {
-    auto flags = SegmentFlags::Granularity4K | SegmentFlags::LongMode;
-    uint8_t val = static_cast<uint8_t>(flags);
-    ASSERT_EQ(static_cast<unsigned>(val), 0x0Au); // G=1(bit3), L=1(bit1)
+    auto    flags = SegmentFlags::Granularity4K | SegmentFlags::LongMode;
+    uint8_t val   = static_cast<uint8_t>(flags);
+    ASSERT_EQ(static_cast<unsigned>(val), 0x0Au);  // G=1(bit3), L=1(bit1)
 }
 
 /// Verify data64 flags: 4K granularity + 32-bit size (L=0, D/B=1)
 TEST("gdt: data64 flags combination") {
-    auto flags = SegmentFlags::Granularity4K | SegmentFlags::Size32;
-    uint8_t val = static_cast<uint8_t>(flags);
-    ASSERT_EQ(static_cast<unsigned>(val), 0x0Cu); // G=1(bit3), D/B=1(bit2)
+    auto    flags = SegmentFlags::Granularity4K | SegmentFlags::Size32;
+    uint8_t val   = static_cast<uint8_t>(flags);
+    ASSERT_EQ(static_cast<unsigned>(val), 0x0Cu);  // G=1(bit3), D/B=1(bit2)
 }
 
 // ============================================================
@@ -300,7 +293,7 @@ TEST("gdt: data64 flags combination") {
 
 /// Verify null_entry returns all zeros
 TEST("gdt: null_entry is all zeros") {
-    auto entry = test_null_entry();
+    auto    entry = test_null_entry();
     uint8_t bytes[sizeof(entry)];
     memcpy(bytes, &entry, sizeof(entry));
     for (size_t i = 0; i < sizeof(entry); i++) {
@@ -310,8 +303,8 @@ TEST("gdt: null_entry is all zeros") {
 
 /// Verify segment_entry for kernel code: access=0x9A, flags=0x0A
 TEST("gdt: segment_entry kernel code encoding") {
-    auto access = SegmentAccess::Present | SegmentAccess::CodeData
-                | SegmentAccess::Executable | SegmentAccess::ReadWrite;
+    auto access = SegmentAccess::Present | SegmentAccess::CodeData | SegmentAccess::Executable |
+                  SegmentAccess::ReadWrite;
     auto flags = SegmentFlags::Granularity4K | SegmentFlags::LongMode;
     auto entry = test_segment_entry(access, flags);
 
@@ -326,10 +319,9 @@ TEST("gdt: segment_entry kernel code encoding") {
 
 /// Verify segment_entry for kernel data: access=0x92, flags=0x0C
 TEST("gdt: segment_entry kernel data encoding") {
-    auto access = SegmentAccess::Present | SegmentAccess::CodeData
-                | SegmentAccess::ReadWrite;
-    auto flags = SegmentFlags::Granularity4K | SegmentFlags::Size32;
-    auto entry = test_segment_entry(access, flags);
+    auto access = SegmentAccess::Present | SegmentAccess::CodeData | SegmentAccess::ReadWrite;
+    auto flags  = SegmentFlags::Granularity4K | SegmentFlags::Size32;
+    auto entry  = test_segment_entry(access, flags);
 
     ASSERT_EQ(entry.access, 0x92);
     // flags << 4 | 0x0F = 0xC0 | 0x0F = 0xCF
@@ -338,9 +330,8 @@ TEST("gdt: segment_entry kernel data encoding") {
 
 /// Verify segment_entry for user code: access=0xFA
 TEST("gdt: segment_entry user code encoding") {
-    auto access = SegmentAccess::Present | SegmentAccess::Ring3
-                | SegmentAccess::CodeData | SegmentAccess::Executable
-                | SegmentAccess::ReadWrite;
+    auto access = SegmentAccess::Present | SegmentAccess::Ring3 | SegmentAccess::CodeData |
+                  SegmentAccess::Executable | SegmentAccess::ReadWrite;
     auto flags = SegmentFlags::Granularity4K | SegmentFlags::LongMode;
     auto entry = test_segment_entry(access, flags);
 
@@ -350,8 +341,8 @@ TEST("gdt: segment_entry user code encoding") {
 
 /// Verify segment_entry for user data: access=0xF2
 TEST("gdt: segment_entry user data encoding") {
-    auto access = SegmentAccess::Present | SegmentAccess::Ring3
-                | SegmentAccess::CodeData | SegmentAccess::ReadWrite;
+    auto access = SegmentAccess::Present | SegmentAccess::Ring3 | SegmentAccess::CodeData |
+                  SegmentAccess::ReadWrite;
     auto flags = SegmentFlags::Granularity4K | SegmentFlags::Size32;
     auto entry = test_segment_entry(access, flags);
 
@@ -361,9 +352,9 @@ TEST("gdt: segment_entry user data encoding") {
 
 /// Verify TSS low entry encoding with a known base address
 TEST("gdt: tss_low_entry base split") {
-    uint64_t base = 0x0000000000012345;
+    uint64_t base  = 0x0000000000012345;
     uint32_t limit = 103;  // TSS is 104 bytes, limit = 103
-    auto entry = test_tss_low_entry(base, limit);
+    auto     entry = test_tss_low_entry(base, limit);
 
     ASSERT_EQ(entry.limit_low, 103u);
     ASSERT_EQ(entry.base_low, 0x2345u);
@@ -376,8 +367,8 @@ TEST("gdt: tss_low_entry base split") {
 
 /// Verify TSS high entry encodes upper 32 bits of 64-bit base
 TEST("gdt: tss_high_entry upper 32 bits") {
-    uint64_t base = 0x000000ABCD000000ULL;
-    auto entry = test_tss_high_entry(base);
+    uint64_t base  = 0x000000ABCD000000ULL;
+    auto     entry = test_tss_high_entry(base);
 
     auto hi = static_cast<uint32_t>(base >> 32);
     ASSERT_EQ(entry.limit_low, static_cast<uint16_t>(hi & 0xFFFF));
@@ -388,9 +379,9 @@ TEST("gdt: tss_high_entry upper 32 bits") {
 
 /// Verify TSS low entry with base above 4GB (upper bits go to high entry)
 TEST("gdt: tss_low_entry ignores upper 32 bits of base") {
-    uint64_t base = 0xFFFFFFFF00000000ULL;
+    uint64_t base  = 0xFFFFFFFF00000000ULL;
     uint32_t limit = 103;
-    auto entry = test_tss_low_entry(base, limit);
+    auto     entry = test_tss_low_entry(base, limit);
 
     // Low 32 bits are all zero
     ASSERT_EQ(entry.base_low, 0x0000u);
@@ -510,12 +501,9 @@ TEST("idt: ExceptionVector PF is 14") {
 
 /// Verify exception vector ordering: DE < DF < GP < PF
 TEST("idt: exception vector ordering") {
-    ASSERT_LT(static_cast<uint8_t>(ExceptionVector::DE),
-              static_cast<uint8_t>(ExceptionVector::DF));
-    ASSERT_LT(static_cast<uint8_t>(ExceptionVector::DF),
-              static_cast<uint8_t>(ExceptionVector::GP));
-    ASSERT_LT(static_cast<uint8_t>(ExceptionVector::GP),
-              static_cast<uint8_t>(ExceptionVector::PF));
+    ASSERT_LT(static_cast<uint8_t>(ExceptionVector::DE), static_cast<uint8_t>(ExceptionVector::DF));
+    ASSERT_LT(static_cast<uint8_t>(ExceptionVector::DF), static_cast<uint8_t>(ExceptionVector::GP));
+    ASSERT_LT(static_cast<uint8_t>(ExceptionVector::GP), static_cast<uint8_t>(ExceptionVector::PF));
 }
 
 // ============================================================
@@ -584,7 +572,7 @@ TEST("idt: make_idt_attr always sets Present bit") {
 
 /// Verify gate type occupies low nibble in make_idt_attr result
 TEST("idt: make_idt_attr gate type in low nibble") {
-    uint8_t int_attr = make_idt_attr(IDTPrivilege::Kernel, IDTGateType::Interrupt);
+    uint8_t int_attr  = make_idt_attr(IDTPrivilege::Kernel, IDTGateType::Interrupt);
     uint8_t trap_attr = make_idt_attr(IDTPrivilege::Kernel, IDTGateType::Trap);
     ASSERT_EQ(static_cast<unsigned>(int_attr & 0x0F), 0x0Eu);
     ASSERT_EQ(static_cast<unsigned>(trap_attr & 0x0F), 0x0Fu);
@@ -661,7 +649,7 @@ TEST("idt: TestIdtPointer field offsets") {
 /// Verify IDT entry address splitting for a low address
 TEST("idt: set_idt_entry splits low address") {
     TestIdtEntry table[256] = {};
-    uint64_t addr = 0x00000000ABCDEFFFULL;
+    uint64_t     addr       = 0x00000000ABCDEFFFULL;
 
     test_set_idt_entry(table, 3, addr, GDT_KERNEL_CODE,
                        make_idt_attr(IDTPrivilege::Kernel, IDTGateType::Trap), 0);
@@ -674,7 +662,7 @@ TEST("idt: set_idt_entry splits low address") {
 /// Verify IDT entry address splitting for a higher-half address
 TEST("idt: set_idt_entry splits higher-half address") {
     TestIdtEntry table[256] = {};
-    uint64_t addr = 0xFFFFFFFF80010000ULL;
+    uint64_t     addr       = 0xFFFFFFFF80010000ULL;
 
     test_set_idt_entry(table, 14, addr, GDT_KERNEL_CODE,
                        make_idt_attr(IDTPrivilege::Kernel, IDTGateType::Interrupt), 0);
@@ -783,8 +771,7 @@ TEST("frame: GPR field ordering") {
 
 /// Verify InterruptFrame ss is the last field
 TEST("frame: ss is last field") {
-    ASSERT_EQ(offsetof(InterruptFrame, ss) + sizeof(uint64_t),
-              sizeof(InterruptFrame));
+    ASSERT_EQ(offsetof(InterruptFrame, ss) + sizeof(uint64_t), sizeof(InterruptFrame));
 }
 
 // ============================================================

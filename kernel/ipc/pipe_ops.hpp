@@ -53,8 +53,8 @@ public:
      * @param count   Maximum number of bytes to read
      * @return Number of bytes read, 0 on EOF, or -1 on error
      */
-    int64_t read(const cinux::fs::Inode* inode, uint64_t offset,
-                 void* buf, uint64_t count) override;
+    int64_t read(const cinux::fs::Inode* inode, uint64_t offset, void* buf,
+                 uint64_t count) override;
 
 private:
     Pipe* pipe_;
@@ -87,8 +87,8 @@ public:
      * @param count   Number of bytes to write
      * @return Number of bytes written, or -1 on error
      */
-    int64_t write(cinux::fs::Inode* inode, uint64_t offset,
-                  const void* buf, uint64_t count) override;
+    int64_t write(cinux::fs::Inode* inode, uint64_t offset, const void* buf,
+                  uint64_t count) override;
 
 private:
     Pipe* pipe_;

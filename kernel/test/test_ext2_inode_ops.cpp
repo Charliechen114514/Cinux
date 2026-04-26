@@ -19,14 +19,13 @@
  *   - Heap initialised (needed for new/delete)
  */
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 #include "big_kernel_test.h"
-
-#include "kernel/drivers/pit/pit.hpp"
-#include "kernel/drivers/pci/pci.hpp"
 #include "kernel/drivers/ahci/ahci.hpp"
+#include "kernel/drivers/pci/pci.hpp"
+#include "kernel/drivers/pit/pit.hpp"
 #include "kernel/fs/ext2.hpp"
 
 using cinux::drivers::pci::PCI;
@@ -83,14 +82,16 @@ void teardown_ext2(AhciExt2Pair& pair) {
 static uint32_t g_name_seq = 0;
 
 void gen_name(char* buf, uint32_t buf_len, const char* prefix) {
-    uint32_t seed = static_cast<uint32_t>(
-        cinux::drivers::PIT::get_ticks() ^ (++g_name_seq));
+    uint32_t seed = static_cast<uint32_t>(cinux::drivers::PIT::get_ticks() ^ (++g_name_seq));
     seed ^= seed << 13;
     seed ^= seed >> 17;
     seed ^= seed << 5;
     uint32_t off = 0;
-    while (prefix[off] && off < buf_len - 9) { buf[off] = prefix[off]; ++off; }
-    buf[off++] = '_';
+    while (prefix[off] && off < buf_len - 9) {
+        buf[off] = prefix[off];
+        ++off;
+    }
+    buf[off++]       = '_';
     const char hex[] = "0123456789abcdef";
     for (int d = 6; d >= 0 && off < buf_len - 1; --d)
         buf[off++] = hex[(seed >> (d * 4)) & 0xf];
@@ -98,7 +99,10 @@ void gen_name(char* buf, uint32_t buf_len, const char* prefix) {
 }
 
 uint32_t name_len(const char* s) {
-    uint32_t n = 0; while (s[n]) ++n; return n;
+    uint32_t n = 0;
+    while (s[n])
+        ++n;
+    return n;
 }
 
 }  // anonymous namespace
@@ -118,21 +122,22 @@ void test_file_inode_read_write() {
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
     // Create a file via the top-level API
-    char name[32]; gen_name(name, 32, "iof");
+    char name[32];
+    gen_name(name, 32, "iof");
     Inode* ino = pair.ext2->create(2, name, name_len(name));
     TEST_ASSERT_NOT_NULL(ino);
     TEST_ASSERT_NOT_NULL(ino->ops);
 
     // Write data through ops
     const char write_data[] = "InodeOps virtual dispatch";
-    uint32_t len = sizeof(write_data) - 1;
+    uint32_t   len          = sizeof(write_data) - 1;
 
     int64_t written = ino->ops->write(ino, 0, write_data, len);
     TEST_ASSERT_EQ(written, static_cast<int64_t>(len));
 
     // Read data back through ops
-    char read_buf[64] = {};
-    int64_t read_back = ino->ops->read(ino, 0, read_buf, len);
+    char    read_buf[64] = {};
+    int64_t read_back    = ino->ops->read(ino, 0, read_buf, len);
     TEST_ASSERT_EQ(read_back, static_cast<int64_t>(len));
 
     for (uint32_t i = 0; i < len; ++i) {
@@ -162,7 +167,8 @@ void test_file_ops_dir_defaults() {
     TEST_ASSERT_NOT_NULL(pair.ext2);
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
-    char name[32]; gen_name(name, 32, "fd");
+    char name[32];
+    gen_name(name, 32, "fd");
     Inode* ino = pair.ext2->create(2, name, name_len(name));
     TEST_ASSERT_NOT_NULL(ino);
     TEST_ASSERT_NOT_NULL(ino->ops);
@@ -210,14 +216,15 @@ void test_dir_inode_readdir() {
     // If neither works, create a dir and use it
     if (root == nullptr) {
         // Use the ext2 object's root_inode indirectly by creating a dir
-        char dirname[32]; gen_name(dirname, 32, "td");
+        char dirname[32];
+        gen_name(dirname, 32, "td");
         Inode* dir_ino = pair.ext2->mkdir(2, dirname, name_len(dirname));
         TEST_ASSERT_NOT_NULL(dir_ino);
         TEST_ASSERT_NOT_NULL(dir_ino->ops);
 
         // readdir on the new directory should at least find "." and ".."
-        char rname[256] = {};
-        int64_t rc = dir_ino->ops->readdir(dir_ino, 0, rname, 256);
+        char    rname[256] = {};
+        int64_t rc         = dir_ino->ops->readdir(dir_ino, 0, rname, 256);
         TEST_ASSERT_GT(rc, 0);  // readdir returns 1 on success, -1 on failure
         TEST_ASSERT_EQ(rname[0], '.');
 
@@ -230,8 +237,8 @@ void test_dir_inode_readdir() {
 
     TEST_ASSERT_NOT_NULL(root->ops);
 
-    char rname[256] = {};
-    int64_t rc = root->ops->readdir(root, 0, rname, 256);
+    char    rname[256] = {};
+    int64_t rc         = root->ops->readdir(root, 0, rname, 256);
     // At least one entry should be readable (readdir returns 1 on success)
     TEST_ASSERT_GT(rc, 0);
 
@@ -257,20 +264,21 @@ void test_create_via_ops() {
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
     // Create a subdirectory first
-    char dirname[32]; gen_name(dirname, 32, "oc");
+    char dirname[32];
+    gen_name(dirname, 32, "oc");
     Inode* dir = pair.ext2->mkdir(2, dirname, name_len(dirname));
     TEST_ASSERT_NOT_NULL(dir);
     TEST_ASSERT_NOT_NULL(dir->ops);
 
     // Use ops->create to create a file inside
     const char filename[] = "inner";
-    Inode* file = dir->ops->create(dir, filename, 5);
+    Inode*     file       = dir->ops->create(dir, filename, 5);
     TEST_ASSERT_NOT_NULL(file);
     TEST_ASSERT_EQ(file->type, InodeType::Regular);
 
     // Verify the file can be found via lookup
     // Build composite lookup path: dirname + "/" + filename
-    char lookup_path[64];
+    char     lookup_path[64];
     uint32_t li = 0;
     for (uint32_t j = 0; dirname[j] && li < sizeof(lookup_path) - 7; ++j)
         lookup_path[li++] = dirname[j];
@@ -308,20 +316,21 @@ void test_mkdir_via_ops() {
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
     // Create a parent directory
-    char parent[32]; gen_name(parent, 32, "om");
+    char parent[32];
+    gen_name(parent, 32, "om");
     Inode* dir = pair.ext2->mkdir(2, parent, name_len(parent));
     TEST_ASSERT_NOT_NULL(dir);
     TEST_ASSERT_NOT_NULL(dir->ops);
 
     // Use ops->mkdir to create a subdirectory
     const char child[] = "sub";
-    Inode* subdir = dir->ops->mkdir(dir, child, 3);
+    Inode*     subdir  = dir->ops->mkdir(dir, child, 3);
     TEST_ASSERT_NOT_NULL(subdir);
     TEST_ASSERT_EQ(subdir->type, InodeType::Directory);
 
     // Verify the subdirectory can be found via lookup
     // Build composite lookup path: parent + "/" + child
-    char lookup_path[64];
+    char     lookup_path[64];
     uint32_t li = 0;
     for (uint32_t j = 0; parent[j] && li < sizeof(lookup_path) - 5; ++j)
         lookup_path[li++] = parent[j];
@@ -360,18 +369,19 @@ void test_unlink_via_ops() {
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
     // Create a parent directory
-    char dirname[32]; gen_name(dirname, 32, "or");
+    char dirname[32];
+    gen_name(dirname, 32, "or");
     Inode* dir = pair.ext2->mkdir(2, dirname, name_len(dirname));
     TEST_ASSERT_NOT_NULL(dir);
     TEST_ASSERT_NOT_NULL(dir->ops);
 
     // Create a file inside
     const char filename[] = "victim";
-    Inode* file = dir->ops->create(dir, filename, 6);
+    Inode*     file       = dir->ops->create(dir, filename, 6);
     TEST_ASSERT_NOT_NULL(file);
 
     // Verify file exists via composite lookup path
-    char lookup_path[64];
+    char     lookup_path[64];
     uint32_t li = 0;
     for (uint32_t j = 0; dirname[j] && li < sizeof(lookup_path) - 7; ++j)
         lookup_path[li++] = dirname[j];
@@ -413,17 +423,18 @@ void test_dir_ops_file_defaults() {
     TEST_ASSERT_NOT_NULL(pair.ext2);
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
-    char dirname[32]; gen_name(dirname, 32, "dd");
+    char dirname[32];
+    gen_name(dirname, 32, "dd");
     Inode* dir = pair.ext2->mkdir(2, dirname, name_len(dirname));
     TEST_ASSERT_NOT_NULL(dir);
     TEST_ASSERT_NOT_NULL(dir->ops);
 
-    char buf[16] = {};
+    char    buf[16] = {};
     int64_t read_rc = dir->ops->read(dir, 0, buf, 16);
     TEST_ASSERT_EQ(read_rc, static_cast<int64_t>(-1));
 
-    const char data[] = "x";
-    int64_t write_rc = dir->ops->write(dir, 0, data, 1);
+    const char data[]   = "x";
+    int64_t    write_rc = dir->ops->write(dir, 0, data, 1);
     TEST_ASSERT_EQ(write_rc, static_cast<int64_t>(-1));
 
     cinux::lib::kprintf("[INODE_OPS] Dir ops read/write defaults OK\n");
@@ -450,34 +461,35 @@ void test_ops_type_dispatch() {
     TEST_ASSERT_TRUE(pair.ext2->is_mounted());
 
     // Create a directory
-    char dirname[32]; gen_name(dirname, 32, "td");
+    char dirname[32];
+    gen_name(dirname, 32, "td");
     Inode* dir = pair.ext2->mkdir(2, dirname, name_len(dirname));
     TEST_ASSERT_NOT_NULL(dir);
     TEST_ASSERT_NOT_NULL(dir->ops);
 
     // Create a file inside
     const char filename[] = "tfile";
-    Inode* file = dir->ops->create(dir, filename, 5);
+    Inode*     file       = dir->ops->create(dir, filename, 5);
     TEST_ASSERT_NOT_NULL(file);
     TEST_ASSERT_NOT_NULL(file->ops);
 
     // File read should succeed (not return -1)
     const char wdata[] = "hello";
-    int64_t written = file->ops->write(file, 0, wdata, 5);
+    int64_t    written = file->ops->write(file, 0, wdata, 5);
     TEST_ASSERT_EQ(written, static_cast<int64_t>(5));
 
-    char rbuf[16] = {};
+    char    rbuf[16]  = {};
     int64_t read_back = file->ops->read(file, 0, rbuf, 5);
     TEST_ASSERT_EQ(read_back, static_cast<int64_t>(5));
 
     // Dir read should fail (return -1 default)
-    char dbuf[16] = {};
+    char    dbuf[16] = {};
     int64_t dir_read = dir->ops->read(dir, 0, dbuf, 16);
     TEST_ASSERT_EQ(dir_read, static_cast<int64_t>(-1));
 
     // Dir create should succeed (not return nullptr)
     const char fname2[] = "f2";
-    Inode* file2 = dir->ops->create(dir, fname2, 2);
+    Inode*     file2    = dir->ops->create(dir, fname2, 2);
     TEST_ASSERT_NOT_NULL(file2);
 
     // File create should fail (return nullptr default)

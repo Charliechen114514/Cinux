@@ -12,6 +12,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "io.h"
 
 namespace cinux::mini::driver::pci {
@@ -82,8 +83,7 @@ constexpr uint16_t PRD_FLAG_EOT = 0x8000;  ///< End-of-table flag (bit 15)
  */
 inline uint32_t config_read(uint8_t bus, uint8_t device, uint8_t func, uint8_t offset) {
     uint32_t addr = (1u << 31) | (static_cast<uint32_t>(bus) << 16) |
-                    (static_cast<uint32_t>(device) << 11) |
-                    (static_cast<uint32_t>(func) << 8) |
+                    (static_cast<uint32_t>(device) << 11) | (static_cast<uint32_t>(func) << 8) |
                     (offset & 0xFC);
     cinux::mini::io::outl(PCI_CONFIG_ADDR, addr);
     return cinux::mini::io::inl(PCI_CONFIG_DATA);
@@ -92,11 +92,10 @@ inline uint32_t config_read(uint8_t bus, uint8_t device, uint8_t func, uint8_t o
 /**
  * @brief Write a 32-bit value to PCI configuration space
  */
-inline void config_write(uint8_t bus, uint8_t device, uint8_t func,
-                         uint8_t offset, uint32_t value) {
+inline void config_write(uint8_t bus, uint8_t device, uint8_t func, uint8_t offset,
+                         uint32_t value) {
     uint32_t addr = (1u << 31) | (static_cast<uint32_t>(bus) << 16) |
-                    (static_cast<uint32_t>(device) << 11) |
-                    (static_cast<uint32_t>(func) << 8) |
+                    (static_cast<uint32_t>(device) << 11) | (static_cast<uint32_t>(func) << 8) |
                     (offset & 0xFC);
     cinux::mini::io::outl(PCI_CONFIG_ADDR, addr);
     cinux::mini::io::outl(PCI_CONFIG_DATA, value);
@@ -120,16 +119,17 @@ inline bool find_ide_controller(uint8_t& out_bus, uint8_t& out_device, uint8_t& 
     for (uint8_t dev = 0; dev < 32; dev++) {
         for (uint8_t func = 0; func < 8; func++) {
             uint32_t vendor = config_read(0, dev, func, 0x00);
-            if ((vendor & 0xFFFF) == 0xFFFF) continue;
+            if ((vendor & 0xFFFF) == 0xFFFF)
+                continue;
 
-            uint32_t class_reg = config_read(0, dev, func, PCI_REG_CLASS);
-            uint8_t subclass = static_cast<uint8_t>((class_reg >> 16) & 0xFF);
-            uint8_t class_code = static_cast<uint8_t>((class_reg >> 24) & 0xFF);
+            uint32_t class_reg  = config_read(0, dev, func, PCI_REG_CLASS);
+            uint8_t  subclass   = static_cast<uint8_t>((class_reg >> 16) & 0xFF);
+            uint8_t  class_code = static_cast<uint8_t>((class_reg >> 24) & 0xFF);
 
             if (class_code == PCI_CLASS_MASS_STORAGE && subclass == PCI_SUBCLASS_IDE) {
-                out_bus = 0;
+                out_bus    = 0;
                 out_device = dev;
-                out_func = func;
+                out_func   = func;
                 return true;
             }
         }

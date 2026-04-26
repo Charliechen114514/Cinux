@@ -23,13 +23,13 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
+#    include <cstddef>
+#    include <cstdint>
+#    include <cstring>
 
-#include "arch/x86_64/gdt.hpp"
-#include "arch/x86_64/usermode.hpp"
-#include "arch/x86_64/paging_config.hpp"
+#    include "arch/x86_64/gdt.hpp"
+#    include "arch/x86_64/paging_config.hpp"
+#    include "arch/x86_64/usermode.hpp"
 
 using namespace cinux::arch;
 using namespace cinux;
@@ -175,7 +175,7 @@ TEST("usermode: SYSRET derives user CS from STAR") {
     // STAR[63:48] = GDT_SYSRET_BASE = 0x23
     // SYSRET: CS = STAR[63:48] + 16 = 0x23 + 0x10 = 0x33 (RPL already baked in)
     constexpr uint16_t star_cs_base = GDT_SYSRET_BASE;
-    constexpr uint16_t user_cs = star_cs_base + 16;
+    constexpr uint16_t user_cs      = star_cs_base + 16;
     ASSERT_EQ(user_cs, GDT_USER_CODE);
 }
 
@@ -183,14 +183,14 @@ TEST("usermode: SYSRET derives user CS from STAR") {
 TEST("usermode: SYSRET derives SS from STAR") {
     // SYSRET: SS = STAR[63:48] + 8 = 0x23 + 8 = 0x2B (RPL already baked in)
     constexpr uint16_t star_cs_base = GDT_SYSRET_BASE;
-    constexpr uint16_t sysret_ss = star_cs_base + 8;
+    constexpr uint16_t sysret_ss    = star_cs_base + 8;
     ASSERT_EQ(sysret_ss, GDT_USER_DATA);
 }
 
 /// Verify STAR value encoding: high 32 bits match GDT_SYSRET_BASE and GDT_KERNEL_CODE
 TEST("usermode: STAR high 32 bits encoding") {
-    constexpr uint64_t star_high = (static_cast<uint64_t>(GDT_SYSRET_BASE) << 16)
-                                 | static_cast<uint64_t>(GDT_KERNEL_CODE);
+    constexpr uint64_t star_high =
+        (static_cast<uint64_t>(GDT_SYSRET_BASE) << 16) | static_cast<uint64_t>(GDT_KERNEL_CODE);
     ASSERT_EQ(star_high, 0x00230010ULL);
 }
 
@@ -342,15 +342,15 @@ TEST("usermode: GDT_TSS selector index is 7") {
 /// Verify user-mode detection: CS with RPL=3 is detected as user mode
 TEST("usermode: CS with RPL=3 detected as user mode") {
     // handle_gp checks: (frame->cs & 0x03) != 0
-    uint64_t user_cs = GDT_USER_CODE;  // 0x1B
-    bool from_user = (user_cs & 0x03) != 0;
+    uint64_t user_cs   = GDT_USER_CODE;  // 0x1B
+    bool     from_user = (user_cs & 0x03) != 0;
     ASSERT_TRUE(from_user);
 }
 
 /// Verify kernel-mode detection: CS with RPL=0 is not user mode
 TEST("usermode: CS with RPL=0 detected as kernel mode") {
     uint64_t kernel_cs = GDT_KERNEL_CODE;  // 0x08
-    bool from_user = (kernel_cs & 0x03) != 0;
+    bool     from_user = (kernel_cs & 0x03) != 0;
     ASSERT_FALSE(from_user);
 }
 
@@ -386,8 +386,8 @@ TEST("usermode: KERNEL_VMA is higher-half base") {
 /// Verify phys-to-virt translation for user code page
 TEST("usermode: phys-to-virt address computation") {
     constexpr uint64_t KERNEL_VMA = 0xFFFFFFFF80000000ULL;
-    constexpr uint64_t phys = 0x1000;
-    uint64_t virt = phys + KERNEL_VMA;
+    constexpr uint64_t phys       = 0x1000;
+    uint64_t           virt       = phys + KERNEL_VMA;
     ASSERT_EQ(virt, 0xFFFFFFFF80001000ULL);
 }
 
@@ -408,7 +408,7 @@ TEST("usermode: IST1 is ist[0] in TSS array") {
 /// Verify DF_STACK is 1 page (4096 bytes)
 TEST("usermode: DF stack is 1 page") {
     constexpr uint64_t DF_STACK_PAGES = 1;
-    constexpr uint64_t df_stack_size = DF_STACK_PAGES * 4096;
+    constexpr uint64_t df_stack_size  = DF_STACK_PAGES * 4096;
     ASSERT_EQ(df_stack_size, 4096ULL);
 }
 
@@ -422,7 +422,7 @@ TEST("usermode: RSP0 is tss.rsp[0]") {
     memset(&tss, 0, sizeof(tss));
 
     uint64_t kernel_rsp0 = 0x801000;
-    tss.rsp[0] = kernel_rsp0;
+    tss.rsp[0]           = kernel_rsp0;
 
     ASSERT_EQ(tss.rsp[0], 0x801000ULL);
 }
@@ -447,7 +447,7 @@ TEST("usermode: RSP0 RSP1 RSP2 are distinct fields") {
 
 /// Verify user entry and stack do not overlap
 TEST("usermode: user code and stack regions do not overlap") {
-    uint64_t code_end = USER_ENTRY_BASE + PAGE_SIZE;
+    uint64_t code_end   = USER_ENTRY_BASE + PAGE_SIZE;
     uint64_t stack_size = USER_STACK_PAGES * PAGE_SIZE;
     uint64_t stack_base = USER_STACK_TOP - stack_size;
 

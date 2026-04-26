@@ -10,10 +10,10 @@
  */
 
 #include "kernel/fs/vfs_mount.hpp"
-#include "kernel/fs/file.hpp"
-#include "kernel/proc/scheduler.hpp"
 
+#include "kernel/fs/file.hpp"
 #include "kernel/lib/string.hpp"
+#include "kernel/proc/scheduler.hpp"
 #include "kernel/proc/sync.hpp"
 
 namespace cinux::fs {
@@ -22,7 +22,7 @@ namespace cinux::fs {
 // Global Mount Table
 // ============================================================
 
-static MountPoint g_mount_table[MOUNT_TABLE_SIZE];
+static MountPoint            g_mount_table[MOUNT_TABLE_SIZE];
 static cinux::proc::Spinlock g_mount_lock;
 
 // ============================================================
@@ -85,8 +85,7 @@ bool vfs_mount_remove(const char* path) {
     (void)g;
 
     for (uint32_t i = 0; i < MOUNT_TABLE_SIZE; ++i) {
-        if (g_mount_table[i].in_use &&
-            strncmp(g_mount_table[i].path, path, MOUNT_PATH_MAX) == 0) {
+        if (g_mount_table[i].in_use && strncmp(g_mount_table[i].path, path, MOUNT_PATH_MAX) == 0) {
             g_mount_table[i].in_use = false;
             return true;
         }
@@ -107,8 +106,8 @@ FileSystem* vfs_resolve(const char* path, const char** rel_path) {
     auto g = g_mount_lock.guard();
     (void)g;
 
-    FileSystem* best_fs   = nullptr;
-    uint32_t    best_len  = 0;
+    FileSystem* best_fs  = nullptr;
+    uint32_t    best_len = 0;
 
     for (uint32_t i = 0; i < MOUNT_TABLE_SIZE; ++i) {
         if (!g_mount_table[i].in_use) {

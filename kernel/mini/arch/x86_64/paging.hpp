@@ -70,25 +70,26 @@ namespace detail {
 /// Whether the CPU supports 1GB pages (CPUID.80000001H:EDX[26])
 /// Cached on first call to avoid repeated CPUID.
 inline bool has_1gb_pages() {
-	static bool checked = false;
-	static bool supported = false;
-	if (checked) return supported;
+    static bool checked   = false;
+    static bool supported = false;
+    if (checked)
+        return supported;
 
-	uint32_t eax = 0x80000001;
-	uint32_t edx;
-	__asm__ volatile("cpuid" : "+a"(eax), "=d"(edx) : : "ebx", "ecx");
-	supported = (edx & (1u << 26)) != 0;  // PDPE1GB bit
-	checked = true;
-	return supported;
+    uint32_t eax = 0x80000001;
+    uint32_t edx;
+    __asm__ volatile("cpuid" : "+a"(eax), "=d"(edx) : : "ebx", "ecx");
+    supported = (edx & (1u << 26)) != 0;  // PDPE1GB bit
+    checked   = true;
+    return supported;
 }
 
 /// Reload CR3 to flush the entire TLB (non-global entries).
 /// Required after modifying PDPT entries because invlpg cannot
 /// invalidate 1GB page TLB entries (Intel SDM Vol.3 4.10.4).
 inline void reload_cr3() {
-	uint64_t cr3;
-	__asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
-	__asm__ volatile("mov %0, %%cr3" : : "r"(cr3) : "memory");
+    uint64_t cr3;
+    __asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
+    __asm__ volatile("mov %0, %%cr3" : : "r"(cr3) : "memory");
 }
 
 }  // namespace detail
@@ -108,46 +109,44 @@ inline void reload_cr3() {
  *                  The function maps up to the next 2MB (or 1GB) boundary.
  */
 inline void identity_map_up_to(uint64_t end_addr) {
-	auto* pd = reinterpret_cast<volatile uint64_t*>(PD_VIRT_ADDR);
-	auto* pdpt = reinterpret_cast<volatile uint64_t*>(PDPT_VIRT_ADDR);
+    auto* pd   = reinterpret_cast<volatile uint64_t*>(PD_VIRT_ADDR);
+    auto* pdpt = reinterpret_cast<volatile uint64_t*>(PDPT_VIRT_ADDR);
 
-	// ---- Part 1: Fill PD entries (0-1GB, 2MB huge pages) ----
-	uint32_t needed_2mb = static_cast<uint32_t>(
-		(end_addr + PAGE_2MB_SIZE - 1) / PAGE_2MB_SIZE);
-	if (needed_2mb > PT_ENTRIES) {
-		needed_2mb = PT_ENTRIES;  // PD can map at most 1GB
-	}
+    // ---- Part 1: Fill PD entries (0-1GB, 2MB huge pages) ----
+    uint32_t needed_2mb = static_cast<uint32_t>((end_addr + PAGE_2MB_SIZE - 1) / PAGE_2MB_SIZE);
+    if (needed_2mb > PT_ENTRIES) {
+        needed_2mb = PT_ENTRIES;  // PD can map at most 1GB
+    }
 
-	for (uint32_t i = 0; i < needed_2mb; i++) {
-		if (pd[i] == 0) {
-			uint64_t phys_base = static_cast<uint64_t>(i) * PAGE_2MB_SIZE;
-			pd[i] = phys_base | PD_HUGE_PAGE_FLAGS;
+    for (uint32_t i = 0; i < needed_2mb; i++) {
+        if (pd[i] == 0) {
+            uint64_t phys_base = static_cast<uint64_t>(i) * PAGE_2MB_SIZE;
+            pd[i]              = phys_base | PD_HUGE_PAGE_FLAGS;
 
-			// Invalidate TLB for the newly mapped 2MB region
-			uint64_t virt_addr = static_cast<uint64_t>(i) * PAGE_2MB_SIZE;
-			__asm__ volatile("invlpg (%0)" : : "r"(virt_addr));
-		}
-	}
+            // Invalidate TLB for the newly mapped 2MB region
+            uint64_t virt_addr = static_cast<uint64_t>(i) * PAGE_2MB_SIZE;
+            __asm__ volatile("invlpg (%0)" : : "r"(virt_addr));
+        }
+    }
 
-	// ---- Part 2: Fill PDPT entries (>= 1GB, 1GB huge pages) ----
-	uint32_t needed_1gb = static_cast<uint32_t>(
-		(end_addr + PAGE_1GB_SIZE - 1) / PAGE_1GB_SIZE);
+    // ---- Part 2: Fill PDPT entries (>= 1GB, 1GB huge pages) ----
+    uint32_t needed_1gb = static_cast<uint32_t>((end_addr + PAGE_1GB_SIZE - 1) / PAGE_1GB_SIZE);
 
-	if (needed_1gb > 1 && detail::has_1gb_pages()) {
-		for (uint32_t n = 1; n < needed_1gb; n++) {
-			// Skip entries reserved by the bootloader
-			if (n == PDPT_PD_ENTRY || n == PDPT_HIGHER_HALF_ENTRY) {
-				continue;
-			}
-			if (pdpt[n] == 0) {
-				uint64_t phys_base = static_cast<uint64_t>(n) * PAGE_1GB_SIZE;
-				pdpt[n] = phys_base | PDPT_1GB_PAGE_FLAGS;
-			}
-		}
-		// Must reload CR3 to flush 1GB page TLB entries;
-		// invlpg cannot invalidate PDPT-level mappings.
-		detail::reload_cr3();
-	}
+    if (needed_1gb > 1 && detail::has_1gb_pages()) {
+        for (uint32_t n = 1; n < needed_1gb; n++) {
+            // Skip entries reserved by the bootloader
+            if (n == PDPT_PD_ENTRY || n == PDPT_HIGHER_HALF_ENTRY) {
+                continue;
+            }
+            if (pdpt[n] == 0) {
+                uint64_t phys_base = static_cast<uint64_t>(n) * PAGE_1GB_SIZE;
+                pdpt[n]            = phys_base | PDPT_1GB_PAGE_FLAGS;
+            }
+        }
+        // Must reload CR3 to flush 1GB page TLB entries;
+        // invlpg cannot invalidate PDPT-level mappings.
+        detail::reload_cr3();
+    }
 }
 
 }  // namespace cinux::mini::arch

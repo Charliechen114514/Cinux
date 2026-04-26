@@ -14,8 +14,8 @@
 
 #pragma once
 
-#include <stdint.h>
 #include <stddef.h>
+#include <stdint.h>
 
 namespace cinux::proc {
 
@@ -63,7 +63,7 @@ public:
 
 private:
     bool in_use_[PID_MAX + 1];
-    int next_hint_;
+    int  next_hint_;
 };
 
 /// Global PID allocator instance.

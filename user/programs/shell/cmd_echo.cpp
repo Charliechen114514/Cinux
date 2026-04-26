@@ -8,9 +8,9 @@
  * to the file specified after '>'.
  */
 
-#include "shell.hpp"
 #include "libc/string.hpp"
 #include "libc/syscall.h"
+#include "shell.hpp"
 
 using cinux::user::strlen;
 using cinux::user::strcmp;

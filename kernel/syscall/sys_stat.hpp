@@ -8,6 +8,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "kernel/arch/x86_64/syscall.hpp"
 
 namespace cinux::syscall {
@@ -21,8 +22,7 @@ namespace cinux::syscall {
  * @param st_virt    User virtual address of the struct stat output buffer
  * @return 0 on success, or -1 on error
  */
-int64_t sys_stat(uint64_t path_virt, uint64_t st_virt, uint64_t,
-                 uint64_t, uint64_t, uint64_t);
+int64_t sys_stat(uint64_t path_virt, uint64_t st_virt, uint64_t, uint64_t, uint64_t, uint64_t);
 
 /**
  * @brief Get file status by file descriptor
@@ -33,7 +33,6 @@ int64_t sys_stat(uint64_t path_virt, uint64_t st_virt, uint64_t,
  * @param st_virt    User virtual address of the struct stat output buffer
  * @return 0 on success, or -1 on error
  */
-int64_t sys_fstat(uint64_t fd, uint64_t st_virt, uint64_t,
-                  uint64_t, uint64_t, uint64_t);
+int64_t sys_fstat(uint64_t fd, uint64_t st_virt, uint64_t, uint64_t, uint64_t, uint64_t);
 
 }  // namespace cinux::syscall

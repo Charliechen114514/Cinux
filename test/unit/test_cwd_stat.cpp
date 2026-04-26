@@ -20,9 +20,9 @@
 
 #ifdef CINUX_HOST_TEST
 
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
+#    include <cstddef>
+#    include <cstdint>
+#    include <cstring>
 
 // ============================================================
 // Constants (mirror of kernel/fs/path.hpp)
@@ -38,36 +38,44 @@ namespace path_test {
 
 size_t k_strlen(const char* s) {
     size_t n = 0;
-    while (s[n] != '\0') ++n;
+    while (s[n] != '\0')
+        ++n;
     return n;
 }
 
 void path_canonicalize(char* buf) {
-    if (buf == nullptr || buf[0] == '\0') return;
+    if (buf == nullptr || buf[0] == '\0')
+        return;
 
     uint32_t len = static_cast<uint32_t>(k_strlen(buf));
-    char out[PATH_MAX];
+    char     out[PATH_MAX];
     uint32_t out_pos = 0;
 
     // Always produce a leading '/' -- result is an absolute path
     out[out_pos++] = '/';
 
     uint32_t i = 0;
-    while (i < len && buf[i] == '/') ++i;
+    while (i < len && buf[i] == '/')
+        ++i;
 
     while (i < len) {
         uint32_t comp_start = i;
-        while (i < len && buf[i] != '/') ++i;
+        while (i < len && buf[i] != '/')
+            ++i;
         uint32_t comp_len = i - comp_start;
 
-        while (i < len && buf[i] == '/') ++i;
+        while (i < len && buf[i] == '/')
+            ++i;
 
-        if (comp_len == 0) continue;
-        if (comp_len == 1 && buf[comp_start] == '.') continue;
+        if (comp_len == 0)
+            continue;
+        if (comp_len == 1 && buf[comp_start] == '.')
+            continue;
         if (comp_len == 2 && buf[comp_start] == '.' && buf[comp_start + 1] == '.') {
             if (out_pos > 1) {
                 --out_pos;
-                while (out_pos > 0 && out[out_pos - 1] != '/') --out_pos;
+                while (out_pos > 0 && out[out_pos - 1] != '/')
+                    --out_pos;
             }
             continue;
         }
@@ -80,18 +88,23 @@ void path_canonicalize(char* buf) {
         }
     }
 
-    if (out_pos == 0) out[out_pos++] = '/';
+    if (out_pos == 0)
+        out[out_pos++] = '/';
     out[out_pos] = '\0';
     std::memcpy(buf, out, out_pos + 1);
 }
 
 bool path_resolve(const char* cwd, const char* path, char* out) {
-    if (cwd == nullptr || path == nullptr || out == nullptr) return false;
+    if (cwd == nullptr || path == nullptr || out == nullptr)
+        return false;
 
     // Absolute path
     if (path[0] == '/') {
         uint32_t i = 0;
-        while (path[i] != '\0' && i < PATH_MAX - 1) { out[i] = path[i]; ++i; }
+        while (path[i] != '\0' && i < PATH_MAX - 1) {
+            out[i] = path[i];
+            ++i;
+        }
         out[i] = '\0';
         path_canonicalize(out);
         return true;
@@ -99,12 +112,17 @@ bool path_resolve(const char* cwd, const char* path, char* out) {
 
     // Relative path: cwd + "/" + path
     uint32_t pos = 0;
-    while (cwd[pos] != '\0' && pos < PATH_MAX - 2) { out[pos] = cwd[pos]; ++pos; }
+    while (cwd[pos] != '\0' && pos < PATH_MAX - 2) {
+        out[pos] = cwd[pos];
+        ++pos;
+    }
     if (pos > 0 && out[pos - 1] != '/' && pos < PATH_MAX - 2) {
         out[pos++] = '/';
     }
     uint32_t j = 0;
-    while (path[j] != '\0' && pos < PATH_MAX - 1) { out[pos++] = path[j++]; }
+    while (path[j] != '\0' && pos < PATH_MAX - 1) {
+        out[pos++] = path[j++];
+    }
     out[pos] = '\0';
     path_canonicalize(out);
     return true;
@@ -447,8 +465,8 @@ namespace mock {
 
 // Capture buffer for sys_write output
 constexpr size_t CAPTURE_SIZE = 8192;
-char write_capture[CAPTURE_SIZE];
-size_t write_capture_len = 0;
+char             write_capture[CAPTURE_SIZE];
+size_t           write_capture_len = 0;
 
 void reset_capture() {
     std::memset(write_capture, 0, sizeof(write_capture));
@@ -456,7 +474,7 @@ void reset_capture() {
 }
 
 void write_str(const char* s) {
-    size_t len = std::strlen(s);
+    size_t len     = std::strlen(s);
     size_t to_copy = len;
     if (write_capture_len + to_copy > CAPTURE_SIZE - 1)
         to_copy = CAPTURE_SIZE - 1 - write_capture_len;
@@ -470,22 +488,23 @@ char cwd[256] = "/";
 
 void set_cwd(const char* p) {
     size_t len = std::strlen(p);
-    if (len >= sizeof(cwd)) len = sizeof(cwd) - 1;
+    if (len >= sizeof(cwd))
+        len = sizeof(cwd) - 1;
     std::memcpy(cwd, p, len + 1);
 }
 
 // Mock sys_chdir return value
 int64_t chdir_return = 0;
-char last_chdir_path[256];
+char    last_chdir_path[256];
 
 void clear_last_chdir() {
     std::memset(last_chdir_path, 0, sizeof(last_chdir_path));
 }
 
 // Mock sys_stat return value and captured stat
-int64_t stat_return = 0;
+int64_t         stat_return = 0;
 cinux::fs::stat captured_stat;
-char last_stat_path[256];
+char            last_stat_path[256];
 
 void clear_last_stat() {
     std::memset(last_stat_path, 0, sizeof(last_stat_path));
@@ -548,20 +567,35 @@ void cmd_stat(int argc, char** argv) {
     mock::write_str("  Size: ");
     // Simple int-to-string for size
     int64_t sz = mock::captured_stat.st_size;
-    if (sz < 0) { mock::write_str("-"); sz = -sz; }
+    if (sz < 0) {
+        mock::write_str("-");
+        sz = -sz;
+    }
     char* p = num_buf + sizeof(num_buf) - 1;
-    *p = '\0';
-    if (sz == 0) { *(--p) = '0'; }
-    else { while (sz > 0) { *(--p) = '0' + (sz % 10); sz /= 10; } }
+    *p      = '\0';
+    if (sz == 0) {
+        *(--p) = '0';
+    } else {
+        while (sz > 0) {
+            *(--p) = '0' + (sz % 10);
+            sz /= 10;
+        }
+    }
     mock::write_str(p);
     mock::write_str("\n");
 
     mock::write_str("  Inode: ");
     uint64_t ino = mock::captured_stat.st_ino;
-    p = num_buf + sizeof(num_buf) - 1;
-    *p = '\0';
-    if (ino == 0) { *(--p) = '0'; }
-    else { while (ino > 0) { *(--p) = '0' + (ino % 10); ino /= 10; } }
+    p            = num_buf + sizeof(num_buf) - 1;
+    *p           = '\0';
+    if (ino == 0) {
+        *(--p) = '0';
+    } else {
+        while (ino > 0) {
+            *(--p) = '0' + (ino % 10);
+            ino /= 10;
+        }
+    }
     mock::write_str(p);
     mock::write_str("\n");
 }
@@ -657,9 +691,9 @@ TEST("shell_pwd: outputs root") {
 TEST("shell_stat: prints file info on success") {
     mock::reset_capture();
     mock::clear_last_stat();
-    mock::stat_return = 0;
+    mock::stat_return           = 0;
     mock::captured_stat.st_size = 1024;
-    mock::captured_stat.st_ino = 42;
+    mock::captured_stat.st_ino  = 42;
 
     char* argv[] = {const_cast<char*>("stat"), const_cast<char*>("/testfile")};
     shell_cmd::cmd_stat(2, argv);
@@ -740,10 +774,10 @@ TEST("shell_pipeline: cd .. then pwd shows parent") {
 TEST("shell_pipeline: stat after cd uses relative path") {
     mock::reset_capture();
     mock::set_cwd("/home/user");
-    mock::chdir_return = 0;
-    mock::stat_return = 0;
+    mock::chdir_return          = 0;
+    mock::stat_return           = 0;
     mock::captured_stat.st_size = 256;
-    mock::captured_stat.st_ino = 7;
+    mock::captured_stat.st_ino  = 7;
 
     // cd to /var/log
     char* cd_argv[] = {const_cast<char*>("cd"), const_cast<char*>("/var/log")};

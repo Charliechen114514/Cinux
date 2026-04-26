@@ -20,7 +20,7 @@ void EventQueue::enqueue(const Event& ev) {
     }
 
     buf_[tail_] = ev;
-    tail_ = next;
+    tail_       = next;
 }
 
 // ============================================================
@@ -32,7 +32,7 @@ bool EventQueue::dequeue(Event& out) {
         return false;
     }
 
-    out = buf_[head_];
+    out   = buf_[head_];
     head_ = (head_ + 1) % BUF_SIZE;
     return true;
 }
