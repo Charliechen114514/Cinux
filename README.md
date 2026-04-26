@@ -148,33 +148,39 @@ sudo apt install -y gcc g++ binutils qemu-system-x86_64 cmake
 
 > Feature Help: 不知道有没有好心人愿意移植到Windows上可编译，如果有所变动欢迎提交您的PR！
 
-#### Step 1: 配置
+#### Step 1️⃣: 配置
 
 ```bash
-# 1️⃣ 配置为GUI（默认）（Release 模式）
-cmake -B build -DCMAKE_BUILD_TYPE=Release -DCINUX_BUILD_TESTS=ON -S .
+#  配置为GUI（默认）（Release 模式），也是最推介的！🚀
+cmake -B build -DCMAKE_BUILD_TYPE=Release -S .
 
+# 或者，默认（速度稍慢）
+cmake -B build  -S .
 
+# 或者你fork改炸了准备使用VSCode调试
+cmake -B build -DCMAKE_BUILD_TYPE=Debug -S .
+
+# 带测试的配置
+cmake -B build -DCINUX_BUILD_TESTS=ON -S .
+
+# CLI运行环境
+cmake -B build -DCINUX_GUI=OFF -S .   
 ```
 
-
+#### Step 2️⃣: 构建
 ```bash
-# 1️⃣ 配置（Release 模式）
-cmake -B build -DCMAKE_BUILD_TYPE=Release -DCINUX_BUILD_TESTS=ON -S .
-
-# 2️⃣ 编译
 cmake --build build -j$(nproc)
-
-# 3️⃣ 测试
-cd build
-make test_host           # Host 端单元测试（CTest）
-make run-kernel-test     # QEMU 内核测试（自动退出）
-
-# 4️⃣ 启动！
-make run                 # QEMU 启动 Cinux
 ```
 
-### 调试模式
+#### Step 3️⃣: Cinux，启动!
+
+```bash
+cmake --build build --target run # 跑内核本体, 默认Launch的是VNC显示，您需要VNC！
+cmake --build build --target test_host           # Host 端单元测试（CTest）
+cmake --build build --target run-kernel-test     # QEMU 内核测试（自动退出）
+```
+
+### 调试模式 1：GDB大牛请走这里
 
 ```bash
 # 终端 1：启动 QEMU + GDB server
@@ -187,6 +193,31 @@ gdb build/kernel.elf
 (gdb) continue
 ```
 
+### 调试模式 2：VSCode大牛请走这里（是的别坐牢，如果不喜欢GDB!）
+
+**Step 1：** 一键脚本构建并启动 QEMU 调试模式（Debug 构建 + GDB stub 监听 `:1234`）：
+
+```bash
+bash scripts/launch_qemu_debug.sh
+```
+
+**Step 2：** 确认 `.vscode/launch.json` 中已有如下配置：
+
+> PS：大内核需要改一下ELF，这个麻烦自己手调。
+```json
+{
+    "name": "QEMU 调试 (mini kernel)",
+    "type": "cppdbg",
+    "request": "launch",
+    "program": "${workspaceFolder}/build/kernel/mini/mini_kernel",
+    "MIMode": "gdb",
+    "miDebuggerServerAddress": "localhost:1234",
+    ...
+}
+```
+
+**Step 3：** 在 VSCode 中按 **F5**，选择对应的调试配置即可开始图形化断点调试。
+
 ---
 
 ## 🛠️ 技术栈亮点
@@ -198,7 +229,7 @@ gdb build/kernel.elf
 - ✅ **编译期魔法**：GDT/IDT 描述符 `constexpr` 生成，桌面图标 `constexpr` 像素数据
 - ✅ **类型安全**：`enum class` 作为 API 一等公民，`concepts` 约束驱动接口
 - ✅ **RAII 资源管理**：Spinlock::guard、InterruptGuard、锁自动释放
-- ✅ **零标准库依赖**：完全 freestanding，自实现 memset/memcpy/string
+- ✅ **零标准库依赖**： freestanding，自实现 memset/memcpy/string
 
 </details>
 
