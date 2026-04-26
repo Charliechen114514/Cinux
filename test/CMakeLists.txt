@@ -26,6 +26,7 @@ set(CINUX_HOST_TEST ON)
 set(TEST_INCLUDE_DIRS
     ${CMAKE_SOURCE_DIR}/test/framework
     ${CMAKE_SOURCE_DIR}/kernel
+    ${CMAKE_SOURCE_DIR}
 )
 
 # ============================================================

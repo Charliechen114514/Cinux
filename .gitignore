@@ -4,6 +4,13 @@ helpers
 .claude/
 CLAUDE.md
 
+# ============================================================
+# Python virtual environment & profiles
+# ============================================================
+.venv/
+.cinux_profiles.json
+__pycache__/
+
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
