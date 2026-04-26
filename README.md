@@ -22,8 +22,8 @@
 **Cinux** 是一个从零开始的 x86_64 操作系统开发教程，采用现代 C++ 编写。
 
 > 💡 **为什么叫 Cinux？**
-> C/C++'s Linux, 也就是尝试重新再写一个基于C/C++的Linux
-> CharlieChen's *nux（逃）
+> - C/C++'s Linux, 也就是尝试重新再写一个基于C/C++的Linux
+> - CharlieChen's *nux（逃）
 
 ---
 
