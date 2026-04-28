@@ -317,7 +317,7 @@ gdt_null:
 
 gdt_code:
     .word 0xFFFF                   // Limit 15:0
-    .word 0x0000                   // Base 15:0 (= 0x8000)
+    .word 0x0000                   // Base 15:0
     .byte 0x00                     // Base 23:16
     .byte 0x9A                     // Present, DPL=0, Code, Executable, Readable
     .byte 0xCF                     // Granularity=4KB, 32-bit, Limit 19:16=0xF
@@ -325,7 +325,7 @@ gdt_code:
 
 gdt_data:
     .word 0xFFFF                   // Limit 15:0
-    .word 0x0000                   // Base 15:0 (= 0x8000)
+    .word 0x0000                   // Base 15:0
     .byte 0x00                     // Base 23:16
     .byte 0x92                     // Present, DPL=0, Data, Writable
     .byte 0xCF                     // Granularity=4KB, 32-bit, Limit 19:16=0xF
