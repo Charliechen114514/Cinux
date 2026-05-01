@@ -1,0 +1,185 @@
+# 012-1 UART 16550 驱动：理解硬件与轮询 I/O
+
+## 导语
+
+上一章（011）我们搭好了 PIC 重映射和 PIT 定时器，内核终于有了"时间感"——每秒一行的 `[TICK] uptime: Ns` 稳定输出在串口终端上。但如果你回头看看那些 kprintf 调用，你会发现一个我们从来没仔细聊过的东西：字符到底是怎么从 CPU 内部跑到你的终端屏幕上的？在 009B 里我们搭过一版简单的 I/O 端口和串口驱动，但那时候的设计比较粗糙——而现在我们要在它的基础上完成一次正式的 UART 16550 驱动重构，把 `Serial` 类独立成 `kernel/drivers/serial/` 下的正式驱动模块，同时把 kprintf 的格式化引擎彻底从硬件依赖中解耦出来。
+
+本章结束后，你会拥有一个完整的、可测试的串口驱动加格式化输出系统：驱动层只负责和 UART 硬件打交道，格式化层完全不关心字节最终去了哪里——这样的架构在后面加新的输出后端（比如 framebuffer 控制台、QEMU debugcon）时会变得极其清爽。前置知识方面，你需要了解 009B 里讲过的 x86 I/O 端口操作基础（`in`/`out` 指令、`io_inb`/`io_outb` 的内联汇编封装）以及 011 章的 kprintf 基本用法，但不需要对 UART 16550 有任何先验了解——这正是这一篇要讲的东西。
+
+---
+
+## 概念精讲
+
+### UART 16550：从串并转换到现代内核调试口
+
+UART 这个词你可能见过无数次了——Universal Asynchronous Receiver-Transmitter，通用异步收发器。名字很唬人，但干的事情其实特别朴素：CPU 这边的数据是并行的（一个字节 8 根线同时存在），而串口线上数据是串行的（一根信号线，一位一位地传）。UART 就是夹在两者中间的那个"翻译官"——发送时把一个字节拆成 8 个位按顺序发出去，接收时把收到的 8 个位拼成一个字节交给 CPU。
+
+x86 PC 上用的 UART 芯片型号是 16550A（或者它的兼容实现）。这个芯片有 8 个 8 位宽的寄存器，映射到连续的 I/O 端口上。COM1 的基地址是 0x3F8，所以它的 8 个寄存器分别对应端口 0x3F8 到 0x3FF。这个地址是 IBM 在设计原始 PC 时就确定下来的，写在 BIOS 数据区里，QEMU 完全遵循这个布局。
+
+你可能会问：都 2026 年了，为什么还要学这种"古老"的东西？原因很简单——在内核开发的早期阶段，你是没有显卡驱动、没有 USB 栈、没有网络协议栈的。你唯一的调试输出手段就是串口。QEMU 默认把虚拟机的 COM1 映射到宿主机的 stdio，所以你在终端看到的每一行内核输出，本质上都是内核往 I/O 端口 0x3F8 写了一个一个字节。在内核开发的世界里，串口驱动就像新生儿的第一声啼哭——没有它，你什么调试信息都看不到。
+
+### 串口通信的帧格式：8N1 到底在说什么
+
+你会在串口驱动的注释里反复看到"115200 8N1"这个说法。拆开来看，115200 是波特率（Baud Rate），意思每秒传输 115200 个 bit。这个数字除以 10（8 个数据位 + 1 个起始位 + 1 个停止位）就是每秒大约能传 11520 个字节。波特率越高传输越快，但真实硬件上波特率太高会导致信号不稳定——不过在 QEMU 的虚拟环境里这个问题不存在，虚拟 UART 的传输是即时的。
+
+8N1 是对帧格式的缩写：8 个数据位（Data Bits）、无校验（No Parity）、1 个停止位（1 Stop Bit）。这是最常用的串口帧格式。起始位永远是 1 个（隐含的），所以一个完整的帧是 1 个起始位 + 8 个数据位 + 0 个校验位 + 1 个停止位 = 10 个位。校验位是可选的，可以设为奇校验或偶校验，用于检测传输错误，但在 QEMU 里完全不需要操心。
+
+### UART 寄存器偏移映射：同一地址的双重身份
+
+UART 16550 最容易让新手迷惑的地方是它的寄存器映射方式——8 个寄存器共享同一组 I/O 端口，通过不同的偏移和读/写方向来区分。具体来说，偏移 0 的位置读操作访问的是 RBR（Receive Buffer Register，接收缓冲寄存器），而写操作访问的是 THR（Transmit Holding Register，发送保持寄存器）。这是两个完全不同的物理寄存器，但它们共用同一个 I/O 端口地址。这种"同一地址、不同方向对应不同寄存器"的设计在硬件里非常常见，好处是节省地址空间——毕竟 I/O 端口只有 65536 个，能省则省。
+
+完整的 8 个寄存器偏移映射是这样的：偏移 0 是 RBR（读）/ THR（写），偏移 1 是 IER（Interrupt Enable Register），偏移 2 是 FCR（写）/ IIR（读，Interrupt Identification Register），偏移 3 是 LCR（Line Control Register），偏移 4 是 MCR（Modem Control Register），偏移 5 是 LSR（Line Status Register），偏移 6 是 MSR（Modem Status Register），偏移 7 是 SCR（Scratch Register）。
+
+这里面我们真正需要关注的寄存器有五个。LCR 控制帧格式，写入 0x03 就是 8N1，同时保证 DLAB 位（bit 7）为 0，不会误触波特率除数寄存器。FCR 控制 FIFO 缓冲，写入 0xC7 表示启用 FIFO、清空收发缓冲、触发阈值设为 14 字节。MCR 控制调制解调器信号线，写入 0x03 置位 RTS 和 DTR。LSR 是只读的状态寄存器，bit 0（RX_READY）表示接收缓冲有数据，bit 5（TX_READY）表示发送保持寄存器为空。IER 控制中断使能，写入 0x00 禁用所有中断——我们的驱动是纯轮询模式。
+
+### 轮询 I/O 的工作方式：等硬件准备好再动手
+
+"轮询"（Polling）是和"中断驱动"相对的概念。轮询模式的串口发送是这样的：CPU 在一个循环里反复读 LSR 寄存器，检查 bit 5（TX_READY）是否为 1。如果为 0，说明上一个字节还没发完，继续等；如果为 1，说明 THR 空了，可以写新的字节了。接收也是类似的逻辑——检查 bit 0（RX_READY），为 1 说明有新数据到了。
+
+轮询模式的优点是极其简单——不需要中断控制器配置、不需要 IDT 注册、不需要锁和并发控制。缺点是 CPU 要在等待循环里空转，浪费计算资源。但对于我们的教学内核来说，串口几乎是唯一的输出手段，而且 QEMU 的虚拟 UART 发送是即时的（TX_READY 几乎永远是 1），轮询的开销可以忽略不计。更重要的是，在内核启动的极早期阶段，中断基础设施可能还没就绪，此时轮询是唯一可行的 I/O 方式。
+
+等待循环里有一条值得注意的指令——`pause`。这是一条 x86 hint 指令，告诉 CPU "我在一个 spin-wait 循环里，你可以稍微降低功耗"。在不支持超线程的处理器上它基本是个 NOP，但在支持超线程的处理器上，`pause` 会让出执行资源给另一个逻辑线程。即使我们不关心功耗，一个会空转的循环也应该加上 `pause`，这是一个好习惯。
+
+---
+
+## 动手实现
+
+### Step 1: Serial 驱动的头文件设计
+
+**目标**：创建 `kernel/drivers/serial.hpp`，用命名空间常量定义 COM 端口地址、UART 寄存器偏移和 LSR 状态位，用 class 封装 Serial 的操作接口。
+
+**设计思路**：Serial 类的设计遵循"构造和初始化分离"的模式——构造函数只保存端口号，不做任何硬件操作，真正的 UART 配置推迟到显式调用 `init()` 的时候。这样做的原因是，全局对象的构造发生在 C++ 运行时初始化阶段（`__ctors` 遍历），那时候中断可能还没设置好、内存管理器可能还没就绪，做硬件 I/O 操作是不安全的。
+
+**实现约束**：头文件需要定义以下内容。在 `cinux::drivers` 命名空间内，用 `constexpr uint16_t` 定义四个 COM 端口基地址（COM1 = 0x03F8, COM2 = 0x02F8, COM3 = 0x03E8, COM4 = 0x2E8）。创建一个 `SerialReg` 命名空间存放 8 个寄存器偏移常量（RBR/THR = 0, IER = 1, FCR = 2, LCR = 3, MCR = 4, LSR = 5, MSR = 6, SCR = 7）。创建一个 `SerialLSR` 命名空间存放 LSR 的关键位常量（RX_READY = 0x01, TX_READY = 0x20）。
+
+Serial 类的公开接口包括：一个 `explicit` 构造函数接受端口号（默认 COM1），一个 `init()` 方法配置 UART（接受可选的 port 和 baud 参数，但在 QEMU 环境下实际上不使用这些参数），一个 `putc(char)` 方法发送单个字符，一个 `puts(const char*)` 方法发送字符串，一个 `is_ready()` 方法查询发送就绪状态。私有成员包括一个 `uint16_t base_port_` 存储基地址和一个 `is_tx_ready()` 私有辅助方法。
+
+**踩坑预警**：RBR 和 THR 的偏移都是 0，但它们是两个不同的物理寄存器——读 offset 0 访问 RBR，写 offset 0 访问 THR。不要试图在同一个偏移上"读写同一个寄存器"，那会导致数据混乱。另外，如果你定义的命名空间常量名和标准库或者别的驱动冲突，会导致非常诡异的编译错误，所以一定要包在项目自己的命名空间里。
+
+**验证**：此步完成后编译应该通过。还没有可运行的输出，但你可以确认头文件的 include 关系正确——`serial.hpp` 需要包含 `<stdint.h>` 和 `kernel/arch/x86_64/io.hpp`。
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Debug -S .
+cmake --build build -j$(nproc) 2>&1 | tail -5
+# 预期：编译通过，没有 serial.hpp 相关的错误
+```
+
+### Step 2: Serial 驱动的 init() 实现
+
+**目标**：在 `kernel/drivers/serial.cpp` 中实现构造函数和 `init()` 方法，按正确顺序配置 UART 的五个关键寄存器。
+
+**设计思路**：UART 的初始化是一个固定的五步序列，每一步往对应的 I/O 端口写一个字节。顺序很重要——先禁中断（IER=0）防止配置过程中产生意外的硬件中断，然后设置帧格式（LCR=0x03 即 8N1），接着启用 FIFO 并清空缓冲（FCR=0xC7），设置调制解调器控制信号（MCR=0x03 即 RTS+DTR），最后读一次 LSR 做探测性读取来验证 UART 存在且可访问。
+
+构造函数只有一行——把传入的端口号存到 `base_port_` 成员变量里，别的什么都不做。`init()` 方法使用 `base_port_` 加上寄存器偏移来计算每个寄存器的实际 I/O 端口地址，然后依次调用 `io_outb` 和 `io_inb`。
+
+**实现约束**：init() 的五步操作分别是——第一步向 base_port + 1（IER）写 0x00 禁用所有中断；第二步向 base_port + 3（LCR）写 0x03 设置 8N1 格式；第三步向 base_port + 2（FCR）写 0xC7 启用 FIFO 并清空缓冲、设置 14 字节触发阈值；第四步向 base_port + 4（MCR）写 0x03 置位 RTS 和 DTR；第五步从 base_port + 5（LSR）读一次做探测。这五步的顺序不能打乱，特别是 IER 必须最先设置。
+
+**踩坑预警**：一个很容易犯的错误是把波特率除数寄存器的设置也塞进 init 里——先设 DLAB 位（LCR bit 7 = 1），然后写除数高低字节。但在 QEMU 环境下这是完全不需要的，虚拟 UART 的传输是即时的，所谓的"115200 波特率"在虚拟环境里没有物理意义。如果你坚持要设置波特率，记得在写完除数之后把 DLAB 位清零（LCR 改回 0x03），否则后续所有的寄存器操作都会打乱——DLAB=1 时 offset 0 和 offset 1 变成了除数寄存器，不是 THR 和 IER 了。
+
+**验证**：此步完成后编译应该通过。init() 方法的实现可以被后续步骤调用。
+
+```bash
+cmake --build build -j$(nproc) 2>&1 | tail -5
+# 预期：编译通过，serial.cpp 无错误
+```
+
+### Step 3: putc()、puts()、is_tx_ready()、is_ready() 实现
+
+**目标**：实现 Serial 类的 I/O 方法——轮询式字符发送、字符串发送（含换行转换）、TX 就绪查询。
+
+**设计思路**：putc() 是整个驱动最核心的函数，采用轮询模式——先检查 LSR 的 bit 5（TX_READY），为 0 就在循环里等（附带 `pause` 指令降低功耗），为 1 就往 THR 写一个字节。puts() 逐字符调用 putc()，但在遇到换行符 `\n` 时先发一个回车符 `\r`——这是串口终端的惯例，因为串口终端使用 CR+LF（`\r\n`）作为换行标记，而 C 语言字符串只用 `\n`（LF）。如果不在 `\n` 前加 `\r`，终端输出会是"阶梯状"的——每行开头和上一行开头不对齐。
+
+**实现约束**：is_tx_ready() 是私有辅助方法，读取 LSR 寄存器（base_port + 5）然后用按位与检查 bit 5 是否为 1。is_ready() 是公开方法，目前直接委托给 is_tx_ready()，之所以分两层是为了将来可能扩展 RX 就绪检查。putc() 在自旋等待循环中使用 `__asm__ volatile("pause")` 作为 CPU hint。puts() 需要一个空指针检查（如果传入 nullptr 就直接返回），然后逐字符遍历，遇到 `\n` 先调 putc 发送 `\r`。
+
+**踩坑预警**：puts 里的换行转换是初学者最容易遗漏的地方。如果你发现终端输出的文字变成了阶梯状——每一行比上一行缩进了一位——那就是忘了加 `\r`。这个坑我第一次写串口驱动的时候踩过，对着终端上百思不得其解还以为是什么编码问题，实际上就是少了一个回车符。另外空指针检查千万不要省——在内核里，一个空指针解引用就是 triple fault，而 puts 通常被 kprintf 调用，如果某个 `%s` 格式化参数碰巧是 NULL，直接传给 puts 不做检查就会直接崩溃。
+
+**验证**：此步完成后，Serial 类的所有方法都实现了。你可以构建并运行内核来验证串口输出是否正常。
+
+```bash
+cmake --build build -j$(nproc)
+cd build && make run
+# 预期：串口终端输出 [BIG] Big kernel running @ 0x1000000 以及后续的初始化信息
+# 如果看到阶梯状输出，检查 puts 里的 \r 转换
+```
+
+### Step 4: kprintf 与 Serial 的集成
+
+**目标**：在 `kernel/lib/kprintf.cpp` 中集成 Serial 驱动，让格式化引擎的输出通过串口发送。
+
+**设计思路**：格式化引擎 `vkprintf_impl` 是硬件无关的模板，它接受一个 `OutputFn` 回调函数来输出每个字符。kprintf.cpp 的集成方式非常直接——创建一个全局的 `Serial` 对象（匿名命名空间中的 `static Serial g_serial(SERIAL_COM1)`），然后 `kprintf_init()` 调用 `g_serial.init()` 完成硬件初始化。kprintf 和 kvprintf 各自调用 `vkprintf_impl`，传入一个 lambda `[&](char c) { g_serial.putc(c); }` 作为 OutputFn——这个 lambda 捕获了全局 Serial 对象的引用，每收到一个字符就调用 `Serial::putc()` 发出去。kpanic 在格式化输出后进入一个 `cli; hlt` 的死循环。
+
+这种设计的核心是"关注点分离"——格式化引擎只关心怎么解析 `%d`、`%x` 这些格式说明符，完全不关心字节最终去了串口还是 framebuffer 还是 debugcon。`OutputFn` 回调就是这层抽象的边界——将来你要加新的输出后端（比如 QEMU debugcon），只需要在 kprintf.cpp 里加一个新的全局对象和对应的 lambda 就行，格式化引擎的代码完全不用动。
+
+**实现约束**：kprintf.cpp 需要包含 `kernel/drivers/serial.hpp` 和 `kernel/lib/private/vkprintf_impl.hpp`。匿名命名空间中包含全局的 `Serial g_serial` 对象，以及 `using` 声明引入 `vkprintf_impl`。公开的 `kprintf_init()` 调用 `g_serial.init()`。`kprintf` 接受可变参数，内部用 `va_start`/`va_end` 构建 `va_list`，然后调 `vkprintf_impl` 传入 lambda。`kvprintf` 直接接受 `va_list`，转发给 `vkprintf_impl`。`kpanic` 在格式化输出后进入 `cli; hlt` 死循环。
+
+**踩坑预警**：全局 Serial 对象的构造时机是个隐蔽的陷阱。C++ 全局对象的构造函数在 `__ctors` 段被遍历时执行，这个时机可能比你想象的要早——如果 Serial 的构造函数里做了硬件操作，而那时中断还没设置好，后果不可预测。所以我们的设计是构造函数只存端口号、init() 推迟到 `kprintf_init()` 显式调用，这正是为了避免这个问题。
+
+**验证**：这是完整的端到端验证步骤。构建运行后，串口终端应该能看到内核的完整启动日志。
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Debug -S .
+cmake --build build -j$(nproc)
+cd build && make run
+# 预期输出（逐行出现）：
+# [BIG] Big kernel running @ 0x1000000
+# [BIG] GDT loaded.
+# [BIG] IDT loaded.
+# [BIG] PIC initialised.
+# [IRQ] Registering IRQ handlers (0x20-0x2F)...
+# [IRQ] All IRQ handlers registered.
+# [PIT] Initialised at 100 Hz (divisor=11931)
+# ... 后续的 tick 输出 ...
+```
+
+---
+
+## 构建与运行
+
+构建和运行流程与之前的 tag 完全一致：
+
+```bash
+# 切换到 tag
+git checkout 012_driver_serial
+
+# 配置 + 构建（Debug 模式）
+cmake -B build -DCMAKE_BUILD_TYPE=Debug -S .
+cmake --build build -j$(nproc)
+
+# 运行
+cd build && make run
+```
+
+QEMU 启动参数里最关键的是 `-serial stdio`——把虚拟机的 COM1 连接到宿主机的标准输入输出。当内核往 I/O 端口 0x3F8 写一个字节时，QEMU 的虚拟 UART 收到这个字节然后把它作为普通字符输出到你的终端。整个调用链条是：`kprintf("Hello")` -> 格式化引擎逐个字符输出 -> lambda 调用 `g_serial.putc(c)` -> putc 轮询等待 TX_READY -> `io_outb(0x3F8, byte)` -> QEMU 把字节显示到终端。
+
+如果你想同时看到 debugcon 的输出（用于排查内核启动最早期的问题），可以在 QEMU 参数里加 `-debugcon file:debug.log`，这样所有往端口 0xE9 的 outb 操作都会被记录到 debug.log 文件中。
+
+---
+
+## 调试技巧
+
+**串口没有任何输出**
+
+这是最让人头疼的情况——内核跑起来了但终端一片空白。排查的第一步是确认 `kprintf_init()` 确实被调用了。在 `kernel_main()` 里紧挨着 `kprintf_init()` 之后加一个直接的端口写操作——往 0x3F8 写一个字符 'A'，用 `io_outb` 即可。如果这样能看到 'A'，说明 I/O 端口操作没问题，问题在 Serial 类的初始化或者 kprintf 的格式化逻辑。如果这样也看不到，问题可能在更底层——大内核根本没有开始执行，或者 QEMU 的串口映射配置不对。用 GDB 在 `kernel_main` 设断点确认是否能命中。
+
+**输出乱码或者阶梯状换行**
+
+乱码通常是端口号写错了——比如把 0x3F8 写成了 0x3F0，写到了别的硬件设备上。阶梯状换行则是忘了在 `\n` 前面加 `\r`，检查 `puts()` 里的换行转换逻辑是否正确实现。
+
+**putc() 卡死不返回**
+
+这种情况说明 LSR 的 bit 5 永远不变为 1，通常是 `base_port_` 没有被正确设置。用 GDB 断在 `putc()` 里，检查 `this->base_port_` 的值是不是 0x3F8。如果是一个垃圾值（0 或者 0xFFFFFFFF），说明 Serial 对象的构造有问题——可能是全局对象构造时机不对，或者内存被踩了。
+
+---
+
+## 本章小结
+
+| 组件 | 关键常量/方法 | 说明 |
+|------|-------------|------|
+| COM 端口地址 | COM1 = 0x03F8 ~ COM4 = 0x2E8 | x86 标准串口基地址 |
+| UART 寄存器偏移 | RBR/THR = 0, IER = 1, FCR = 2, LCR = 3, MCR = 4, LSR = 5 | 同一地址空间的 8 个 8 位寄存器 |
+| LSR 状态位 | RX_READY = 0x01, TX_READY = 0x20 | bit 0 = 接收就绪, bit 5 = 发送就绪 |
+| Serial::init() | 五步序列 | IER=0, LCR=0x03, FCR=0xC7, MCR=0x03, LSR 探测 |
+| Serial::putc() | 轮询 + pause | 等 TX_READY 再写 THR，附带 CPU hint |
+| Serial::puts() | 换行转换 | `\n` 自动转换为 `\r\n`，nullptr 安全 |
+| kprintf 集成 | lambda 转发 g_serial.putc | 格式化引擎与输出后端解耦 |
+| 换行转换 | `\n` -> `\r\n` | 串口终端需要 CR+LF，否则输出阶梯状 |

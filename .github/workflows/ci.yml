@@ -42,14 +42,21 @@ jobs:
 
       - name: Install GCC 15
         run: |
+          echo "::group::Add PPA & update"
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
+          echo "::endgroup::"
+          echo "::group::Install gcc-15 g++-15"
           sudo apt-get install -y gcc-15 g++-15
+          echo "::endgroup::"
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 100
+          echo "GCC version: $(gcc --version | head -1)"
 
       - name: Install CMake
-        run: pip install cmake
+        run: |
+          pip install cmake
+          echo "CMake version: $(cmake --version | head -1)"
 
       - name: Install dependencies
         run: sudo apt-get install -y qemu-system-x86 e2fsprogs python3
@@ -75,14 +82,21 @@ jobs:
 
       - name: Install GCC 15
         run: |
+          echo "::group::Add PPA & update"
           sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get update
+          echo "::endgroup::"
+          echo "::group::Install gcc-15 g++-15"
           sudo apt-get install -y gcc-15 g++-15
+          echo "::endgroup::"
           sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-15 100
           sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-15 100
+          echo "GCC version: $(gcc --version | head -1)"
 
       - name: Install CMake
-        run: pip install cmake
+        run: |
+          pip install cmake
+          echo "CMake version: $(cmake --version | head -1)"
 
       - name: Install dependencies
         run: sudo apt-get install -y qemu-system-x86 e2fsprogs python3
