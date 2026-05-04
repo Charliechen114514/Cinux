@@ -1,0 +1,123 @@
+# 025-1 动手篇：PCI 总线枚举与 AHCI 设备发现
+
+## 导语
+
+到目前为止，我们的内核已经能跑用户态程序、响应键盘中断、甚至实现了一个简易 shell。但所有这些成果都建立在"内存中已有数据"的前提下——我们的内核从没主动从磁盘上读过哪怕一个字节。这一章我们要打破这个天花板：从 PCI 总线枚举开始，找到系统里的 AHCI SATA 控制器，为后面真正读写磁盘做准备。
+
+完成本章后，你会在串口输出里看到类似这样的信息：`[PCI] AHCI found: 00:1f.2 BAR5=0x...`，意味着内核成功定位了 SATA 控制器。
+
+前置知识：上一 tag（024）的 shell 实现不需要回顾，但你需要理解 x86 的 I/O 端口操作（`inl`/`outl`），以及内核的虚拟内存映射机制（VMM::map），因为后面映射 BAR5 时会用到。
+
+## 概念精讲
+
+### PCI 是什么，为什么我们要枚举它
+
+PCI（Peripheral Component Interconnect）是 x86 平台上最经典的设备总线标准。虽然现代系统已经演进到 PCIe，但软件层面的配置空间访问机制是一脉相承的。对我们来说，PCI 枚举就是"问系统：你身上插了哪些设备？"这个过程。
+
+PCI 的设计哲学是"即插即用"——每个设备在一条共享总线上，软件通过统一的配置空间来发现和配置它们。你不需要提前知道某个设备插在哪个槽位上，只需要挨个问过去就行。
+
+### 配置空间访问：0xCF8 和 0xCFC
+
+PCI 规范定义了一种非常精巧的配置空间访问机制。系统保留了两个 32 位 I/O 端口：0xCF8 叫 CONFIG_ADDRESS，0xCFC 叫 CONFIG_DATA。软件先把一个精心构造的 32 位地址字写到 0xCF8，然后再读写 0xCFC，就能访问对应设备的配置寄存器。
+
+这个 32 位地址字的布局是这样的：最高位（bit 31）是使能位，必须置 1 才能触发配置周期；bits 23:16 是总线号，理论上可以编址 256 条总线；bits 15:11 是设备号（也叫 slot），每条总线最多 32 个设备；bits 10:8 是功能号，一个设备最多 8 个功能；最低字节 bits 7:0 是配置空间内的寄存器偏移，而且必须 4 字节对齐（最低 2 位始终为 0）。
+
+你可以把它想象成一个多维索引——我们正在用 [总线][设备][功能][偏移] 四个维度来定位一个具体的 32 位寄存器。
+
+### 设备识别：Vendor ID 和 Class Code
+
+每个 PCI 设备的配置空间头部都有几个关键字段。偏移 0x00 处的 Vendor ID 是由 PCI-SIG 统一分配的厂商标识，0xFFFF 是一个特殊值——如果你读到这个值，说明那个位置根本没有设备。偏移 0x02 是 Device ID，由厂商自行分配。偏移 0x0B 是 Class Code（大类），0x0A 是 Subclass（子类）。我们关心的 AHCI 控制器，其 Class Code 是 0x01（大容量存储），Subclass 是 0x06（串行 ATA）。
+
+### BAR：设备告诉驱动"我的寄存器在哪里"
+
+PCI 设备通过 BAR（Base Address Register）来告诉软件它们的寄存器映射在哪里。一个设备最多有 6 个 BAR，位于配置空间偏移 0x10 到 0x24。BAR 的最低位区分 I/O 空间（bit 0 = 1）和内存空间（bit 0 = 0）。如果是内存空间，bits 2:1 还告诉你这是 32 位地址还是 64 位地址——如果是 64 位的，下一个 BAR 寄存器会被当作高 32 位地址消耗掉。
+
+对于 AHCI 控制器，最关键的是 BAR5（偏移 0x24），它指向 AHCI 的 MMIO 寄存器区域（也叫 ABAR）。这个地址是物理地址，内核需要把它映射到虚拟地址空间后才能访问。
+
+## 动手实现
+
+### Step 1: 定义 PCI 配置常量
+
+**目标**: 把所有 PCI 相关的魔术数字集中定义到一个配置头文件里，包括 I/O 端口号、寄存器偏移、类码、BAR 掩码等。
+
+**设计思路**: 这些常量在规范里是固定不变的，集中定义的好处是驱动代码不用到处散落魔术数字。用命名空间把它们分组管理，比如 PciPort 存端口地址、PciReg 存寄存器偏移、PciClass 存类码。
+
+**实现约束**: 文件名为 pci_config.hpp，放在 kernel/drivers/pci/ 目录下。所有常量用 constexpr 定义。BAR 的地址掩码（32 位 BAR 是 0xFFFFFFF0，I/O BAR 是 0xFFFFFFFC）、64 位 BAR 类型标记（0x04）都需要定义。总线扫描范围的上限（MAX_BUS = 32, MAX_SLOT = 32, MAX_FUNC = 8）也要在这里。
+
+**踩坑预警**: 64 位 BAR 会消耗两个 BAR 槽位。读 BAR 的时候如果发现是 64 位类型，一定要把下一个 BAR 也读出来拼成完整的 64 位地址，并且跳过下一个 BAR 索引。否则你会读到错误的地址。
+
+**验证**: 编译通过即可，这一步只是定义常量，不涉及运行时逻辑。
+
+### Step 2: 实现 PCI 配置空间读写
+
+**目标**: 封装两个核心函数，分别用于读取和写入 PCI 配置空间的 32 位寄存器。
+
+**设计思路**: 两个函数都接受 bus、slot、func、offset 四个参数。写函数额外接受一个 value 参数。内部按照规范构造 32 位地址字（使能位 | 总线 | 设备 | 功能 | 偏移），先写到 0xCF8，然后读（或写）0xCFC。这两个函数应该是静态的，不需要实例状态。
+
+**实现约束**: 使用内核已有的 io_outl 和 io_inl 函数来做端口 I/O。偏移量要做 & 0xFC 处理以确保对齐。文件名为 pci.cpp，放在 kernel/drivers/pci/ 目录下。
+
+**踩坑预警**: 有些教程会让你先检查配置空间访问机制是否支持，但在 QEMU 和现代硬件上，Mechanism #1 是一定支持的，不需要额外检查。如果你的系统运行在很古老的硬件上（1995 年之前的 486），可能需要担心，但那种情况我们根本不会遇到。
+
+**验证**: 写一个简单的测试——读取总线 0、设备 0、功能 0 的 Vendor ID，如果不是 0xFFFF 就说明 PCI 配置空间访问正常工作。
+
+### Step 3: 实现 PCI 设备扫描
+
+**目标**: 遍历所有总线、设备、功能的组合，读出每个存在设备的 Vendor ID、Device ID、Class Code、Subclass 等信息，打印到串口。
+
+**设计思路**: 三层嵌套循环——bus 从 0 到 MAX_BUS-1，slot 从 0 到 MAX_SLOT-1，func 从 0 到 MAX_FUNC-1。对每个组合尝试读取 Vendor ID，如果是 0xFFFF 就跳过（func 为 0 时直接 break 内层循环，因为 func 0 不存在意味着整个 slot 为空）。把找到的设备信息打印出来，方便调试。
+
+**实现约束**: 扫描函数作为 PCI 类的公开方法。每个设备的信息存入一个 PCIDevice 结构体，包含 bus、slot、func、vendor_id、device_id、class_code、subclass、prog_if、header_type 字段。打印格式参考：`[PCI] 00:1f.2 8086:2922 class=01 sub=06`。
+
+**踩坑预警**: 多功能设备的判断看 Header Type 的 bit 7。如果 bit 7 置位，设备有多个功能，需要扫描 func 1-7；否则只需扫描 func 0。如果忽略这一点，单功能设备在 func 1-7 上会返回和 func 0 相同的信息，造成误报。
+
+**验证**: 运行内核，串口输出应该列出 QEMU 模拟的所有 PCI 设备，通常至少有 PIIX3 ISA 桥、VGA 兼容控制器、AHCI 控制器等。
+
+### Step 4: 实现 find_ahci 和 BAR 读取
+
+**目标**: 在扫描结果中找到 AHCI 控制器（class=0x01, subclass=0x06），读取其所有 BAR 值，返回完整的设备描述符。
+
+**设计思路**: 遍历所有 bus/slot/func，找到 class_code == 0x01 且 subclass == 0x06 的设备后，调用 read_bars 函数读取 BAR0-BAR5。对于每个 BAR，先判断是 I/O 空间还是内存空间，然后根据类型掩码提取地址。如果是 64 位内存 BAR，拼接下一个 BAR 的高 32 位并跳过下一个索引。
+
+**实现约束**: read_bars 也应该是静态方法。BAR 地址掩码用之前定义的常量。找到的第一个 AHCI 设备就返回（break 出循环），保存到传入的 PCIDevice 引用中。打印 BAR5 的值用于确认：`[PCI] AHCI found: 00:1f.2 BAR5=0x...`。
+
+**踩坑预警**: BAR5 是 AHCI 的生命线——如果它是 0，说明 AHCI 控制器没有被 BIOS/固件正确配置，或者 QEMU 没有启用 AHCI 设备。确保 CMake 配置中 QEMU 启动参数包含了 `-device ahci,id=ahci` 和对应的 drive。另外，读 BAR 之前要先往 Command 寄存器里启用 Bus Master 和 Memory Space 访问（bits 1 和 2 置位），否则有些设备可能不响应。
+
+**验证**: 串口输出 `[PCI] AHCI found: 00:1f.2 BAR5=0x...`，BAR5 是一个非零的物理地址。
+
+## 构建与运行
+
+构建命令和之前一样：
+
+```bash
+cd build && cmake .. && make -j$(nproc)
+```
+
+运行内核：
+
+```bash
+cd build && make run
+```
+
+QEMU 启动参数中需要包含 AHCI 设备。如果使用项目的 CMake 配置，`make run` 会自动带上正确的参数。你会在串口输出中看到 PCI 扫描结果和 AHCI 发现信息。
+
+## 调试技巧
+
+**问题：串口没有输出任何 PCI 设备信息**
+排查：检查 pci.cpp 是否被加入 CMakeLists.txt 的编译列表。确认 io_outl/io_inl 函数工作正常（可以临时在 init 开头打印一条测试信息）。
+
+**问题：PCI 扫描到设备但没找到 AHCI**
+排查：确认 QEMU 启动参数中有 `-device ahci,id=ahci`。可以用 `info pci` 命令在 QEMU monitor 中检查是否有 AHCI 设备。
+
+**问题：BAR5 读出来是 0**
+排查：先读 Command 寄存器确认 Bus Master Enable 和 Memory Space Enable 位是否已设置。有些 QEMU 版本需要显式启用这些位后 BAR 才返回有效地址。
+
+## 本章小结
+
+| 概念 | 关键要点 |
+|------|----------|
+| PCI 配置空间 | 通过 0xCF8/0xCFC 端口对访问，32 位地址字编码总线/设备/功能/偏移 |
+| 设备发现 | Vendor ID == 0xFFFF 表示空槽位 |
+| AHCI 识别 | Class Code 0x01 + Subclass 0x06 |
+| BAR 解码 | Bit 0 区分 I/O/内存，64 位 BAR 消耗两个槽位 |
+| BAR5 (ABAR) | AHCI 控制器的 MMIO 寄存器基址 |
+| 命名空间 | pci_config.hpp 常量，pci.hpp 类定义，pci.cpp 实现 |
