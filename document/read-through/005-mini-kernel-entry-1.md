@@ -186,31 +186,21 @@ Serial& get_initial_serial();
 namespace cinux::mini::serial {
 
 Serial::Serial(uint16_t port) : base_port(port) {
-    __asm__ volatile("movb $0x5C, %%al; outb %%al, $0xE9" ::: "eax");  // '\'
     init();
-    __asm__ volatile("movb $0x27, %%al; outb %%al, $0xE9" ::: "eax");  // '''
 }
 
 void Serial::init() {
-    __asm__ volatile("movb $0x5B, %%al; outb %%al, $0xE9" ::: "eax");  // '['
-
-    io::outb(base_port + SerialReg::IER, 0x00);
-    __asm__ volatile("movb $0x31, %%al; outb %%al, $0xE9" ::: "eax");  // '1'
-
-    io::outb(base_port + SerialReg::LCR, 0x03);
-    __asm__ volatile("movb $0x32, %%al; outb %%al, $0xE9" ::: "eax");  // '2'
-
-    io::outb(base_port + SerialReg::FCR, 0xC7);
-    __asm__ volatile("movb $0x33, %%al; outb %%al, $0xE9" ::: "eax");  // '3'
-
-    io::outb(base_port + SerialReg::MCR, 0x03);
-    __asm__ volatile("movb $0x34, %%al; outb %%al, $0xE9" ::: "eax");  // '4'
+    io::outb(base_port + SerialReg::IER, 0x00);  // 禁用中断
+    io::outb(base_port + SerialReg::LCR, 0x03);  // 8N1
+    io::outb(base_port + SerialReg::FCR, 0xC7);  // 启用 FIFO
+    io::outb(base_port + SerialReg::MCR, 0x03);  // RTS + DTR
+    io::inb(base_port + SerialReg::LSR);          // 读 LSR 确认可访问
 }
 ```
 
-你可能注意到了散落在各处的 `outb %%al, $0xE9`——这些是往 QEMU debugcon 端口写的调试标记。在 `debug.log` 中你会看到类似 `\[1234'` 的序列，其中 `\` 表示构造函数开始，`[` 表示 init 开始，`1234` 分别表示 IER/LCR/FCR/MCR 四步完成，`'` 表示构造函数结束。这种"在每个关键步骤后往 debugcon 打一个字符"的做法在裸机开发中极为常见——当内核还在三步并作两步地初始化自己时，你不可能调 `printf` 来调试，因为 `printf` 本身就是你正在调试的东西。一个字符一个字符地往 debugcon 写是最原始也最可靠的诊断手段。
+构造函数直接调用 `init()`。之前版本中散落在各处的 `outb %%al, $0xE9` debugcon 标记在代码稳定后被移除了——它们在开发调试阶段很有用（你可以在 `debug.log` 中看到类似 `\[1234'` 的序列来追踪初始化进度），但在最终代码中只是噪音。如果你在调试串口初始化问题，可以自行加回这些标记。
 
-init 的四步对应 UART 的标准初始化序列。第一步禁用中断（IER = 0x00），因为我们用轮询模式发送数据，不依赖 UART 的中断机制。第二步设置线路参数（LCR = 0x03），即 8 位数据位、无奇偶校验、1 位停止位，通常简写为"8N1"——这是串口通信中最常用的配置。第三步启用 FIFO（FCR = 0xC7），0xC7 这个值的含义是：bit 7-6 = 11 表示设置 14 字节的 FIFO 触发阈值，bit 2 = 1 表示清空发送 FIFO，bit 1 = 1 表示清空接收 FIFO，bit 0 = 1 表示启用 FIFO。第四步设置调制解调器控制（MCR = 0x03），即 RTS（Request To Send）和 DTR（Data Terminal Ready）信号拉高——告诉对端"我准备好了，可以通信"。
+init 的四步对应 UART 的标准初始化序列。第一步禁用中断（IER = 0x00），因为我们用轮询模式发送数据，不依赖 UART 的中断机制。第二步设置线路参数（LCR = 0x03），即 8 位数据位、无奇偶校验、1 位停止位，通常简写为"8N1"——这是串口通信中最常用的配置。第三步启用 FIFO（FCR = 0xC7），0xC7 这个值的含义是：bit 7-6 = 11 表示设置 14 字节的 FIFO 触发阈值，bit 2 = 1 表示清空发送 FIFO，bit 1 = 1 表示清空接收 FIFO，bit 0 = 1 表示启用 FIFO。第四步设置调制解调器控制（MCR = 0x03），即 RTS（Request To Send）和 DTR（Data Terminal Ready）信号拉高——告诉对端"我准备好了，可以通信"。最后读一次 LSR 确认寄存器可访问。
 
 你可能会问：为什么没设置波特率？物理 UART 需要通过 DLAB（Divisor Latch Access Bit）和除数寄存器来设置波特率，但 QEMU 的模拟 UART 默认就是 115200 bps，不需要手动配置。在真实硬件上，你需要在 LCR 中设置 DLAB 位（LCR bit 7 = 1），然后往偏移 0 和 1 写入除数值。但 Cinux 目前只针对 QEMU 开发，所以这一步可以省掉。
 
@@ -218,14 +208,19 @@ init 的四步对应 UART 的标准初始化序列。第一步禁用中断（IER
 
 ```cpp
 void Serial::putc(char c) {
+    uint32_t wait_count = 0;
     while (!is_tx_ready()) {
         __asm__ volatile("pause");
+        wait_count++;
+        if (wait_count > 100000) {
+            wait_count = 0;  // Timeout - serial port may be broken
+        }
     }
     io::outb(base_port + SerialReg::THR, static_cast<uint8_t>(c));
 }
 ```
 
-这是一个典型的忙等待（busy-wait）发送模式。循环查询 LSR 的 bit 5，直到 THR 空闲才写入。`__asm__ volatile("pause")` 是 x86 的 `PAUSE` 指令，在自旋锁循环中插入它有两个作用：一是提示 CPU 这是一个自旋等待，可以降低功耗（避免过度乱序执行）；二是减少总线上的访存冲突。在超线程处理器上，`PAUSE` 能让出执行资源给另一个逻辑线程。
+这是一个典型的忙等待（busy-wait）发送模式。循环查询 LSR 的 bit 5，直到 THR 空闲才写入。`__asm__ volatile("pause")` 是 x86 的 `PAUSE` 指令，在自旋锁循环中插入它有两个作用：一是提示 CPU 这是一个自旋等待，可以降低功耗；二是减少总线上的访存冲突。在超线程处理器上，`PAUSE` 能让出执行资源给另一个逻辑线程。实际的代码还加了一个 `wait_count` 超时计数器——当轮询超过 100000 次时重置计数。在 QEMU 中 THRE 位始终为 1，这个计数器永远不会触发，但在真实硬件上它提供了一层防御。
 
 ```cpp
 char Serial::getc() {

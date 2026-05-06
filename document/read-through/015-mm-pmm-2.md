@@ -113,7 +113,7 @@ void PMM::init(const BootInfo& info) {
     bitmap_size_  = (highest_page_ + 7) / 8;
 ```
 
-第二步遍历所有可用区域，找出最高的物理地址。这个值决定了位图需要覆盖多大的范围——位图必须能索引从物理地址 0 到最高地址的所有页。`highest_page_` 是最高页号（从 0 开始计），`total_pages_` 等于它（因为页号从 0 开始，总页数 = 最高页号 + 1 —— 但这里实际上 `highest_page_` 代表的是"需要管理的最大页索引 + 1"，或者说"总页数"，后续代码中它被用作 `p < highest_page_` 的循环上界）。`bitmap_size_` 是位图需要的字节数，用 `(highest_page_ + 7) / 8` 向上取整到字节边界。
+第二步遍历所有可用区域，找出最高的物理地址。这个值决定了位图需要覆盖多大的范围——位图必须能索引从物理地址 0 到最高地址的所有页。`highest_page_` 是总页数（即最大页索引 + 1），后续代码中它被用作 `p < highest_page_` 的循环上界。`total_pages_` 等于它（两者含义相同）。`bitmap_size_` 是位图需要的字节数，用 `(highest_page_ + 7) / 8` 向上取整到字节边界。
 
 这里有一个设计上的权衡：位图覆盖了从物理地址 0 到最高地址的全部范围，但物理地址 0 到 1MB 之间的页面永远不会被分配（因为它们在第一步就被过滤掉了）。这意味着位图的低部分（前 256 个 bit，对应前 1MB）永远是全 1——浪费了 32 字节。但这点浪费完全可以忽略，换来的是代码的简洁性——不需要处理"位图中有空洞"的复杂逻辑。
 
@@ -219,7 +219,7 @@ PMM init 被插入在 BootInfo breakpoint 之后、Framebuffer init 之前。这
 
 ## 参考资料
 
-- Intel SDM: Vol.3A Chapter 3 — 物理地址空间布局，1MB 以下区域的固定用途
+- OSDev Wiki: [Memory Map (x86)](https://wiki.osdev.org/Memory_Map_(x86)) — PC 低 1MB 物理内存布局约定
 - Intel SDM: Vol.3A Section 4.5 — 4KB 页对齐要求
 - Intel SDM: Vol.3A Section 2.5 — CR3 保存物理地址，PMM 为 VMM 提供页表页面
 - [OSDev Wiki - Higher Half Kernel](https://wiki.osdev.org/Higher_Half_Kernel) — 虚拟-物理地址偏移转换

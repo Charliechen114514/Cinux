@@ -2,7 +2,7 @@
 
 ## 概览
 
-本文是 tag `000_env_toolchain` 的第二篇通读，聚焦两个子系统：MBR 存根（`boot/mbr_stub.S`）和自研测试框架（`test/framework/test_framework.h` + `test/unit/test_smoke.cpp`）。MBR 存根是整个 Cinux 启动链的第一个环节——虽然它只做"清屏、打字、停机"三件事，但它验证了从汇编到 QEMU 启动的完整流水线。测试框架则是贯穿后续所有 tag 的基础设施，有了它我们才能在 Host 端和 QEMU 端同时跑单元测试。这两个模块在功能上没有直接关联，但它们共享同一个目标：为后续内核开发搭建可验证的基础。
+本文是 tag `000_env_toolchain` 的第二篇通读，聚焦两个子系统：MBR 存根（`boot/mbr.S`，tag 000 版本）和自研测试框架（`test/framework/test_framework.h` + `test/unit/test_smoke.cpp`）。MBR 存根是整个 Cinux 启动链的第一个环节——虽然它只做"清屏、打字、停机"三件事，但它验证了从汇编到 QEMU 启动的完整流水线。测试框架则是贯穿后续所有 tag 的基础设施，有了它我们才能在 Host 端和 QEMU 端同时跑单元测试。这两个模块在功能上没有直接关联，但它们共享同一个目标：为后续内核开发搭建可验证的基础。注意，这里展示的 MBR 代码是 tag 000 时刻的简化版本——后续 tag 会扩展为完整的 bootloader（加入 stage2 加载、磁盘读取、模式切换等）。
 
 ## 架构图
 
@@ -14,7 +14,7 @@
                          │ 加载到 0x7C00
                          ▼
               ┌─────────────────────┐
-              │   boot/mbr_stub.S   │
+              │   boot/mbr.S        │
               │                     │
               │  1. 清屏 (VGA)      │
               │  2. 打印 'C'        │
@@ -226,10 +226,16 @@ static inline void RUN_ALL_TESTS() {
     }
 
     _TEST_PRINT("\n=== Results: %d passed, %d failed ===\n", _tests_passed, _tests_failed);
+
+    if (_tests_failed > 0) {
+        _TEST_PRINT("[SUITE FAILED]\n");
+    } else {
+        _TEST_PRINT("[SUITE PASSED]\n");
+    }
 }
 ```
 
-运行逻辑很直接：遍历注册数组，依次调用每个测试函数。每个测试执行前更新 `_current_test_name`（供 ASSERT 宏打印用），执行后直接打印 `[PASS]`。如果一个测试中途断言失败，它内部的 `return` 会把控制流带回循环，但此时 `_tests_failed` 已经被递增了，而 `_tests_passed` 也会被递增——这是一个已知的简化缺陷：per-test 的通过/失败追踪不够精确。不过对于 tag 000 的冒烟测试来说完全够用，后续版本可以改进。
+运行逻辑很直接：遍历注册数组，依次调用每个测试函数。每个测试执行前更新 `_current_test_name`（供 ASSERT 宏打印用），执行后直接打印 `[PASS]`。如果一个测试中途断言失败，它内部的 `return` 会把控制流带回循环，但此时 `_tests_failed` 已经被递增了，而 `_tests_passed` 也会被递增——这是一个已知的简化缺陷：per-test 的通过/失败追踪不够精确。不过对于 tag 000 的冒烟测试来说完全够用，后续版本可以改进。运行完毕后根据失败数打印 `[SUITE PASSED]` 或 `[SUITE FAILED]`，这个标签也被 CTest 用来判定整体测试结果。
 
 ### 全局变量定义
 
@@ -269,12 +275,17 @@ TEST("smoke: boundary values") {
     int zero = 0;
     ASSERT_EQ(zero, 0);
     ASSERT_TRUE(zero == 0);
+    ASSERT_FALSE(zero != 0);
     ASSERT_GE(zero, 0);
     ASSERT_LE(zero, 0);
 
     int negative = -1;
     ASSERT_EQ(negative, -1);
     ASSERT_LT(negative, 0);
+    ASSERT_TRUE(negative < 0);
+
+    ASSERT_EQ(negative, negative);
+    ASSERT_NE(negative, zero);
 }
 
 TEST("smoke: pointer assertions") {
@@ -285,7 +296,13 @@ TEST("smoke: pointer assertions") {
     int  value     = 42;
     int* valid_ptr = &value;
     ASSERT_NOT_NULL(valid_ptr);
+    ASSERT_NE(valid_ptr, nullptr);
     ASSERT_EQ(*valid_ptr, 42);
+}
+
+TEST("smoke: string placeholder") {
+    // Placeholder for future string-related tests
+    // Currently only verifies compilation succeeds
 }
 
 int main() {
@@ -294,7 +311,7 @@ int main() {
 }
 ```
 
-冒烟测试的唯一目的是验证框架本身能正常工作。三个测试用例分别覆盖：整数比较（`ASSERT_EQ/TRUE/FALSE/GT/GE/LE/LT`）、边界值（零和负数）、指针断言（`ASSERT_NULL/NOT_NULL`）。`main` 函数调用 `RUN_ALL_TESTS()` 跑完全部测试后，根据失败数返回 0 或 1——这个返回值会被 CTest 捕获，用来判定测试是通过还是失败。
+冒烟测试的唯一目的是验证框架本身能正常工作。四个测试用例分别覆盖：整数比较（`ASSERT_EQ/TRUE/FALSE/GT/GE/LE/LT`）、边界值（零和负数，以及 `ASSERT_NE` 不等断言）、指针断言（`ASSERT_NULL/NOT_NULL`），以及一个空的占位测试（预留未来扩展字符串相关断言）。`main` 函数调用 `RUN_ALL_TESTS()` 跑完全部测试后，根据失败数返回 0 或 1——这个返回值会被 CTest 捕获，用来判定测试是通过还是失败。
 
 ## 设计决策
 

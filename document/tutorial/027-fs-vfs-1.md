@@ -19,7 +19,7 @@
 
 我们从一个问题开始：一个文件在内核里到底长什么样？Linux 的回答是 inode——一个包含文件所有元数据（大小、权限、时间戳、磁盘块地址）的结构体，定义在 fs/include/linux/fs.h 里，光字段就有三十多个。xv6 的回答也是 inode，只是简单得多——类型（T_FILE/T_DIR/T_DEV）、大小、NINDIRECT 个块号。Cinux 的回答介于两者之间，但更偏向 xv6 的简洁风格。
 
-我们的 Inode 有五个字段：ino（编号，uint64_t）、size（字节大小，uint64_t）、type（Regular 或 Directory，InodeType 枚举）、ops（操作函数指针表，InodeOps*）、fs_private（后端私有数据指针，void*）。前三个是所有文件系统都需要的公共信息，后两个是"插件点"——ops 指向一组函数指针（read/write/readdir），不同的文件系统提供不同的实现；fs_private 是一个 void 指针，Ramdisk 可以用它指向自己的 RamdiskEntry（包含文件名和数据指针），ext2 可以用它指向磁盘块地址列表。
+我们的 Inode 有五个核心字段：ino（编号，uint64_t）、size（字节大小，uint64_t）、type（Regular 或 Directory，InodeType 枚举）、ops（操作函数指针表指针，InodeOps*）、fs_private（后端私有数据指针，void*）。前三个是所有文件系统都需要的公共信息，后两个是"插件点"——ops 指向一个 InodeOps 函数指针结构体实例，不同的文件系统通过提供自己的 InodeOps 静态实例（函数指针指向自己的实现函数）来提供不同实现；fs_private 是一个 void 指针，Ramdisk 可以用它指向自己的 RamdiskEntry（包含文件名和数据指针），ext2 可以用它指向磁盘块地址列表。除了这五个核心字段外，Inode 还有 mode/uid/gid/nlink/atime/ctime/mtime/blocks 等字段，为 stat 系统调用和权限检查预留。
 
 InodeType 用 enum class 定义，底层类型是 uint8_t——这样枚举值不会泄漏到外层命名空间，而且只占 1 字节。Linux 的 inode 也有类似的 i_mode 字段区分文件类型（S_IFREG/S_IFDIR 等），但它用了 16 位的 mode_t，还包含了权限位。
 
@@ -31,24 +31,25 @@ enum class InodeType : uint8_t {
 };
 ```
 
-InodeOps 是三个函数指针——read、write、readdir。每个都可以为 nullptr（比如普通文件不需要 readdir，目录不需要 read）。调用方在调用前必须检查指针是否为空。这种设计模式在 Linux 中非常常见——file_operations 和 inode_operations 也是由函数指针组成的结构体，不需要的 operation 就设为 NULL。
+InodeOps 在实际代码中是一个函数指针结构体——包含 read、write、readdir 等函数指针字段，以及 create/mkdir/unlink/stat 等扩展操作。不支持的操作设为 nullptr，调用方在调用前需要检查函数指针是否为空。比如普通文件的 ops 不需要设置 readdir（保持 nullptr），目录的 ops 不需要设置 read（保持 nullptr）。
 
 ```cpp
 struct InodeOps {
-    int64_t (*read)(const Inode* inode, uint64_t offset,
-                    void* buf, uint64_t count);
-    int64_t (*write)(Inode* inode, uint64_t offset,
-                     const void* buf, uint64_t count);
-    int64_t (*readdir)(const Inode* inode, uint64_t index,
-                       char* name, uint64_t name_max);
+    int64_t (*read)(const Inode* inode, uint64_t offset, void* buf, uint64_t count);
+    int64_t (*write)(Inode* inode, uint64_t offset, const void* buf, uint64_t count);
+    int64_t (*readdir)(const Inode* inode, uint64_t index, char* name, uint64_t name_max);
+    Inode*  (*create)(Inode* dir, const char* name, uint32_t namelen);
+    Inode*  (*mkdir)(Inode* dir, const char* name, uint32_t namelen);
+    int64_t (*unlink)(Inode* dir, const char* name, uint32_t namelen);
+    int64_t (*stat)(const Inode* inode, struct stat* st);
 };
 ```
 
-你可能会问：为什么用函数指针表而不是 C++ 虚函数？说实话两种方式都能达到目的，但函数指针表有几个实实在在的好处。第一，每个 Inode 只需要存一个指针指向静态的 ops 表，不需要 vtable 指针加上 RTTI 的额外开销。第二，Ramdisk 里所有普通文件的 read/write 实现完全一样（读归档数据/写返回错误），一张静态 ops 表就能服务全部文件 inode。第三，这种模式更接近 Linux 内核的设计——Linux 的 file_operations 和 inode_operations 也是函数指针结构体，新手看完 Cinux 的代码再去看 Linux 会觉得很眼熟。
+你可能会问：为什么用函数指针结构体而不是虚基类？说实话两种方式都能达到目的，但函数指针表有几个实实在在的好处。第一，不支持的操作就是 nullptr——Ramdisk 里所有普通文件的 write 直接不设置，调用方看到 nullptr 就知道不支持。第二，新增操作只需要在结构体里加一个函数指针字段，已有的 ops 实例中未初始化的新字段自然是零（nullptr），不需要逐个修改。第三，每个文件系统后端的 ops 实例（如 ramdisk_file_ops）仍然是按类别共享的——所有 Ramdisk 普通文件共享同一个 ramdisk_file_ops 实例。这种设计和 Linux 内核的 file_operations / inode_operations 如出一辙。
 
 ## 第二步——FileSystem 抽象基类：所有后端的统一接口
 
-有了 Inode 和 InodeOps 之后，我们需要一个"文件系统后端"的抽象——所有具体的文件系统（Ramdisk、ext2、将来的网络文件系统）都实现这套接口。C++ 的抽象基类在这里用起来很自然：
+有了 Inode 和 InodeOps 之后，我们需要一个"文件系统后端"的抽象——所有具体的文件系统（Ramdisk、ext2、将来的网络文件系统）都实现这套接口。注意 FileSystem 是真正的 C++ 抽象基类（有纯虚函数），而 InodeOps 是纯 C 风格的函数指针结构体——两者配合使用，FileSystem 负责"挂载和查找"的多态，InodeOps 负责"文件操作"的多态。
 
 ```cpp
 class FileSystem {
@@ -69,13 +70,18 @@ Inode 是文件系统视角的对象（"这个文件存在，大小是 19 字节
 
 ```cpp
 struct File {
-    Inode*    inode;    // 指向底层 Inode
-    uint64_t  offset;   // 当前读写偏移量
-    OpenFlags flags;    // 访问模式 (RDONLY/WRONLY/RDWR)
+    File(Inode* in, uint64_t off, OpenFlags fl)
+        : inode(in), offset(off), flags(fl) {}
+
+    Inode*    inode;         // 指向底层 Inode
+    uint64_t  offset;        // 当前读写偏移量
+    OpenFlags flags;         // 访问模式 (RDONLY/WRONLY/RDWR)
+
+    mutable cinux::proc::Spinlock offset_lock_;  // 保护 offset 并发访问
 };
 ```
 
-FDTable 是文件描述符表——一个固定 256 槽位的 File 指针数组。fd 0/1/2 保留给 stdin/stdout/stderr，alloc 从 fd=3 开始线性扫描找第一个空位。这个设计和 xv6 的 ofile[] 数组如出一辙，只是 xv6 的 NOFILE 是 16（太小了），我们选了 256（和 Linux 默认的 RLIMIT_NOFILE 一致）。Linux 用 fdtable/fd_array 管理，支持动态扩展。
+FDTable 是文件描述符表——一个固定 256 槽位的 File 指针数组。fd 0/1/2 保留给 stdin/stdout/stderr，alloc 从 fd=3 开始线性扫描找第一个空位。这个设计和 xv6 的 ofile[] 数组如出一辙，只是 xv6 的 NOFILE 是 16（太小了），我们选了 256（和 Linux 默认的 RLIMIT_NOFILE 一致）。Linux 用 fdtable/fd_array 管理，支持动态扩展。FDTable 还有一个 set() 方法，用于 sys_pipe 和 dup2 等需要把 File 安装到指定 fd 编号的场景。
 
 FDTable::alloc 做的事情很简单——线性扫描找空位，new 一个 File 对象放进去。Linux 的 alloc_fd 用位图加速了查找，但我们的 256 槽位线性扫描在缓存友好性上其实不差，何况教学 OS 不需要极端性能。close 做 delete + 置 nullptr，防御性地检查越界和双重关闭——内核里的 double-free 会直接 panic，绝不能手滑。
 
@@ -100,7 +106,7 @@ FDTable::alloc 做的事情很简单——线性扫描找空位，new 一个 Fil
 
 ## 收尾
 
-到这里我们已经搭好了 VFS 的数据结构骨架——Inode、InodeOps、FileSystem、File、FDTable。这些数据结构本身就是 VFS 的核心抽象，定义了"文件系统对象长什么样"、"文件系统后端怎么接入"、"进程怎么看文件"这三个基本问题的答案。下一章我们加上挂载点表和路径解析，让 sys_open 真正能通过路径找到文件。
+到这里我们已经搭好了 VFS 的数据结构骨架——Inode、InodeOps（函数指针表）、FileSystem（抽象基类）、File、FDTable。这些数据结构本身就是 VFS 的核心抽象，定义了"文件系统对象长什么样"、"文件系统后端怎么接入"、"进程怎么看文件"这三个基本问题的答案。下一章我们加上挂载点表和路径解析，让 sys_open 真正能通过路径找到文件。
 
 ## 参考资料
 

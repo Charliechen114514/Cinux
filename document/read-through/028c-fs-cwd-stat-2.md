@@ -6,7 +6,7 @@
 
 ## sys_chdir —— 切换工作目录
 
-`kernel/syscall/sys_chdir.cpp` 共 75 行，完整实现了目录切换的流程：
+`kernel/syscall/sys_chdir.cpp` 共 74 行，完整实现了目录切换的流程：
 
 ```cpp
 int64_t sys_chdir(uint64_t path_virt, uint64_t, uint64_t,

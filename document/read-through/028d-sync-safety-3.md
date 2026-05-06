@@ -212,7 +212,7 @@ extern "C" void run_concurrent_stress() noexcept {
 }
 ```
 
-`threads_done` 使用 `memory_order_release` 来 store——这是一个刻意的选择。release 语义保证：当 boot continuation Task 通过 `threads_done.load(acquire)` 观察到新值时，stress Task 中在 release store 之前的所有写操作（包括 PMM/Heap 的 alloc/free 操作和 atomic counter 的递增）都对其可见。如果用 relaxed，boot continuation 可能看到 `threads_done == 4` 但 atomic counter 还是旧值——这会导致测试误报 FAIL。
+`threads_done` 使用 `MemoryOrder::Release` 来 store——这是一个刻意的选择。release 语义保证：当 boot continuation Task 通过 `threads_done.load(MemoryOrder::Acquire)` 观察到新值时，stress Task 中在 release store 之前的所有写操作（包括 PMM/Heap 的 alloc/free 操作和 atomic counter 的递增）都对其可见。如果用 relaxed，boot continuation 可能看到 `threads_done == 4` 但 atomic counter 还是旧值——这会导致测试误报 FAIL。
 
 每个 stress Task 的逻辑很简单——三轮操作然后退出：
 
@@ -294,7 +294,7 @@ static void boot_continuation() {
 ## 参考资料
 
 - Intel SDM: Vol.2A Section 4.3 — PAUSE (Spin Wait Hint)
-- Intel SDM: Vol.3A Section 6.4.1 — RFLAGS.IF (Interrupt Enable Flag)
+- Intel SDM: Vol.3A Section 6.3.2 — Maskable Hardware Interrupts (RFLAGS.IF)
 - `std::atomic` memory ordering: cppreference `memory_order`
 - Linux: `tools/testing/selftests/locking/` — 内核锁自测框架
 - xv6-riscv: `spinlock.c` 中的 acquire/release 测试

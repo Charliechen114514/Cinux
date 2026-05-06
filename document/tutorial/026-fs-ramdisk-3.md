@@ -105,7 +105,7 @@ struct，布局和磁盘数据精确对应。
         break;
     }
     if (!is_valid_ustar(hdr)) {
-        kprintf("[RAMDISK] Invalid ustar magic at offset %u, stopping.\n", 
+        cinux::lib::kprintf("[RAMDISK] Invalid ustar magic at offset %u, stopping.\n", 
 offset);
         break;
     }
@@ -121,14 +121,14 @@ while 条件放过，因为剩余空间不足一个头部）。magic
 
     char type = hdr->typeflag;
     if (type == UstarType::REGULAR || type == UstarType::CONTIGUOUS) {
-        kprintf("[RAMDISK]   FILE: ");
+        cinux::lib::kprintf("[RAMDISK]   FILE: ");
         print_bounded(hdr->name, RAMDISK_NAME_MAX);
-        kprintf("  (%u bytes)\n", file_size);
+        cinux::lib::kprintf("  (%u bytes)\n", file_size);
         ++entry_count;
     } else if (type == UstarType::DIRECTORY) {
-        kprintf("[RAMDISK]   DIR:  ");
+        cinux::lib::kprintf("[RAMDISK]   DIR:  ");
         print_bounded(hdr->name, RAMDISK_NAME_MAX);
-        kprintf("\n");
+        cinux::lib::kprintf("\n");
     }
 ```
 

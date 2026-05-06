@@ -9,6 +9,32 @@
 
 还有一个不得不提的 QEMU 陷阱——SFMASK MSR 在 QEMU 中不持久化。这个行为在 KVM 和 TCG 两种后端上一致，说明是 QEMU 本身的模拟缺陷而非 KVM 特有问题。理解这个限制对测试策略的设计很重要。
 
+## Ring 3 验证的完整流程
+
+在深入细节之前，先看一眼从 kernel_main 到 Ring 3 #GP 的完整调用链：
+
+```
+kernel_main()
+  -> usermode_init()         // 配置 STAR/EFER MSR
+     -> usermode_init_asm()  // 纯汇编 wrmsr
+  -> launch_first_user()     // 构建用户环境
+     -> AddressSpace()        // 新 PML4
+     -> map code @ 0x400000   // FLAG_USER
+     -> map stack @ 0x7FFFFB000-0x7FFFFEFFF
+     -> copy PDPT entries     // identity mapping
+     -> activate()            // 切换 CR3
+     -> tss_set_rsp0(rsp)     // 设置内核栈
+     -> jump_to_usermode()    // SYSRET → Ring 3
+        -> cli                 // 特权指令!
+        -> #GP (CS=0x33, Ring 3)
+        -> handle_gp()
+           -> from_user=true
+           -> "protection works!"
+           -> fatal_halt()
+```
+
+这个链条中的每一步都必须正确——任何一环出问题，你就看不到最终的 #GP 输出。
+
 ## 环境说明
 
 Cinux 的用户地址空间构建在 AddressSpace 类（tag 018）之上。AddressSpace 管理一个独立的 PML4 页表，高半区（256-511）从内核 PML4 复制，低半区（0-255）由用户进程自己填充。每个用户映射都使用 `FLAG_PRESENT | FLAG_WRITABLE | FLAG_USER`（= 0x7），确保 Ring 3 可以读写这些页。
@@ -131,7 +157,7 @@ SerenityOS 使用 C++ 类层次结构（PageDirectory → PageTable → PageDire
 [EXCEPTION] Privileged instruction executed in Ring 3 -- protection works!
 ```
 
-关键验证点：CS=0x1B 确认 CPU 运行在 Ring 3（用户代码段 + RPL3），RIP=0x400000 确认用户代码正确执行到了第一条指令（cli），#GP 的触发确认了特权指令在 Ring 3 被拦截——特权隔离验证成功。
+关键验证点：CS=0x33 确认 CPU 运行在 Ring 3（User64 代码段 + RPL3），RIP=0x400000 确认用户代码正确执行到了第一条指令（cli），#GP 的触发确认了特权指令在 Ring 3 被拦截——特权隔离验证成功。
 
 关于 SFMASK 的 QEMU 陷阱：我们的内核测试 `test_sfmask_if_bit` 原本是硬断言——写 0x200 到 SFMASK，然后 rdmsr 读回验证。但 QEMU 不持久化 SFMASK 的写入，rdmsr 始终返回 0，测试永远失败。经过大量排查（调换写入顺序、C++ inline asm、TCG 模式），最终确认这是 QEMU 的模拟限制而非代码错误。测试改为验证 `wrmsr 0x200` 不触发 #GP——非法值（如 0xFFFFFFFF）会触发 #GP，合法值不会。在真实硬件上应该恢复完整的 rdmsr 验证。
 
@@ -148,6 +174,40 @@ __asm__ volatile(
 ```
 
 测试代码分为两套：Host 端单元测试（test/unit/test_usermode.cpp，约 40 个测试用例）验证常量、布局、算术计算；内核集成测试（test/test_usermode.cpp，8 个测试组）在 QEMU 内验证真实硬件行为——MSR 读写、段选择子、地址空间映射。
+
+## 用户地址空间布局图
+
+```
+用户虚拟地址空间 (切换 CR3 后)
+  0x0000000000000000 ┌──────────────────┐
+                    │  (unmapped)      │
+  0x0000000000400000 │  用户代码页       │  ← cli; hlt; jmp -4 (4 bytes)
+  0x0000000000401000 │  (unmapped)      │
+                    │  ...              │
+  0x0000007FFFFB000 │  用户栈底         │  ← stack_base (guard page below)
+  0x0000007FFFFC000 │  用户栈页 1       │
+  0x0000007FFFFD000 │  用户栈页 2       │
+  0x0000007FFFFE000 │  用户栈页 3       │
+  0x0000007FFFFF000 │  (unmapped)       │  ← USER_STACK_TOP (RSP)
+  0x0000008000000000 ┼──────────────────┼  ← canonical 边界
+  0xFFFF800000000000 │  内核映射 (复制)  │  ← PML4[256-511]
+                    │  ...              │
+  0xFFFFFFFFFFFFFFFF └──────────────────┘
+```
+
+注意栈顶 (0x7FFFFF000) 并没有被映射——这是传给 SYSRET 的 RSP 值，但栈从这个地址向下增长，所以第一个 push 会写入 0x7FFFFEFF8（最后一页的顶部），不会越界。如果栈增长到 0x7FFFFB000 以下，就会触发 #PF（guard page 效果）。
+
+## FLAG_USER 错误码解读
+
+当 Ring 3 访问一个缺少 FLAG_USER 的页时，CPU 触发 #PF，error_code 的含义如下：
+
+| bit | 名称 | 值 | 含义 |
+|-----|------|----|------|
+| 0 (P) | Present | 1 | 页存在（不是"不存在"导致的 #PF） |
+| 1 (W/R) | Write/Read | 0 | 读操作触发（非写操作） |
+| 2 (U/S) | User/Supervisor | 1 | Ring 3（用户态）触发 |
+
+所以 error_code=0x05 的含义是："Ring 3 试图读一个存在但权限不够的页"。这不是缺页——页是存在的，只是 Ring 3 没有权限访问。修复方法是在所有中间页表项中加上 FLAG_USER。
 
 ## 收尾
 

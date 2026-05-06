@@ -7,7 +7,7 @@
 
 上一篇我们把 GDT 定义好了、linker script 修正了、debugcon 配置到位了，整个舞台已经搭好，就差最后一幕：真正让 CPU 从实模式切换到保护模式。你可能觉得，既然 GDT 都已经放对位置了，设置一个位的事情能有多难？说实话，这一步是 x86 boot 过程中最容易翻车的环节。Intel 在设计这套切换流程时留了不少"必须这样做否则炸"的硬性要求，而且大部分要求踩了坑之后的表现都是同一个症状——三重故障（Triple Fault），CPU 直接复位，QEMU 窗口闪一下就没了，连给你看报错的机会都不给。
 
-我们现在要做的事情是，从 `cli` 关中断开始，到 `outb 'P'` 验证输出结束，把整个保护模式切换流程拆开揉碎地讲一遍。每一步为什么必须存在、为什么在这个位置、如果省略或调换会发生什么，这些都会讲清楚。整个流程严格遵循 Intel SDM Vol.3A §9.9 给出的官方推荐步骤，容不得半点自由发挥的空间。
+我们现在要做的事情是，从 `cli` 关中断开始，到 `outb 'P'` 验证输出结束，把整个保护模式切换流程拆开揉碎地讲一遍。每一步为什么必须存在、为什么在这个位置、如果省略或调换会发生什么，这些都会讲清楚。整个流程严格遵循 Intel SDM Vol.3A §10.9.1 给出的官方推荐步骤，容不得半点自由发挥的空间。
 
 先别急，我们先回顾一下全貌。保护模式切换是一个六步严格有序的过程：CLI 禁用中断、DS 清零、LGDT 加载 GDT 指针、CR0.PE 置 1、远跳转刷新 CS、最后在 32 位环境下初始化段寄存器和栈。顺序不可调换，far jump 不可跳过，任何一步出错都会让你收获一个漂亮的三重故障。我们接下来按代码的实际顺序，逐段推进。
 
@@ -102,7 +102,7 @@ PE 位是最低位（bit 0），值 `0x1`。你可能注意到我们用的是 `o
 
 远跳转 `ljmp $0x08, $pm_entry` 做了两件事。第一，它把 CS 加载为新的段选择子 `0x08`，CPU 会用 `0x08` 去查 GDTR 指向的 GDT，找到索引 1（`0x08 >> 3 = 1`）的描述符，也就是我们在上一篇中定义的 `gdt_code`——一个 Base=0、Limit=4GB、32 位代码段的描述符。第二，它把目标地址 `pm_entry` 加载到 EIP 中，同时 CPU 用新描述符的属性刷新了 CS 的隐藏缓存。这意味着从此刻起，CPU 开始按 32 位模式解码和执行指令。
 
-如果你省掉了这个远跳转，直接在 `movl %eax, %cr0` 后面继续写 32 位指令，CPU 的预取队列里还残留着按 16 位模式解码的指令，而新写的指令又是按 32 位编码的——两种编码混在一起，CPU 解析出完全错误的指令，大概率直接执行到非法操作码，然后三重故障。这个坑非常经典，Intel SDM Vol.3A §9.9 明确要求：设置 PE 位之后必须紧跟一个远跳转操作，这不是建议，是硬性要求。
+如果你省掉了这个远跳转，直接在 `movl %eax, %cr0` 后面继续写 32 位指令，CPU 的预取队列里还残留着按 16 位模式解码的指令，而新写的指令又是按 32 位编码的——两种编码混在一起，CPU 解析出完全错误的指令，大概率直接执行到非法操作码，然后三重故障。这个坑非常经典，Intel SDM Vol.3A §10.9.1 明确要求：设置 PE 位之后必须紧跟一个远跳转操作，这不是建议，是硬性要求。
 
 选择子 `0x08` 的含义值得仔细拆解。16 位的选择子由三个字段组成：高 13 位是 Index（索引），bit 2 是 TI（Table Indicator，0=GDT，1=LDT），低两位是 RPL（Request Privilege Level）。所以 `0x08 = 0000 0000 0000 1000 b`：Index = `0x08 >> 3 = 1`（GDT 中的第二个条目，因为第一个是 null descriptor），TI = 0（使用 GDT），RPL = 0（Ring 0）。这个选择子正好指向我们的 32 位代码段描述符 `gdt_code`。
 
@@ -263,11 +263,11 @@ check_exception old: 0xffffffff new 0xd
 
 ## 参考资料
 
-- Intel SDM Vol.3A §9.9 — Switching to Protected Mode：完整的 6 步切换流程（CLI、LGDT、CR0.PE、Far Jump、段寄存器重载、第一条保护模式指令），[Intel SDM 页面](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html)
+- Intel SDM Vol.3A §10.9.1 — Switching to Protected Mode：完整的 6 步切换流程（CLI、LGDT、CR0.PE、Far Jump、段寄存器重载、第一条保护模式指令），[Intel SDM 页面](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html)
 - Intel SDM Vol.3A §10.1 — Processor Initialization：CR0.PE 位定义，处理器状态转换
 - Intel SDM Vol.3A §2.4.1 — Global Descriptor Table Register (GDTR)：`lgdt` 指令的行为和 GDTR 寄存器格式
 - Intel SDM Vol.3A §3.4.5 — Segment Descriptors：8 字节描述符格式，Base/Limit/Access/Flags 字段的分散排列方式
 - OSDev Wiki: [Protected Mode](https://wiki.osdev.org/Protected_Mode) — 进入保护模式的步骤和常见陷阱
 - OSDev Wiki: [GDT Tutorial](https://wiki.osdev.org/GDT_Tutorial) — real mode 下 lgdt 的注意事项
 - xv6 bootasm.S: [https://github.com/mit-pdos/xv6-public/blob/master/bootasm.S](https://github.com/mit-pdos/xv6-public/blob/master/bootasm.S) — xv6 的保护模式切换实现，流程与 Cinux 几乎一致
-- MIT xv6 book: [https://pdos.csail.mit.edu/6.828/2014/xv6/xv6-rev8.pdf](https://pdos.csail.mit.edu/6.828/2014/xv6/xv6-rev8.pdf)
+- MIT xv6 book: [https://pdos.csail.mit.edu/6.828/2025/xv6/book-riscv-rev5.pdf](https://pdos.csail.mit.edu/6.828/2025/xv6/book-riscv-rev5.pdf)

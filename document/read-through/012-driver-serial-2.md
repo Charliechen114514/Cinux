@@ -149,9 +149,9 @@ inline int format_hex(uint64_t value, char* buffer, int buffer_size,
 }
 ```
 
-逻辑和 `format_decimal` 类似，只是基数从 10 换成了 16，每一位通过 `value & 0xF` 取出。`lowercase` 参数控制十六进制字母的大小写——`%x` 用小写 `a-f`，`%X` 用大写 `A-F`。`tmp` 数组最多 20 个元素（64 位最多 16 个十六进制位，留了一些余量）。
+逻辑和 `format_decimal` 类似，基数从 10 换成 16。每一位通过 `value & 0xF` 取出，`lowercase` 控制大小写。`tmp` 最多 20 个元素（64 位最多 16 个十六进制位，留余量）。
 
-这两个函数用 `inline` 修饰，是因为它们定义在头文件中且需要被多个编译单元包含。没有 `inline` 的话，如果两个 `.cpp` 文件都 include 了这个头文件，链接时会出现 ODR（One Definition Rule）冲突。
+两个函数用 `inline` 修饰是因为定义在头文件中且需要被多个编译单元包含，否则链接时会出现 ODR 冲突。
 
 ### vkprintf_impl 模板 —— 格式化引擎核心
 
@@ -172,9 +172,7 @@ void vkprintf_impl(OutputFn&& putc_fn, const char* fmt, va_list args) {
         fmt++;
 ```
 
-模板参数 `OutputFn` 是整个设计的精髓——它可以是 lambda、函数指针、或者任何可调用对象，只要接受一个 `char` 参数就行。这意味着同样的格式化引擎可以输出到串口、输出到 QEMU debugcon、或者输出到测试里的 mock 缓冲区。`OutputFn&&` 是万能引用（forwarding reference），既能接受左值也能接受右值。
-
-主循环逐字符扫描格式字符串，普通字符直接输出，遇到 `%` 进入格式说明符解析。
+模板参数 `OutputFn` 是设计精髓——可以是 lambda、函数指针或任何可调用对象。`OutputFn&&` 是万能引用。主循环逐字符扫描，遇到 `%` 进入格式说明符解析。
 
 ```cpp
         // Parse optional left-align flag '-'
@@ -239,9 +237,7 @@ void vkprintf_impl(OutputFn&& putc_fn, const char* fmt, va_list args) {
         }
 ```
 
-`%s` 的处理有两个重点。第一是 `nullptr` 安全——如果传入空指针，输出 `"(null)"` 而不是崩溃。这是 Linux 内核的做法，比直接 segfault 友好太多了。第二是宽度与对齐：先测量字符串长度 `slen`，然后根据 `left_align` 决定是先输出字符串再补空格（左对齐），还是先补空格再输出字符串（右对齐）。
-
-举个例子，`%-10s` 格式化 `"hi"` 会输出 `"hi        "`（先 hi 再 8 个空格），而 `%10s` 格式化 `"hi"` 会输出 `"        hi"`（先 8 个空格再 hi）。
+`%s` 有两个重点：`nullptr` 安全（输出 `"(null)"` 而非崩溃），以及宽度与对齐——先测量字符串长度 `slen`，再根据 `left_align` 决定先输出字符串还是先补空格。
 
 #### %d —— 有符号十进制（含负数零填充的符号处理）
 
@@ -285,11 +281,7 @@ void vkprintf_impl(OutputFn&& putc_fn, const char* fmt, va_list args) {
         }
 ```
 
-`%d` 是整个格式化引擎里最复杂的部分，因为负数加零填充的组合需要特殊处理。想想看，`%06d` 格式化 `-42` 应该输出什么？如果是简单的"先补零再输出内容"，你会得到 `000-42`——负号跑到中间去了，这显然是错误的。正确的输出应该是 `-00042`，即负号在最前面，然后是前导零，最后是数字。
-
-代码用三个分支处理所有情况。第一个分支 `!left_align && zero_pad && has_sign` 处理"右对齐 + 零填充 + 有符号"的情况——先输出负号，再补零，再输出数字部分。注意这里 `width - 1` 是因为负号已经占了一个字符位。第二个分支 `!left_align` 处理右对齐的一般情况——根据 `zero_pad` 选填充字符，先补填充再输出完整内容。第三个分支处理左对齐——先输出内容再补空格。
-
-`va_arg(args, int)` 取出的参数被强制转换成 `int64_t` 传给 `format_decimal`，这是因为我们的格式化引擎内部统一使用 64 位运算。
+`%d` 是引擎最复杂的部分——`%06d` 格式化 `-42` 必须得到 `-00042`（负号在前），而不是 `000-42`。三个分支覆盖所有情况：`!left_align && zero_pad && has_sign` 先输出负号再补零再输出数字；`!left_align` 根据填充字符先补填充再输出完整内容；左对齐先输出内容再补空格。`width - 1` 是因为负号已占一个字符位。`va_arg(args, int)` 转成 `int64_t` 传给 `format_decimal`，引擎内部统一 64 位运算。
 
 #### %u / %x / %X —— 无符号数值格式化
 
@@ -317,7 +309,7 @@ void vkprintf_impl(OutputFn&& putc_fn, const char* fmt, va_list args) {
         }
 ```
 
-`%u`、`%x`、`%X` 的处理逻辑非常统一，因为它们都不涉及负数符号问题。对于右对齐，先补填充字符再输出内容；对于左对齐，先输出内容再补空格。`%u` 复用 `format_decimal`（传入的是无符号值所以永远不会是负数），`%x` 和 `%X` 调用 `format_hex`，区别只在 `lowercase` 参数。
+`%u`、`%x`、`%X` 逻辑统一——不涉及符号问题，右对齐先填充再输出，左对齐先输出再填充。`%u` 复用 `format_decimal`，`%x`/`%X` 调用 `format_hex`。
 
 #### %p —— 指针格式化
 
@@ -340,7 +332,7 @@ void vkprintf_impl(OutputFn&& putc_fn, const char* fmt, va_list args) {
         }
 ```
 
-`%p` 比较特殊——它不走通用的填充逻辑，而是硬编码为 `"0x"` + 恰好 16 位十六进制数字。这使得指针输出总是固定宽度 18 字符（`0x` + 16 位），非常适合对齐显示。先用 `format_hex` 把 64 位地址转成十六进制字符串，然后补前导零到 16 位，最后输出实际数字。`%p` 不支持宽度修饰符和左对齐——在 64 位系统上 16 位十六进制已经是固定格式了。
+`%p` 不走通用填充逻辑，硬编码为 `"0x"` + 16 位十六进制。指针输出固定宽度 18 字符，适合对齐显示。`%p` 不支持宽度和左对齐修饰符。
 
 ### kprintf.cpp —— 重构后的薄包装层
 
@@ -395,13 +387,11 @@ void kpanic(const char* fmt, ...) {
 }  // namespace cinux::lib
 ```
 
-整个文件从之前的两百多行缩减到不到 50 行有效代码。所有的格式化逻辑都在 `vkprintf_impl.hpp` 里，这里只做两件事：提供一个全局的 `Serial` 单例，以及把 `vkprintf_impl` 的输出通过 lambda 转发给串口驱动。
-
-lambda `[&](char c) { g_serial.putc(c); }` 就是我们说的"输出适配器"——它捕获 `g_serial` 的引用，每收到一个字符就调用 `Serial::putc()` 发送出去。`kpanic` 在输出完成后进入死循环禁中断暂停，保证系统停住而不是继续执行到更糟糕的状态。
+整个文件从两百多行缩减到不到 50 行有效代码。lambda `[&](char c) { g_serial.putc(c); }` 捕获 `g_serial` 的引用，每收到一个字符就调用 `Serial::putc()` 发出去。`kpanic` 输出完成后进入 `cli; hlt` 死循环。
 
 ### 单元测试的彻底重写
 
-重构带来的最大好处之一就是测试可以真正测试"生产代码"了。之前 `tests/unit/test_kprintf.cpp` 需要把 `format_decimal`、`format_hex` 和格式解析逻辑全部复制一遍——测试的是复制品而不是真正的引擎。重构后：
+重构前测试复制了格式化代码——测试的是复制品而非真正的引擎。重构后直接 include 生产引擎：
 
 ```cpp
 // tests/unit/test_kprintf.cpp
@@ -431,27 +421,16 @@ static std::string do_printf(const char* fmt, ...) {
 }
 ```
 
-`MockOutput` 类用 `std::string` 捕获输出字符。`do_printf` 是一个简洁的测试辅助函数——调用 `vkprintf_impl`（真正的大内核格式化引擎），把输出重定向到 mock 对象，然后返回结果字符串。测试用例变成了极其简洁的一行断言：
+`MockOutput` 用 `std::string` 捕获输出。`do_printf` 调用真正的 `vkprintf_impl`，输出重定向到 mock 对象，返回结果字符串。测试用例极其简洁：
 
 ```cpp
-TEST("kprintf: %d positive") {
-    ASSERT_EQ(do_printf("%d", 42), "42");
-}
-
-TEST("kprintf: %06d negative zero-pad") {
-    ASSERT_EQ(do_printf("[%06d]", -42), "[-00042]");
-}
-
-TEST("kprintf: %-10d left-align decimal") {
-    ASSERT_EQ(do_printf("[%-10d]", 42), "[42        ]");
-}
-
-TEST("kprintf: %s with width left-align") {
-    ASSERT_EQ(do_printf("[%-10s]", "hi"), "[hi        ]");
-}
+ASSERT_EQ(do_printf("%d", 42), "42");
+ASSERT_EQ(do_printf("[%06d]", -42), "[-00042]");
+ASSERT_EQ(do_printf("[%-10d]", 42), "[42        ]");
+ASSERT_EQ(do_printf("[%-10s]", "hi"), "[hi        ]");
 ```
 
-测试覆盖了所有格式说明符（`%d`、`%u`、`%x`、`%X`、`%s`、`%p`、`%c`、`%%`）、宽度修饰符（`%08x`、`%4d`）、左对齐（`%-10d`、`%-10s`）、负数零填充（`%06d` with -42）、`nullptr` 字符串、空字符串、混合格式、未知说明符回退、以及空格式字符串等边界情况——总共 35 个测试用例，全部直接运行真正的 `vkprintf_impl` 模板。
+35 个测试用例覆盖所有格式说明符、宽度修饰符、左对齐、负数零填充、`nullptr`、空字符串、混合格式、未知说明符回退等。
 
 ### kernel_main 中的格式化回归测试
 
@@ -480,7 +459,7 @@ cinux::lib::kprintf("[KPRINTF] mix: %s n=%d hex=%08x ptr=%p\n",
 cinux::lib::kprintf("[KPRINTF] all format tests done.\n");
 ```
 
-这些运行在真正的内核环境里——通过 QEMU 串口输出——可以验证整个数据通路（vkprintf_impl -> Serial::putc -> io_outb -> QEMU UART）端到端的工作。和主机端的单元测试互补：单元测试验证格式化逻辑的正确性，内核回归测试验证格式化引擎与硬件输出的集成。每次内核启动都会跑一遍这 15 个测试用例，如果某个格式化行为出了问题，串口输出会立刻暴露。
+这些测试运行在真正的内核环境里，验证端到端数据通路（vkprintf_impl -> Serial::putc -> io_outb -> QEMU UART）。和主机端单元测试互补：单元测试验证格式化逻辑，内核回归测试验证格式化引擎与硬件输出的集成。
 
 ## 设计决策
 
@@ -488,46 +467,34 @@ cinux::lib::kprintf("[KPRINTF] all format tests done.\n");
 
 **问题**: 格式化引擎应该放在 `.cpp` 编译单元还是 header-only 模板中？
 
-**本项目的做法**: header-only 模板——`vkprintf_impl.hpp` 包含完整的实现，所有函数用 `inline` 修饰。
+**本项目的做法**: header-only 模板——`vkprintf_impl.hpp` 包含完整的实现，所有函数用 `inline` 修饰。测试文件只需 `#include` 一个头文件即可使用，不需要额外的编译配置。
 
-**备选方案**: 把 `format_decimal` 和 `format_hex` 放在独立的 `.cpp` 文件中编译，只把 `vkprintf_impl` 模板放在头文件里。或者用显式模板实例化（explicit template instantiation）来控制编译单元。
-
-**为什么不选备选方案**: header-only 是最简单的方案——测试文件只需要 `#include` 一个头文件就能直接使用格式化引擎，不需要额外的编译配置和链接步骤。在内核项目中，减少构建复杂度本身就有价值。`inline` 函数在现代编译器中不会产生性能问题，编译器会根据需要决定是否真正内联。
+**备选方案**: 把 `format_decimal`/`format_hex` 放在独立 `.cpp` 中编译，或用显式模板实例化。header-only 更简单，`inline` 函数在现代编译器中不会有性能问题。
 
 ### Decision: OutputFn 模板参数 vs 虚函数接口
 
 **问题**: 如何将格式化引擎与输出设备解耦？
 
-**本项目的做法**: 函数模板 `template <typename OutputFn>`，接受任何可调用对象（lambda、函数指针等）。
+**本项目的做法**: 函数模板 `template <typename OutputFn>`，接受任何可调用对象。
 
-**备选方案**: 定义一个抽象基类 `class OutputDevice { virtual void putc(char) = 0; }`，格式化引擎接受 `OutputDevice&`。这是典型的面向对象设计方案。
-
-**为什么不选备选方案**: 虚函数需要 vtable，而内核启动早期的全局对象可能在 vtable 还没设置好之前就被使用。更重要的是，虚函数有运行时开销（间接调用），而我们追求的是零开销抽象——lambda 在编译期内联后和直接调用一样高效。C++ 模板在这里提供了比虚函数更好的方案。
+**备选方案**: 定义抽象基类 `class OutputDevice { virtual void putc(char) = 0; }`。虚函数需要 vtable，有运行时开销。内核启动早期的全局对象可能在 vtable 还没设置好之前就被使用。C++ 模板提供零开销抽象——lambda 编译期内联后和直接调用一样高效。
 
 ### Decision: 两个 vkprintf_impl 文件 vs 统一一个
 
-**问题**: 为什么大内核和迷你内核各有一个 `vkprintf_impl` 文件，而不是共享同一份？
+**问题**: 为什么大内核和迷你内核各有一个 `vkprintf_impl` 文件？
 
-**本项目的做法**: 大内核用 `kernel/lib/private/vkprintf_impl.hpp`（自包含，内部定义 `format_decimal`/`format_hex`），迷你内核用 `kernel/mini/lib/private/vkprintf_impl.h`（依赖 `format.h` 中的函数声明，支持 `%b` 二进制格式）。
-
-**备选方案**: 两个内核共享完全相同的 `vkprintf_impl` 头文件。
-
-**为什么不选备选方案**: 两个内核有不同的需求——迷你内核需要 `%b`（二进制格式化）且使用外部链接的 `format_decimal`/`format_hex`/`format_binary`（定义在 `format.cpp` 中），大内核只需要标准的格式说明符且使用 `inline` 函数。强行统一会增加不必要的耦合。不过长期来看，如果两个引擎的差距继续缩小，合并成一个文件是值得考虑的优化。
+**本项目的做法**: 大内核用 `kernel/lib/private/vkprintf_impl.hpp`（自包含，`inline` 函数），迷你内核用 `kernel/mini/lib/private/vkprintf_impl.h`（依赖 `format.h`，支持 `%b` 二进制格式）。两个内核有不同的需求，强行统一会增加不必要的耦合。
 
 ## 扩展方向
 
-- **添加 %lld / %zu 长度修饰符**: 目前 `%d` 固定取 `int` 宽度的参数，不支持 `long long` 或 `size_t`。解析 `%ll` 前缀并在 `va_arg` 时使用正确的类型可以扩展引擎的能力。（难度：⭐⭐）
-
-- **精度修饰符 %.Ns**: 支持 `%.5s`（最多输出 5 个字符）和 `%.3d`（至少 3 位数字），向标准 printf 的功能看齐。（难度：⭐⭐）
-
-- **统一的格式化引擎**: 将大内核和迷你内核的 `vkprintf_impl` 合并成一个文件，用 `#ifdef` 或模板特化处理 `%b` 等差异。消除最后一点代码重复。（难度：⭐⭐）
-
-- **缓冲输出**: 在 `kprintf` 层面加入行缓冲——积累字符直到遇到 `\n` 才一次性 flush 到串口。这可以减少 I/O 操作次数，特别是在打印长字符串时。（难度：⭐⭐）
-
-- **%f 浮点格式化**: 在没有 `libm` 的内核中实现简单的浮点数输出。可以参考 Linux 内核的 `vsnprintf` 实现，用整数运算模拟浮点转换。（难度：⭐⭐⭐）
+- **添加 %lld / %zu 长度修饰符**: 解析 `%ll` 前缀并在 `va_arg` 时使用正确的类型。（难度：⭐⭐）
+- **精度修饰符 %.Ns**: 支持 `%.5s`、`%.3d`，向标准 printf 看齐。（难度：⭐⭐）
+- **统一的格式化引擎**: 合并大内核和迷你内核的 `vkprintf_impl`，消除最后一点代码重复。（难度：⭐⭐）
+- **缓冲输出**: 行缓冲——积累字符到 `\n` 再 flush，减少 I/O 操作次数。（难度：⭐⭐）
+- **%f 浮点格式化**: 用整数运算模拟浮点转换，参考 Linux 内核的 `vsnprintf`。（难度：⭐⭐⭐）
 
 ## 参考资料
 
-- OSDev Wiki: [Kernel printf](https://wiki.osdev.org/Kernel_printf) — 内核格式化输出的一般指导，格式说明符解析，变参处理
+- OSDev Wiki: [Kernel printf](https://wiki.osdev.org/Printing_To_Screen) — 内核格式化输出的一般指导，格式说明符解析，变参处理
 - Linux `lib/vsprintf.c` — Linux 内核的完整 `vsnprintf` 实现，支持几乎所有标准 printf 格式，以及 `%p` 扩展（`%pI4` IP 地址、`%pE` 转义字符串等）
 - xv6 `printf.c` — 极简的内核 printf，用单一 `printint()` 函数配合 base 参数处理所有进制

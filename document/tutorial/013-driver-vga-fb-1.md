@@ -25,7 +25,7 @@
 帧缓冲区基地址 + y * pitch + x * 4
 ```
 
-这里 pitch 是每行占用的字节数。你会发现我在这里用的是 pitch 而不是 `width * 4`，这是有原因的——有些显卡会在每行末尾添加填充字节来对齐到某个边界。举个例子，如果屏幕宽度是 1024 像素，理论上每行 4096 字节，但某些硬件可能把 pitch 设成 4096 的倍数来满足对齐要求。所以你必须用 BootInfo 里的 pitch 值，永远不要自己算。这个坑在 OSDev 社区坑了无数人，OSDev Wiki 的 [VESA BIOS Extensions](https://wiki.osdev.org/VESA_BIOS_Extensions) 页面专门强调了这一点。
+这里 pitch 是每行占用的字节数。你会发现我在这里用的是 pitch 而不是 `width * 4`，这是有原因的——有些显卡会在每行末尾添加填充字节来对齐到某个边界。举个例子，如果屏幕宽度是 1024 像素，理论上每行 4096 字节，但某些硬件可能把 pitch 设成 4096 的倍数来满足对齐要求。所以你必须用 BootInfo 里的 pitch 值，永远不要自己算。这个坑在 OSDev 社区坑了无数人，OSDev Wiki 的 [VESA BIOS Extensions](https://wiki.osdev.org/VBE) 页面专门强调了这一点。
 
 现在问题来了：Bochs 默认把帧缓冲区放在物理地址 0xE0000000，也就是 3.5GB 的位置。我们的 bootloader 在进入 long mode 时设置了一套基本的页表，只映射了前几 MB 的物理内存。所以访问 0xE0000000 之前，必须先在页表中添加对应的映射——否则一写就是 page fault，如果还没有中断处理程序的话就是 triple fault，直接重启。这就是我们需要 `map_mmio()` 函数的原因。
 
@@ -215,6 +215,6 @@ kprintf("[TEST] pixel readback: 0x%p\n", (uint64_t)val);  // 应该输出 0x0000
 
 - Intel SDM: Vol.3A Section 4.5 — 4-Level Paging，Table 4-18 (2MB Page PDE)，Table 4-16 (1GB Page PDPTE)
 - Intel SDM: Vol.3A Section 4.1.4 — 1GB page support via CPUID.80000001H:EDX bit 26
-- OSDev Wiki: [VESA BIOS Extensions](https://wiki.osdev.org/VESA_BIOS_Extensions) — ModeInfoBlock 字段说明、线性帧缓冲区
+- OSDev Wiki: [VESA BIOS Extensions](https://wiki.osdev.org/VBE) — ModeInfoBlock 字段说明、线性帧缓冲区
 - Linux fbdev: `drivers/video/fbdev/core/fbmem.c` 中的帧缓冲区注册和 `fix.line_length * var.yres` 大小计算
 - SerenityOS: `Kernel/Graphics/FramebufferConsole.h` 使用类似的 volatile 指针直接写入线性帧缓冲区

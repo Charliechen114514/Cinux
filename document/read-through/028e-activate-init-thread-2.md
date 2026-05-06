@@ -47,31 +47,23 @@ kernel_init_thread()
 
 ### init.cpp——完整实现
 
-`kernel/proc/init.cpp` 是这个 tag 最核心的新文件，只有 36 行代码（diff 中的版本），但它承担了从「内核初始化完成」到「用户态 shell 运行」之间的全部桥梁工作。
+`kernel/proc/init.cpp` 是这个 tag 最核心的新文件，只有 30 行代码（diff 中的版本），但它承担了从「内核初始化完成」到「用户态 shell 运行」之间的全部桥梁工作。
 
 首先是头文件引用：
 
 ```cpp
 #include "kernel/proc/init.hpp"
 
-#include <stdint.h>
-
-#include "kernel/arch/x86_64/paging_config.hpp"
 #include "kernel/arch/x86_64/usermode.hpp"
 #include "kernel/drivers/ahci/ahci.hpp"
 #include "kernel/fs/ext2.hpp"
 #include "kernel/fs/vfs_mount.hpp"
 #include "kernel/lib/kprintf.hpp"
-#include "kernel/mm/address_space.hpp"
-#include "kernel/mm/pmm.hpp"
-#include "kernel/proc/per_cpu.hpp"
-#include "kernel/proc/pid.hpp"
-#include "kernel/proc/process.hpp"
 #include "kernel/proc/scheduler.hpp"
 #include "kernel/proc/sync.hpp"
 ```
 
-注意 init.cpp 需要包含很多子系统头文件——因为它是「后期初始化」的入口，需要直接操作 AHCI、ext2、VFS、用户态等模块。这也印证了为什么这段代码不应该继续留在 `kernel_main()` 中——依赖太多，会让 `main.cpp` 膨胀得不可维护。
+init.cpp 的依赖列表相对精简——它只包含了直接调用的模块：AHCI（获取驱动实例）、ext2（挂载文件系统）、VFS（注册挂载点）、usermode（启动用户态）、scheduler（获取当前 Task、退出线程）和 sync（中断保护）。之所以不需要包含 `pmm.hpp`、`address_space.hpp` 这些底层头文件，是因为 init 线程不直接操作物理内存或页表——这些细节被封装在 `launch_first_user()` 内部了。
 
 接下来是 init 线程的主体：
 
@@ -238,4 +230,4 @@ void AHCI::set_instance(AHCI* ahci) {
 
 - Linux init/main.c: `kernel_init()` — [GitHub](https://github.com/torvalds/linux/blob/master/init/main.c)
 - C++ Placement New: [cppreference](https://en.cppreference.com/w/cpp/language/new#Placement_new)
-- OSDev Wiki: [Kernel Object Lifecycle](https://wiki.osdev.org/Object_Lifecycle) — 内核中对象析构的处理
+- OSDev Wiki: [C++](https://wiki.osdev.org/C%2B%2B) — 内核中使用 C++ 的注意事项（析构器、new/delete 等）

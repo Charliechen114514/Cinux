@@ -225,7 +225,7 @@ tag 005 到此全部完成。我们给内核装上了嘴巴（串口驱动和 kp
 
 ## 参考资料
 
-- QEMU Documentation — isa-debug-exit (https://qemu.readthedocs.io/en/v9.1.3/system/gdb.html)：QEMU 内置调试设备文档。`isa-debug-exit` 的 I/O 端口配置（iobase、iosize），退出码计算公式 `(value << 1) | 1`。Cinux 的内核端测试通过这个设备实现自动化退出。
+- QEMU Documentation — isa-debug-exit (https://www.qemu.org/docs/master/system/gdb.html)：QEMU 内置调试设备文档。`isa-debug-exit` 的 I/O 端口配置（iobase、iosize），退出码计算公式 `(value << 1) | 1`。Cinux 的内核端测试通过这个设备实现自动化退出。
 
 - CMake Documentation — CTest (https://cmake.org/cmake/help/latest/manual/ctest.1.html)：CTest 的命令行参数和配置选项。`--output-on-failure` 在测试失败时显示输出，`-R` 按名称过滤测试，`-L` 按标签过滤。Cinux 的 Host 端测试通过 CTest 调度。
 

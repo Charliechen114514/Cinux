@@ -194,12 +194,12 @@ Linux 的 `mm_struct` 生命周期和 Cinux 的 `AddressSpace` 几乎平行。`f
 本质上就是 Linux `mm_struct` 的最小子集，拿掉了 VMA、信号量、RSS 统计等高级
 功能，只保留了最核心的页表根管理。
 
-xv6 的 `proc_freepagetable()` 和 Cinux 的析构函数也有一个重要的差异：xv6 会
-先 unmap trampoline 和 trapframe，然后调用 `uvmfree()` 递归释放所有用户页——
-注意 xv6 会释放数据页（物理页帧），而 Cinux 的 `free_subtree` 只释放页表结构
-页（PDPT/PD/PT），不碰数据页。这是因为 xv6 的每个进程的物理内存完全由该进程
-拥有，进程结束时内存全部归还；而 Cinux 将数据页的管理权留给了上层，为将来的
-共享内存和 COW fork 做准备。
+xv6 的 `proc_freepagetable()` 和 Cinux 的析构函数在释放策略上是一致的：两者都会
+释放数据页。xv6 先 unmap trampoline 和 trapframe，然后调用 `uvmfree()` 递归释放
+所有用户页（包括数据页）。Cinux 的 `free_subtree` 递归到 PT 层后不再深入，但仍然
+对 PT 条目调用 `free_page`——数据页同样被释放。两者都采用了"进程结束时全量归还"
+的策略。差异在于 Cinux 未来如果实现共享内存或 COW fork，需要将数据页改为引用计数
+管理，届时 `free_subtree` 在 PT 层不应再调用 `free_page`。
 
 ## 收尾
 

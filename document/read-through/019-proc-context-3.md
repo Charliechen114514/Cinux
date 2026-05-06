@@ -163,7 +163,7 @@ context_switch(&prev->ctx, &next->ctx);    // from ≠ to，正确切换
 
 ```cpp
 void test_layout() {
-    TEST_ASSERT_EQ(sizeof(CpuContext), 80u);
+    TEST_ASSERT_EQ(sizeof(CpuContext), 64u);
     TEST_ASSERT_EQ(offsetof(CpuContext, r15), 0u);
     TEST_ASSERT_EQ(offsetof(CpuContext, rsp), 48u);
     TEST_ASSERT_EQ(offsetof(CpuContext, rip), 56u);

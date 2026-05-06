@@ -269,7 +269,7 @@ PhysBasePtr 用 `movl`（32 位）读，写入也是 32 位——但 FB Info 的
 
 ## 参考资料
 
-- Intel SDM: Vol.3A §9.1 — A20 gate behavior after processor reset
+- Intel SDM: Vol.3A §10.1.1 — A20 gate behavior after processor reset
 - OSDev Wiki: [A20 Line](https://wiki.osdev.org/A20_Line) — A20 history, enabling methods, testing
-- OSDev Wiki: [VESA BIOS Extensions](https://wiki.osdev.org/VESA_BIOS_Extensions) — VbeInfoBlock, ModeInfoBlock, Set Mode flags
+- OSDev Wiki: [VESA Video Modes](https://wiki.osdev.org/VESA_Video_Modes) — VbeInfoBlock, ModeInfoBlock, Set Mode flags
 - OSDev Wiki: [Disk access using the BIOS (INT 13h)](https://wiki.osdev.org/Disk_access_using_the_BIOS_(INT_13h)) — DAP structure layout

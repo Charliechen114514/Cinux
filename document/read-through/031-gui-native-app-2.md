@@ -72,12 +72,9 @@ public:
 
     void on_key(KeyEvent& ev) override;
     void on_paint(cinux::drivers::Canvas& canvas) override;
-    bool is_terminal() const override { return true; }
-
     void write(const char* str, uint64_t len);
     void set_stdin_pipe(class cinux::ipc::Pipe* pipe);
     void set_stdout_pipe(class cinux::ipc::Pipe* pipe);
-    void set_shell_pid(int pid);
     void poll_output();
     void set_font(cinux::drivers::PSFFont* font);
     void render_to_canvas();
@@ -90,14 +87,14 @@ private:
     uint32_t fg_ = 0x00FFFFFF;
     uint32_t bg_ = 0x00000000;
     bool cursor_visible_ = true;
+    int pipe_write_fd_ = -1;
     cinux::drivers::PSFFont* font_ = nullptr;
     ipc::Pipe* stdin_pipe_  = nullptr;
     ipc::Pipe* stdout_pipe_ = nullptr;
-    int shell_pid_ = 0;
 };
 ```
 
-80x25 是经典 VGA 文本模式的分辨率，也是大多数终端模拟器的默认尺寸。Terminal 继承 Window，构造时根据字符网格大小计算窗口像素尺寸：640 x 400（80 * 8 x 25 * 16）。`is_terminal()` 虚方法让 WindowManager 在 tick 回调中安全地识别终端窗口，避免对普通 Window 做不必要的 static_cast。
+80x25 是经典 VGA 文本模式的分辨率，也是大多数终端模拟器的默认尺寸。Terminal 继承 Window，构造时根据字符网格大小计算窗口像素尺寸：640 x 400（80 * 8 x 25 * 16）。成员 `pipe_write_fd_` 保存 shell stdin 管道的写端 fd，`stdin_pipe_` 和 `stdout_pipe_` 是终端侧的管道指针，用于键盘输入转发和 shell 输出轮询。
 
 ### 构造与析构 (terminal.cpp)
 
@@ -113,30 +110,22 @@ Terminal::Terminal(uint32_t x, uint32_t y, const char* title)
 
 构造函数把窗口的 content area 大小设为 640x400 像素，然后初始化所有格子为默认值。
 
-析构函数负责关闭管道端点和 reap shell 子进程：
+析构函数负责关闭管道端点：
 
 ```cpp
 Terminal::~Terminal() {
-    if (stdin_pipe_ != nullptr)  stdin_pipe_->close_writer();
-    if (stdout_pipe_ != nullptr) stdout_pipe_->close_reader();
-    stdin_pipe_  = nullptr;
-    stdout_pipe_ = nullptr;
-
-    if (shell_pid_ > 0) {
-        for (uint32_t attempt = 0; attempt < 1000; attempt++) {
-            int status = 0;
-            auto result = cinux::proc::waitpid(shell_pid_, &status,
-                                                cinux::proc::g_pid_alloc);
-            if (result == cinux::proc::WaitpidResult::Ok) break;
-            if (result == cinux::proc::WaitpidResult::NoChildren ||
-                result == cinux::proc::WaitpidResult::NotFound) break;
-        }
-        shell_pid_ = 0;
+    if (stdin_pipe_ != nullptr) {
+        stdin_pipe_->close_writer();
+        stdin_pipe_ = nullptr;
+    }
+    if (stdout_pipe_ != nullptr) {
+        stdout_pipe_->close_reader();
+        stdout_pipe_ = nullptr;
     }
 }
 ```
 
-管道关闭的方向很重要：Terminal 拥有 stdin 管道的写端（键盘 -> shell），所以关闭写端；拥有 stdout 管道的读端（shell -> 终端），所以关闭读端。关闭后 shell 的 sys_read(fd=0) 会在管道空时返回 EOF，shell 的 sys_write(fd=1) 会收到写端已关闭的错误。waitpid 有限次数尝试，防止在 shell 长时间运行时析构函数永久阻塞。
+管道关闭的方向很重要：Terminal 拥有 stdin 管道的写端（键盘 -> shell），所以关闭写端；拥有 stdout 管道的读端（shell -> 终端），所以关闭读端。关闭后 shell 的 sys_read(fd=0) 会在管道空时返回 EOF，shell 的 sys_write(fd=1) 会收到写端已关闭的错误。指针在关闭后立即置 nullptr，防止悬挂指针。
 
 ### 键盘事件处理 (terminal.cpp — on_key)
 
@@ -304,7 +293,7 @@ void Terminal::render_to_canvas() {
 
 ### 决策：固定 80x25 字符网格
 **问题**: 终端缓冲区用固定大小还是动态大小？
-**本项目的做法**: 固定 80x25 数组（2000 个 TerminalCell，约 16KB）。
+**本项目的做法**: 固定 80x25 数组（2000 个 TerminalCell，约 24KB）。
 **备选方案**: 动态 vector 或链表结构，支持窗口 resize 时调整行列数。
 **为什么不选备选方案**: 固定大小实现简单，不需要动态内存管理。80x25 是经典 VGA 文本模式尺寸，兼容性好。教学 OS 中窗口 resize 暂时不是优先级。
 **如果要扩展/改进**: 支持 resize 时重新分配 screen_ 数组，调整 COLS/ROWS 常量为实例变量。

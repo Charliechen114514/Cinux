@@ -4,7 +4,7 @@
 
 本文聚焦 `kernel/arch/x86_64/syscall.S`，逐行讲解从 Ring 3 进入 Ring 0 的汇编入口。这个文件是整个 syscall 子系统最核心也最微妙的部分——SWAPGS 时机、栈切换方式、trap frame 布局、参数重排、调用约定适配，每一个细节出错都会导致 triple fault。在整个 023 tag 中，这是硬件交互最密集的一篇。
 
-关键设计决策：使用 GS 段基址 + SWAPGS 做 per-CPU 栈切换（与 Linux 一致），trap frame 只保存 syscall 必需的寄存器（不保存全部 GPR），返回值暂存在 RBX。
+关键设计决策：使用 GS 段基址 + SWAPGS 做 per-CPU 栈切换（与 Linux 一致），trap frame 只保存 syscall 必需的寄存器（不保存全部 GPR），返回值暂存在 gs:16 槽位（避免破坏用户态 RBX）。
 
 ## 架构图
 
@@ -26,6 +26,7 @@ GS 数据页布局 (per-CPU):
 ┌────────┐
 │ gs:0   │ kernel_rsp  (syscall 入口加载到 RSP)
 │ gs:8   │ user_rsp    (暂存用户 RSP)
+│ gs:16  │ ret_val     (暂存 syscall 返回值)
 └────────┘
 ```
 
@@ -70,28 +71,27 @@ syscall_entry:
 
 ```asm
     movq 72(%rsp), %rax
+    subq $8, %rsp
     pushq %rax
 
-    movq 32(%rsp), %rdi
-    movq 40(%rsp), %rsi
-    movq 48(%rsp), %rdx
-    movq 56(%rsp), %rcx
-    movq 64(%rsp), %r8
-    movq 72(%rsp), %r9
+    movq 40(%rsp), %rdi
+    movq 48(%rsp), %rsi
+    movq 56(%rsp), %rdx
+    movq 64(%rsp), %rcx
+    movq 72(%rsp), %r8
+    movq 80(%rsp), %r9
 
     call syscall_dispatch
 ```
 
-这段代码做了参数重排和第 7 个参数压栈。syscall 的第六个参数在 R9（对应 trap frame 的 rsp+72），但 C 函数 syscall_dispatch 接受 7 个参数（syscall 号 + 6 个参数），前 6 个通过寄存器传，第 7 个压栈。这里从 trap frame 取出 R9 的值直接 push 到栈上。push 后所有 trap frame 的偏移量加了 8，所以后面的 movq 指令用 32/40/48/56/64/72 的偏移来读取正确的字段。
-
-注意 C 调用的第四个参数在 RCX，但 syscall 的第四个参数存在 R10——这里从 trap frame 的 rsp+56 位置（对应 R10）取出放入 RCX，完成了 R10→RCX 的映射。
+这段代码做了参数重排、第 7 个参数压栈和栈对齐。syscall 的第六个参数在 R9（对应 trap frame 的 rsp+72），但 C 函数 syscall_dispatch 接受 7 个参数（syscall 号 + 6 个参数），前 6 个通过寄存器传，第 7 个压栈。这里先从 trap frame 取出 R9 的值，然后 subq $8 对齐栈到 16 字节边界，再 push。push 和 subq 后 trap frame 的偏移量加了 16（不是 8），所以后面的 movq 指令用 40/48/56/64/72/80 的偏移来读取正确的字段。具体映射关系：rsp+40（原 RAX=syscall 号）→RDI，rsp+48（原 RDI=a1）→RSI，rsp+56（原 RSI=a2）→RDX，rsp+64（原 RDX=a3）→RCX，rsp+72（原 R10=a4）→R8，rsp+80（原 R8=a5）→R9。
 
 ### 恢复状态与 SYSRETQ 返回
 
 ```asm
-    addq $8, %rsp
+    addq $16, %rsp
 
-    movq %rax, %rbx
+    movq %rax, %gs:16
 
     movq 0(%rsp), %rax
     movq %rax, %gs:8
@@ -102,40 +102,32 @@ syscall_entry:
     addq $96, %rsp
 
     movq %gs:8, %rsp
-    movq %rbx, %rax
+    movq %gs:16, %rax
     swapgs
     sysretq
 ```
 
-返回路径是入口的镜像。首先 addq $8 清理第 7 个参数。然后把 dispatch 的返回值存到 RBX——这是 callee-saved 寄存器，不会被后续操作破坏。
+返回路径是入口的镜像。首先 `addq $16` 清理第 7 个参数（压栈的 R9 值）和栈对齐的 8 字节。然后把 dispatch 的返回值存到 gs:16——这是 GS 数据页的第三个槽位，专门用于暂存返回值。这样后续恢复 trap frame 时不会丢失返回值，也使得用户态 RBX 可以被正确恢复。
 
-接下来从 trap frame 恢复关键状态：用户 RSP 存回 gs:8、用户 RIP（RCX 位置）加载到 RCX（SYSRETQ 从这里恢复 RIP）、用户 RFLAGS 加载到 R11（SYSRETQ 从这里恢复 RFLAGS）、RBX 从 trap frame 恢复（这里需要注意：之前存在 RBX 里的返回值会被覆盖，所以 trap frame 恢复 RBX 必须在返回值已经安全保存之后——实际上我们用 RBX 暂存返回值，然后又从 trap frame 恢复了用户态的 RBX。等等，这里确实有问题——movq 80(%rsp), %rbx 会覆盖之前存入的返回值。我们需要在释放 trap frame 之后再恢复返回值）。
+接下来从 trap frame 恢复关键状态：用户 RSP 存回 gs:8（之后切换栈要用）、用户 RIP 加载到 RCX（SYSRETQ 从这里恢复 RIP）、用户 RFLAGS 加载到 R11（SYSRETQ 从这里恢复 RFLAGS）、用户态 RBX 从 trap frame 的 rsp+80 位置恢复。然后 `addq $96` 释放整个 trap frame（12 个 slot * 8 字节），`movq %gs:8, %rsp` 切回用户栈，`movq %gs:16, %rax` 把返回值加载到 RAX（SYSRETQ 返回后用户程序从 RAX 拿到返回值），最后 swapgs 回用户 GS 基址，sysretq 返回 Ring 3。
 
-仔细看这段代码：先 `movq %rax, %rbx` 保存返回值，然后从 trap frame 恢复各字段，其中 `movq 80(%rsp), %rbx` 把用户态的 RBX 加载到 RBX——这确实覆盖了返回值。但随后 `addq $96` 释放整个 trap frame，`movq %gs:8, %rsp` 切回用户栈，`movq %rbx, %rax` 把 RBX 放入 RAX。这里有一个巧妙之处：虽然 trap frame 中的用户 RBX 被加载了，但后续没有操作会改变 RBX，所以最终 RBX 中存的是用户态的 RBX 值——而返回值其实不需要保存，因为 dispatch 的返回值已经通过 RBX 传递后被用户态 RBX 覆盖了。等等，这不对。
-
-让我们重新梳理：dispatch 返回后 RAX=返回值。`movq %rax, %rbx` 把返回值存到 RBX。然后从 trap frame 加载用户 RIP 到 RCX、用户 RFLAGS 到 R11。接下来 `movq 80(%rsp), %rbx` 把用户态的 RBX 值恢复——这覆盖了之前的返回值。释放 trap frame 后，`movq %rbx, %rax` 把 RBX（现在是用户态 RBX）放入 RAX。但 SYSRETQ 从 RAX 不读取任何东西——SYSRETQ 只从 RCX 读 RIP、从 R11 读 RFLAGS。返回值是通过 RAX 传回的，但这里 RAX 被设为了用户态 RBX 的值。
-
-实际上在 023 的实现中，返回值是通过 trap frame 的 syscall_nr slot（rsp+24）间接保存的。dispatch 的返回值存在 RAX 中，然后 `movq %rax, %rbx` 保存它。但 trap frame 恢复 RBX 时覆盖了它。这里的关键是：恢复 RBX 发生在释放 trap frame 之前，而 `movq %rbx, %rax` 发生在释放之后。由于 `movq 80(%rsp), %rbx` 已经覆盖了返回值，最终 RAX 中存的是用户态 RBX——但 SYSRETQ 返回后 RAX 对用户程序来说是返回值。
-
-这看起来像是一个 bug 或者未完善的实现。在后续版本中这个问题通过使用 gs:16 暂存返回值来解决（避免了 RBX 被覆盖的问题）。但对于 023 tag 的教学目的，这个实现足以让 sys_write 正常工作——因为 sys_write 的返回值（字节数）即使被用户态 RBX 覆盖也不影响程序逻辑（hello.cpp 不检查返回值）。
+你会发现这个返回路径比 Linux 简洁得多——Linux 需要恢复完整的 pt_regs（全部 GPR），还要处理 io bitmap、投机执行屏障等安全措施。Cinux 023 阶段只恢复了 syscall 必需的寄存器（RCX、R11、RSP、RBX），并用 gs:16 传递返回值。
 
 ## 设计决策
 
-### 决策：使用 RBX 暂存返回值（023 tag 实现）
+### 决策：使用 gs:16 暂存返回值
 
-**问题**：dispatch 返回后需要保存返回值，然后在恢复 trap frame 和返回 Ring 3 之间传递它。
+**问题**：dispatch 返回后需要保存返回值，然后在恢复 trap frame 和返回 Ring 3 之间传递它。同时需要正确恢复用户态的 RBX（callee-saved 寄存器）。
 
-**本项目的做法**：用 RBX 暂存返回值。但这有一个已知问题——恢复用户态 RBX 时会覆盖返回值。
+**本项目的做法**：用 gs:16 暂存返回值。dispatch 返回后 `movq %rax, %gs:16`，恢复完 trap frame（包括从 trap frame 恢复用户态 RBX）后，再 `movq %gs:16, %rax` 加载返回值。这个方案保证了用户态 RBX 不会被覆盖。
 
-**备选方案**：用 GS 数据页的 gs:16 槽位暂存返回值（后续版本采用）。
+**备选方案**：用 RBX 暂存返回值（更简单但不恢复用户态 RBX）。
 
-**为什么 023 选了 RBX**：实现更简单，且对于 023 阶段的测试场景（hello.cpp 不检查返回值）足够。
-
-**改进方向**：在恢复用户态 RBX 之前，先把返回值存到 gs:16，释放 trap frame 后再从 gs:16 恢复到 RAX。这正是后续版本的做法。
+**为什么选了 gs:16**：虽然多用一个 GS 槽位，但能正确恢复用户态 RBX——callee-saved 寄存器如果被 syscall 隐式破坏，可能导致用户程序出现难以追踪的 bug。使用 gs:16 暂存是更健壮的方案。
 
 ## 扩展方向
 
-- ⭐ 在 trap frame 中增加保存 R12-R15（完整 callee-saved），使 handler 可以安全使用这些寄存器
+- ⭐ 在 trap frame 中增加保存 R12-R15（完整 callee-saved），使 handler 可以安全使用这些寄存器（当前已经正确保存/恢复 RBX，但 R12-R15 未保存）
 - ⭐⭐ 实现 syscall 入口的嵌套处理（当前不支持中断中再次 syscall）
 - ⭐⭐⭐ 参考 Linux 的 pt_regs，在 trap frame 中保存全部 GPR，实现更完善的 ptrace 支持
 

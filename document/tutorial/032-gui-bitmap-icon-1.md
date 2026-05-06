@@ -49,7 +49,7 @@ draw_bitmap 的实现只有不到 30 行代码，但每一行都有讲究。
 
 在 VBE 图形模式中，framebuffer 的每一行可能有额外的填充字节——硬件出于对齐的原因，要求每行的字节数（pitch）不一定是 width * 4 的精确倍数。比如 1024x768 的 32-bit 模式，pitch 可能是 4096 字节而不是 1024 * 4 = 4096 字节（这个例子恰好相等），但也可能是 4128 字节——多出来的 32 字节是硬件要求的行对齐。如果用 `width_` 代替 `pitch_ / 4` 来计算行偏移，第二行开始的像素就会错位，画面会越画越歪。
 
-OSDev Wiki 的 [Drawing In a Linear Framebuffer](https://wiki.osdev.org/Drawing_In_a_Linear_Framebuffer) 页面特别强调了这一点——像素位置的正确计算公式是 `pixel = vram + y * pitch + x * pixelwidth`，而不是 `y * width + x`。我们整个 Canvas 类从头到尾都在用 pitch，draw_bitmap 也不例外。
+OSDev Wiki 的 [Drawing In a Linear Framebuffer](https://wiki.osdev.org/VBE) 页面特别强调了这一点——像素位置的正确计算公式是 `pixel = vram + y * pitch + x * pixelwidth`，而不是 `y * width + x`。我们整个 Canvas 类从头到尾都在用 pitch，draw_bitmap 也不例外。
 
 ## 收尾
 
@@ -59,6 +59,6 @@ OSDev Wiki 的 [Drawing In a Linear Framebuffer](https://wiki.osdev.org/Drawing_
 
 ## 参考资料
 
-- OSDev Wiki: [Drawing In a Linear Framebuffer](https://wiki.osdev.org/Drawing_In_a_Linear_Framebuffer) — 像素定位公式、pitch 说明、双缓冲
+- OSDev Wiki: [Drawing In a Linear Framebuffer](https://wiki.osdev.org/VBE) — 像素定位公式、pitch 说明、双缓冲
 - SerenityOS: [Painter.cpp](https://github.com/SerenityOS/serenity/blob/master/Userland/Libraries/LibGfx/Painter.cpp) — `blit_filtered()` 的透明像素跳过逻辑
 - SerenityOS Issue [#69](https://github.com/SerenityOS/serenity/issues/69) — SIMD 优化 alpha blending 的讨论

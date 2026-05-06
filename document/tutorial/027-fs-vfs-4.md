@@ -19,7 +19,7 @@
 
 虽然上一章讲了 Ramdisk 继承 FileSystem 的大方向，但有几个实现细节值得展开。第一个是预分配 Inode 的生命周期管理——RamdiskEntry 内嵌的 Inode 归 Ramdisk 对象所有，调用方不应该 delete 它。这意味着 sys_close 只需要释放 FDTable 中的 File 对象（它里面有 Inode 指针但不拥有 Inode），不需要递归释放 Inode 本身。Linux 的 inode 生命周期管理更复杂（通过 i_count 引用计数），但我们的简化版本在单进程内核中完全够用。
 
-第二个细节是 RamdiskDirContext 的设计动机。readdir 的 InodeOps 函数定义在 ramdisk.cpp 的匿名命名空间里，不能直接访问 Ramdisk 类的私有成员 entries_ 和 entry_count_。通过 fs_private 指向 RamdiskDirContext（包含 entries 指针和 count），readdir 就能遍历条目表了。这种"通过上下文结构传递信息"的模式在 Linux 内核中也广泛使用——很多 file_operations 的实现通过 file->private_data 传递私有信息。
+第二个细节是 RamdiskDirContext 的设计动机。readdir 的函数指针指向 ramdisk.cpp 匿名命名空间里的实现函数，不能直接访问 Ramdisk 类的私有成员 entries_ 和 entry_count_。通过 fs_private 指向 RamdiskDirContext（包含 entries 指针和 count），readdir 就能遍历条目表了。这种"通过上下文结构传递信息"的模式在 Linux 内核中也广泛使用——很多 file_operations 的实现通过 file->private_data 传递私有信息。
 
 ## 第二步——shell 命令：cat 和 ls
 
@@ -43,7 +43,7 @@ test_vfs_mount 使用 MockFileSystem（mount 返回 true、lookup 返回 nullptr
 
 027_fs_vfs 总共修改了 43 个文件，新增 3408 行，删除 155 行。按功能分类：核心实现代码（Inode/FileSystem/FDTable/挂载点表/InodeOps/syscall）约 1200 行，测试代码约 1600 行（host 672 行 + kernel 692 行 + ramdisk 测试扩展 340 行），用户态和构建系统约 600 行。测试代码占比接近 50%，这在操作系统开发中是健康的比例。
 
-从架构上看，这个 tag 完成了 Cinux 文件系统的基础设施建设。Inode/InodeOps 定义了文件系统对象的统一表示和操作接口，FileSystem 抽象基类定义了后端的接口契约，挂载点表提供了路径路由能力，FDTable 管理文件描述符，五个系统调用完成了用户态到内核态的桥梁。这些组件为下一个 tag（028_fs_ext2）铺平了道路——ext2 只需要继承 FileSystem、实现 mount/lookup、注册到挂载点表，就能无缝接入现有的 syscall 框架。不需要改 sys_open 的一行代码。
+从架构上看，这个 tag 完成了 Cinux 文件系统的基础设施建设。Inode/InodeOps（函数指针表）定义了文件系统对象的统一表示和操作接口，FileSystem 抽象基类定义了后端的接口契约，挂载点表提供了路径路由能力，FDTable 管理文件描述符，五个系统调用完成了用户态到内核态的桥梁。这些组件为下一个 tag（028_fs_ext2）铺平了道路——ext2 只需要继承 FileSystem、实现 mount/lookup、提供自己的 InodeOps 实例、注册到挂载点表，就能无缝接入现有的 syscall 框架。不需要改 sys_open 的一行代码。
 
 ## 收尾
 

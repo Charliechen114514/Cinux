@@ -38,24 +38,28 @@ SECTIONS
 两个关键常量：`KERNEL_PHYS_BASE = 0x20000` 是 bootloader 加载内核的物理地址，`KERNEL_Virt_BASE = 0xFFFFFFFF80000000` 是高半核的虚拟基址。起始 VMA 设为两者之和 `0xFFFFFFFF80020000`，这就是 `_start` 最终被链接到的虚拟地址。
 
 ```
-    .text : AT(KERNEL_PHYS_BASE) {
+    .text : AT(ADDR(.text) - KERNEL_Virt_BASE) {
+        *(.text.start)        /* _start must be first! */
         *(.text .text.*)
         *(.rodata .rodata.*)
     }
 ```
 
-`.text` 段放代码和只读数据。`AT(KERNEL_PHYS_BASE)` 指定 LMA（Load Memory Address）为 0x20000——这是 bootloader 把内核 flat binary 放到内存中的实际物理位置。VMA 是 `0xFFFFFFFF80020000`，这是 CPU 执行时看到的虚拟地址。VMA 和 LMA 的分离是高半核设计的核心：代码在物理内存的 0x20000 处，但 CPU 通过页表映射从 `0xFFFFFFFF80020000` 访问它。
+`.text` 段放代码和只读数据。`AT(ADDR(.text) - KERNEL_Virt_BASE)` 计算 LMA——因为 VMA 起始于 `KERNEL_Virt_BASE + KERNEL_PHYS_BASE`，减去 `KERNEL_Virt_BASE` 后得到 `KERNEL_PHYS_BASE = 0x20000`。`*(.text.start)` 放在最前面，确保 `_start` 函数始终在输出文件的开头。VMA 和 LMA 的分离是高半核设计的核心：代码在物理内存的 0x20000 处，但 CPU 通过页表映射从 `0xFFFFFFFF80020000` 访问它。
 
 ```
-    .data : AT(KERNEL_PHYS_BASE + SIZEOF(.text)) {
+    .data : AT(ADDR(.data) - KERNEL_Virt_BASE) {
         *(.data .data.*)
+    }
+
+    .init_array : AT(ADDR(.init_array) - KERNEL_Virt_BASE) {
         __init_array_start = .;
-        *(.init_array .init_array.*)
+        KEEP(*(.init_array .init_array.*))
         __init_array_end = .;
     }
 ```
 
-`.data` 段紧接着 `.text` 段，存放有初始值的全局变量。LMA 设为 `KERNEL_PHYS_BASE + SIZEOF(.text)`，意思是数据段的物理位置紧贴在代码段之后——这在扁平二进制中是自然的布局。
+`.data` 段紧接着 `.text` 段，存放有初始值的全局变量。`.init_array` 是独立的段，不在 `.data` 内部——这样链接器可以分别管理两个段的布局。`KEEP()` 包裹 `.init_array` 防止被链接器的 section garbage collection 丢弃。
 
 `__init_array_start` 和 `__init_array_end` 是两个链接器符号，标记了 `.init_array` 段的起止位置。GCC 为每个有构造函数的全局对象在 `.init_array` 中生成一个函数指针（名为 `_GLOBAL__sub_I_XXX`），内核的启动代码需要遍历这个数组，依次调用每个函数指针来初始化全局对象。
 

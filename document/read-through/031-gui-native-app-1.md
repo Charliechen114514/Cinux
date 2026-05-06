@@ -226,7 +226,7 @@ int64_t sys_pipe(uint64_t pipefd_virt, uint64_t, uint64_t,
     write_inode->ops  = write_ops;
     write_inode->type = cinux::fs::InodeType::Regular;
 
-    auto& table = cinux::fs::current_fd_table();
+    auto& table = cinux::fs::g_global_fd_table();
     int read_fd = table.alloc(read_inode, cinux::fs::OpenFlags::RDONLY);
     if (read_fd < 0) { /* cleanup */ return -1; }
 

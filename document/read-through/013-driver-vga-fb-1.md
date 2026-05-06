@@ -264,5 +264,5 @@ void Framebuffer::scroll_up(uint32_t lines, uint32_t line_height, uint32_t bg) {
 
 - Intel SDM: Vol.3A §4.5 (4-Level Paging) — 2MB page PDE format (Table 4-18), 1GB page PDPTE format (Table 4-16)
 - Intel SDM: Vol.3A §4.1.4 — 1GB page support via CPUID.80000001H:EDX bit 26
-- OSDev Wiki: [VESA BIOS Extensions](https://wiki.osdev.org/VESA_BIOS_Extensions) — ModeInfoBlock, linear framebuffer, PhysBasePtr
+- OSDev Wiki: [VESA BIOS Extensions](https://wiki.osdev.org/VBE) — ModeInfoBlock, linear framebuffer, PhysBasePtr
 - Linux: fbdev 子系统使用 `ioremap()` 将帧缓冲区映射到专用虚拟地址范围，支持多种像素格式和硬件加速

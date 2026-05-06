@@ -255,6 +255,6 @@ constexpr uint64_t KMEM_HEAP_SIZE = 0x8000000ULL;  // 128 MB (was 1 MB)
 ## 参考资料
 
 - OSDev Wiki: [PC Screen Font](https://wiki.osdev.org/PC_Screen_Font) — PSF2 格式详解、.incbin 嵌入技术
-- OSDev Wiki: [Drawing In a Linear Framebuffer](https://wiki.osdev.org/Drawing_In_a_Linear_Framebuffer) — text rendering from bitmap fonts
+- OSDev Wiki: [Drawing In a Linear Framebuffer](https://wiki.osdev.org/VBE) — text rendering from bitmap fonts
 - Intel SDM Vol.3A Section 4.5: 4-Level Paging Structures — 2MB/1GB 大页映射
-- Linux: `drivers/video/fbdev/` — fbdev 双缓冲参考实现
+- Linux: [fbdev double buffering](https://github.com/lengfeld/fb-double-buffering-tests) — fbdev 双缓冲参考实现

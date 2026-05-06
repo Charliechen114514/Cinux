@@ -145,7 +145,7 @@ void Canvas::draw_bitmap(uint32_t x, uint32_t y, uint32_t w, uint32_t h, const u
 blit 是窗口系统的基础操作——把一个 Canvas 的矩形区域拷贝到另一个 Canvas 上。
 
 ```cpp
-void Canvas::blit(int32_t dst_x, int32_t dst_y, Canvas& src,
+void Canvas::blit(uint32_t dst_x, uint32_t dst_y, Canvas& src,
                   uint32_t sx, uint32_t sy, uint32_t w, uint32_t h) {
     if (back_buf_ == nullptr || src.back_buf_ == nullptr) return;
 
@@ -154,27 +154,18 @@ void Canvas::blit(int32_t dst_x, int32_t dst_y, Canvas& src,
 
     for (uint32_t row = 0; row < h; row++) {
         uint32_t src_row = sy + row;
-        int32_t  dst_row = dst_y + static_cast<int32_t>(row);
+        uint32_t dst_row = dst_y + row;
 
-        if (dst_row < 0) continue;
-        if (dst_row >= static_cast<int32_t>(height_) || src_row >= src.height_) break;
+        if (src_row >= src.height_ || dst_row >= height_)
+            break;
 
-        int32_t  col_skip  = 0;
-        int32_t  eff_dst_x = dst_x;
-        uint32_t eff_sx    = sx;
-        if (eff_dst_x < 0) {
-            col_skip  = -eff_dst_x;
-            eff_dst_x = 0;
-            eff_sx += static_cast<uint32_t>(col_skip);
-        }
+        for (uint32_t col = 0; col < w; col++) {
+            uint32_t src_col = sx + col;
+            uint32_t dst_col = dst_x + col;
 
-        uint32_t dst_col_start = static_cast<uint32_t>(eff_dst_x);
-        uint32_t col_count     = w - static_cast<uint32_t>(col_skip);
+            if (src_col >= src.width_ || dst_col >= width_)
+                break;
 
-        for (uint32_t i = 0; i < col_count; i++) {
-            uint32_t src_col = eff_sx + i;
-            uint32_t dst_col = dst_col_start + i;
-            if (src_col >= src.width_ || dst_col >= width_) break;
             back_buf_[dst_row * dst_pixels_per_row + dst_col] =
                 src.back_buf_[src_row * src_pixels_per_row + src_col];
         }
@@ -182,11 +173,9 @@ void Canvas::blit(int32_t dst_x, int32_t dst_y, Canvas& src,
 }
 ```
 
-这段代码的核心复杂性在于处理「窗口部分在屏幕外」的情况。dst_x 和 dst_y 是 int32_t（有符号），这意味着它们可以是负数——比如窗口顶部被拖到屏幕上方，dst_y = -30。
+blit 遍历 h 行 w 列，将源 Canvas 中 `(sx, sy)` 起始的矩形区域逐像素拷贝到当前 Canvas 的 `(dst_x, dst_y)` 位置。行和列方向的边界检查（`src_row >= src.height_`、`dst_row >= height_`、`src_col >= src.width_`、`dst_col >= width_`）确保不会越界读写。两个 Canvas 可能有不同的 pitch，所以分别计算 `pixels_per_row`。
 
-对于行方向：如果 dst_row < 0，整行跳过（窗口在屏幕上方）。如果 dst_row >= height_，直接 break（已经过了屏幕底部）。
-
-对于列方向：当 dst_x < 0 时，需要计算「从源区域的第几列开始拷贝」来补偿负偏移。col_skip = -dst_x 就是需要跳过的列数。eff_dst_x 调整为 0（从屏幕最左边开始），eff_sx 调整为 sx + col_skip（跳过源区域中对应屏幕外的部分）。然后逐像素拷贝，两端的边界检查确保不会越界。
+注意 tag 029 的 blit 使用 `uint32_t` 坐标——不支持负数目标坐标（窗口部分在屏幕外的情况）。这个能力将在后续 tag 030（窗口管理器）中添加，届时窗口拖动到屏幕边缘外时需要负坐标裁剪。
 
 ## 设计决策
 
@@ -194,11 +183,9 @@ void Canvas::blit(int32_t dst_x, int32_t dst_y, Canvas& src,
 
 **问题**: blit 的目标坐标应该用什么类型？
 
-**本项目的做法**: int32_t，支持窗口部分在屏幕外（被拖到屏幕边缘外）。
+**tag 029 的做法**: uint32_t，所有坐标必须非负。blit 只做简单的越界检查（src_row >= src.height_ / dst_row >= height_ 等）。
 
-**备选方案**: uint32_t，所有坐标必须非负。窗口管理器自己负责裁剪。
-
-**为什么不选备选方案**: 如果在窗口管理器中做裁剪，需要为每个窗口计算可见矩形，逻辑复杂且容易出 bug。把裁剪逻辑下沉到 blit 中，窗口管理器只需要传入实际的窗口坐标（可能为负），blit 自动处理裁剪。这是更简洁的分层设计。
+**后续方向（tag 030）**: int32_t，支持窗口部分在屏幕外（被拖到屏幕边缘外）。届时 blit 需要处理负数 dst_x/dst_y——计算 col_skip 跳过屏幕外的源列，调整有效起始位置来补偿偏移量。这种「底层处理裁剪」的设计让窗口管理器只需要传入实际坐标（可能为负），不需要自己做复杂的可见区域计算。
 
 **如果要扩展**: 可以添加一个带 alpha 混合的 blit 变体（blit_with_alpha），用于半透明窗口效果。
 
@@ -222,5 +209,5 @@ void Canvas::blit(int32_t dst_x, int32_t dst_y, Canvas& src,
 ## 参考资料
 
 - Wikipedia: [Bresenham's Line Algorithm](https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm) — 整数直线绘制算法
-- OSDev Wiki: [Drawing In a Linear Framebuffer](https://wiki.osdev.org/Drawing_In_a_Linear_Framebuffer) — fillrect 优化技巧
-- SerenityOS: LibGfx Painter — draw_line 支持 anti-aliasing、fill_rect 支持 alpha blend
+- OSDev Wiki: [Drawing In a Linear Framebuffer](https://wiki.osdev.org/VBE) — fillrect 优化技巧
+- SerenityOS: [LibGfx Painter](https://github.com/SerenityOS/serenity) — draw_line 支持 anti-aliasing、fill_rect 支持 alpha blend

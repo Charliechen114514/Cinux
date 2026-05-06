@@ -197,3 +197,11 @@ bool is_real_kernel = (code[0] == 0xFA) && (code[1] == 0x48) &&
 - Intel SDM: Vol. 2A MOV instruction -- `REX.W MOV r64, imm64` vs `REX.W MOV r/m64, imm32` 编码变体
 - OSDev Wiki: [Synchronization Primitives](https://wiki.osdev.org/Synchronization_Primitives) -- Producer-conber 模式示例
 - Cinux Notes: `document/notes/021/001_big_kernel_magic_check.md` -- MOV 编码变体 bug 完整分析
+
+## 测试策略的设计哲学
+
+为什么 Cinux 要维护两套测试？这涉及测试哲学的问题。Host 端测试验证的是"设计逻辑是否正确"——它用重新实现的同步原语逻辑和 mock scheduler 来测试，确保算法本身没有 bug。比如 FIFO 测试验证的是 enqueue 尾插 + dequeue 头删是否真的保证了先进先出。这些测试在几毫秒内就能跑完，非常适合快速迭代。
+
+内核测试验证的是"实现是否正确"——它直接链接真实的 Scheduler 和同步原语，在 QEMU 中运行。这些测试捕获的是 host 测试无法发现的问题：比如 Task 结构体的内存布局是否正确、g_per_cpu.current 的设置时机是否正确、Scheduler::block() 是否真的把任务从就绪队列中移除了。这些测试需要编译 big kernel 并在 QEMU 中运行，时间成本高但不可替代。
+
+两套测试的测试用例名称和断言逻辑高度一致——host 测试用 `ASSERT_EQ`、`ASSERT_TRUE` 等宏，内核测试用 `TEST_ASSERT_EQ`、`TEST_ASSERT_TRUE` 等宏。这种一致性是有意的，它确保两套测试验证的是同一套行为规范。

@@ -230,138 +230,83 @@ void kdebugf(const char* format, ...);
 
 ### kprintf 实现——`kprintf.cpp`
 
-这是整个格式化引擎的核心文件。先看模板函数 `vkprintf_impl`：
+这是整个格式化引擎的核心文件。格式解析引擎放在独立的头文件 `private/vkprintf_impl.h` 中，`kprintf.cpp` 通过 `#include "private/vkprintf_impl.h"` 引入它。先看 `vkprintf_impl` 的核心逻辑：
 
 ```cpp
-#include "kprintf.h"
-#include "private/format.h"
-
-#include <stdarg.h>
-#include <stdint.h>
-
-#include "driver/serial.h"
-
-namespace {
-
-using namespace cinux::mini::lib::detail;
-
 template <typename OutputFn>
 void vkprintf_impl(OutputFn&& putc, const char* format, va_list args) {
     char buffer[64];
 
     while (*format != '\0') {
-        if (*format == '%') {
-            format++;
-
-            bool zero_pad = false;
-            int  width    = 0;
-
-            if (*format == '0') {
-                zero_pad = true;
-                format++;
-            }
-
-            while (*format >= '0' && *format <= '9') {
-                width = width * 10 + (*format - '0');
-                format++;
-            }
-
-            char type = *format++;
-            int len = 0;
-```
-
-模板参数 `OutputFn` 是输出字符的回调函数。`kprintf` 传入一个捕获了 `Serial` 引用的 lambda，`kdebugf` 传入一个调用 `debugcon_putc` 的 lambda。这种设计让格式化逻辑和输出设备完全解耦——格式化函数不关心字符最终去了哪里，它只负责把字符交给 `putc`。
-
-格式解析逻辑很直白：遇到 `%` 就开始解析格式符。先检查是否是 `'0'` 开头（零填充标志），然后解析数字（宽度），最后读取类型字符。比如 `%04x` 的解析过程是：检测到 `%`，检测到 `'0'`（zero_pad = true），解析 `'4'`（width = 4），读取 `'x'`（type = 'x'）。
-
-接下来是格式符分发：
-
-```cpp
-            switch (type) {
-            case '%':
-                putc('%');
-                break;
-
-            case 'c':
-                putc(static_cast<char>(va_arg(args, int)));
-                break;
-
-            case 's': {
-                const char* s = va_arg(args, const char*);
-                if (s == nullptr)
-                    s = "(null)";
-                while (*s)
-                    putc(*s++);
-                break;
-            }
-
-            case 'd':
-                len = format_decimal(
-                    static_cast<int64_t>(va_arg(args, int)), buffer, sizeof(buffer));
-                goto do_padding;
-
-            case 'u':
-                len = format_decimal(
-                    static_cast<int64_t>(va_arg(args, unsigned int)), buffer, sizeof(buffer));
-                goto do_padding;
-```
-
-`%c` 直接输出字符。注意 `va_arg(args, int)` 而不是 `va_arg(args, char)`——C/C++ 的可变参数中，比 `int` 窄的整型会被自动提升为 `int`，所以 `char` 在 `va_list` 中以 `int` 形式传递。
-
-`%s` 处理了 `nullptr` 的情况，输出 `"(null)"` 而不是崩溃。这是从 Linux 的 `printk` 学来的做法——内核代码中 `nullptr` 字符串并不罕见（比如某个可选的配置参数没设置），直接崩溃比输出 `"(null)"` 更不可取。
-
-`%d` 和 `%u` 的处理使用了 `goto do_padding`——这是 C 语言中少数几个 `goto` 被认为合理使用的场景。多个格式符（`%d`、`%u`、`%x`、`%X`、`%b`）都需要在格式化后执行相同的宽度填充逻辑，如果把填充代码写五遍，既冗余又容易改漏。`goto do_padding` 把这五个分支汇聚到同一个填充代码块。
-
-```cpp
-            case 'x':
-                len = format_hex(va_arg(args, uint64_t), buffer, sizeof(buffer), true);
-                goto do_padding;
-
-            case 'X':
-                len = format_hex(va_arg(args, uint64_t), buffer, sizeof(buffer), false);
-                goto do_padding;
-
-            case 'p':
-                for (const char* p = "0x"; *p; p++)
-                    putc(*p);
-                len = format_hex(va_arg(args, uint64_t), buffer, sizeof(buffer), false);
-                for (int i = 0; i < len; i++)
-                    putc(buffer[i]);
-                break;
-
-            case 'b':
-                len = format_binary(va_arg(args, uint64_t), buffer, sizeof(buffer));
-                goto do_padding;
-```
-
-`%p` 的处理和其他格式符不同：它不走 `do_padding` 路径，而是先手动输出 `"0x"` 前缀，然后输出十六进制内容。这里没有对指针值做零填充或宽度处理——指针总是输出完整的十六进制表示，不带前导零。这是一个简化设计：真正的 `printf` 的 `%p` 会输出固定宽度（比如 `0x00007fff12345678`），但内核调试输出中对齐没那么重要。
-
-```cpp
-do_padding:
-                if (len < width) {
-                    char pad = zero_pad ? '0' : ' ';
-                    for (int i = width - len; i > 0; i--)
-                        putc(pad);
-                }
-                for (int i = 0; i < len; i++)
-                    putc(buffer[i]);
-                break;
-
-            default:
-                putc('%');
-                putc(type);
-                break;
-            }
-        } else {
+        if (*format != '%') {
             putc(*format++);
+            continue;
         }
-    }
-}
+
+        format++;  // consume '%'
+
+        // check for left-align flag
+        bool left_align = false;
+        if (*format == '-') { left_align = true; format++; }
+
+        // check for zero-pad flag
+        bool zero_pad = false;
+        if (*format == '0') { zero_pad = true; format++; }
+
+        // parse width
+        int width = 0;
+        while (*format >= '0' && *format <= '9') {
+            width = width * 10 + (*format - '0');
+            format++;
+        }
+
+        char type = *format++;
 ```
 
-`do_padding` 标签处的填充逻辑：如果格式化后的字符串长度小于指定的宽度，先输出填充字符（`'0'` 或 `' '`），然后再输出实际内容。这实现了右对齐效果：`%4d` 输出 `[  42]`，`%04d` 输出 `[0042]`。
+模板参数 `OutputFn` 是输出字符的回调函数。`kprintf` 传入一个捕获了 `Serial` 引用的 lambda，`kdebugf` 传入一个调用 `debugcon_putc` 的 lambda。这种设计让格式化逻辑和输出设备完全解耦。值得注意的是，实际代码还支持左对齐标志（`%-Ns`），通过 `left_align` 变量控制——字符串和数值型格式符都可以使用它。
 
-`default` 分支处理未知的格式符——原样输出 `%` 加上那个字符。比如 `%f` 会输出 `%f` 而不是崩溃。这在调试时很方便，你不会因为写错一个格式符就让整个内核挂掉。
+接下来是格式符分发。每个 case 都内联了宽度填充逻辑，没有使用 `goto`：
+
+```cpp
+        case 'd': {
+            int len = format_decimal(
+                static_cast<int64_t>(va_arg(args, int)), buffer, sizeof(buffer));
+            bool has_sign = (len > 0 && buffer[0] == '-');
+            int digits_len = has_sign ? len - 1 : len;
+
+            if (!left_align && zero_pad && has_sign) {
+                putc('-');
+                for (int i = digits_len; i < width - 1; i++) putc('0');
+                for (int i = 1; i < len; i++) putc(buffer[i]);
+            } else if (!left_align) {
+                char pad = zero_pad ? '0' : ' ';
+                for (int i = len; i < width; i++) putc(pad);
+                for (int i = 0; i < len; i++) putc(buffer[i]);
+            } else {
+                for (int i = 0; i < len; i++) putc(buffer[i]);
+                for (int i = len; i < width; i++) putc(' ');
+            }
+            break;
+        }
+```
+
+`%d` 的处理比其他格式符复杂一些，因为它需要处理负号和零填充的交互。当 `zero_pad` 为 true 且值为负数时，负号应该出现在填充零之前（`-0007` 而不是 `000-7`），所以需要把负号拆出来单独输出。
+
+`%c` 直接输出字符。注意 `va_arg(args, int)` 而不是 `va_arg(args, char)`——C/C++ 的可变参数中，比 `int` 窄的整型会被自动提升为 `int`。`%s` 处理了 `nullptr` 的情况，输出 `"(null)"` 而不是崩溃。`%s` 还支持左对齐和右对齐的宽度填充。
+
+`%x`、`%X`、`%u`、`%b` 的处理结构都一样：调用对应的格式化函数，然后根据 `left_align` 和 `zero_pad` 做填充输出。`%p` 的处理略有不同——它总是输出 `"0x"` 前缀加 16 位零填充的大写十六进制：
+
+```cpp
+        case 'p': {
+            putc('0'); putc('x');
+            int len = format_hex(va_arg(args, uint64_t), buffer, sizeof(buffer), false);
+            for (int i = len; i < 16; i++) putc('0');
+            for (int i = 0; i < len; i++) putc(buffer[i]);
+            break;
+        }
+```
+
+`default` 分支处理未知的格式符——原样输出 `%` 加上那个字符，不会崩溃。
 
 最后是两个面向用户的函数和 debugcon 输出：
 
@@ -377,28 +322,20 @@ namespace cinux::mini::lib {
 void kprintf(const char* format, ...) {
     va_list args;
     va_start(args, format);
-
     auto& serial = serial::get_initial_serial();
     vkprintf_impl([&](char c) { serial.putc(c); }, format, args);
-
     va_end(args);
 }
 
 void kdebugf(const char* format, ...) {
     va_list args;
     va_start(args, format);
-
     vkprintf_impl([](char c) { debugcon_putc(c); }, format, args);
-
     va_end(args);
 }
-
-}  // namespace cinux::mini::lib
 ```
 
-`kprintf` 通过 lambda 捕获全局串口引用 `[&](char c) { serial.putc(c); }` 作为输出回调。`kdebugf` 用一个无捕获的 lambda `[](char c) { debugcon_putc(c); }`——无捕获 lambda 可以隐式转换为函数指针，但在这里它被直接当作模板参数 `OutputFn` 使用，编译器会内联整个调用链。
-
-`debugcon_putc` 只有一条 `outb` 指令，往端口 0xE9 写一个字节。QEMU 的 isa-debugcon 设备接收到写入后，根据配置（`-debugcon file:debug.log`）将内容输出到文件。这个操作比串口快得多——不需要查 LSR 等发送就绪，不需要 FIFO，直接写就完事。代价是只有 QEMU 支持，真实硬件上 0xE9 什么都不是。
+`kprintf` 通过 lambda 捕获全局串口引用 `[&](char c) { serial.putc(c); }` 作为输出回调。`kdebugf` 用一个无捕获的 lambda——无捕获 lambda 可以隐式转换为函数指针，但在这里它被直接当作模板参数 `OutputFn` 使用，编译器会内联整个调用链。`debugcon_putc` 只有一条 `outb` 指令，往端口 0xE9 写一个字节，比串口快得多——不需要查 LSR，不需要 FIFO，直接写就完事。
 
 ### 库构建配置——`lib/CMakeLists.txt`
 
@@ -427,7 +364,7 @@ target_include_directories(kprintf_private PUBLIC
 最后看一下 kprintf 在内核中的实际使用：
 
 ```cpp
-#include "../../boot/boot_info.h"
+#include <boot_info.h>
 #include "lib/kprintf.h"
 
 using cinux::mini::lib::kprintf;
@@ -446,27 +383,16 @@ extern "C" [[noreturn]] void mini_kernel_main(uint64_t boot_info_addr) {
     kprintf("Boot Memory Info: mmap_count=%u\n", boot_info->mmap_count);
     for (uint32_t i = 0; i < boot_info->mmap_count; i++) {
         const MemoryMapEntry* entry = &boot_info->mmap[i];
-        kprintf("  [%u] base=0x%016llx, length=0x%016llx, type=%u, acpi=%u\n",
+        kprintf("  [%u] base=0x%016x, length=0x%016x, type=%u, acpi=%u\n",
                 i, entry->base, entry->length, entry->type, entry->acpi);
     }
-
-    while (1) {
-        __asm__ volatile("cli; hlt");
-    }
+    // ... 后续是 GDT/IDT/PMM 初始化和 big kernel 加载
 }
 ```
 
-`mini_kernel_main` 是内核的 C++ 入口点，从 `boot.S` 的 `_start` 汇编代码跳转过来。BootInfo 指针不是从函数参数 `boot_info_addr`（`%rdi`）获取的，而是从全局变量 `__boot_info_ptr` 读取的。这个全局变量在 `boot.S` 中被赋值为 `%rdi` 的值（即 bootloader 传递的 0x7000）。使用全局变量而不是直接用参数是为了避免在调用栈很深的地方丢失 BootInfo 指针——全局变量任何地方都能访问。
+`mini_kernel_main` 是内核的 C++ 入口点，从 `boot.S` 的 `_start` 汇编代码跳转过来。BootInfo 指针不是从函数参数 `boot_info_addr`（`%rdi`）获取的，而是从全局变量 `__boot_info_ptr` 读取的。这个全局变量在 `boot.S` 中被赋值为 `%rdi` 的值（即 bootloader 传递的 BootInfo 地址）。使用全局变量而不是直接用参数是为了避免在调用栈很深的地方丢失 BootInfo 指针。
 
-kprintf 的第一次调用 `kprintf("Cinux Mini Kernel v0.1.0\n")` 是整个内核的"Hello World"时刻。如果一切配置正确（串口驱动已初始化、页表映射正确、全局构造函数执行完毕），这一行会在 QEMU 的终端窗口输出：
-
-```
-Cinux Mini Kernel v0.1.0
-```
-
-随后的 kprintf 调用输出 BootInfo 的内容：内核入口点地址（`%p` 格式，带 `0x` 前缀）、物理基地址（`%p`）、E820 内存映射条目数量（`%u`），以及每一条内存映射的详细信息。这里用到了 `%016llx`——`%016` 表示最小宽度 16，零填充，`ll` 在我们的实现中不需要（因为格式化函数直接接受 `uint64_t`），但 `x` 格式符会输出十六进制。
-
-等一下，`%016llx` 实际上不会被我们的格式解析器正确处理——它会识别 `%0`（zero_pad = true），然后 `1`（width = 1），然后 `6`（width = 16），然后 `l`（被当作 type = 'l'，走到 default 分支输出 `%l`），然后 `lx` 就变成了普通字符。这是当前实现的一个局限：不支持长度修饰符（`%ld`、`%llu` 等）。但在实际使用中，只要把 `va_arg` 的类型和格式符匹配正确（`%d` 对 `int`，`%u` 对 `unsigned int`，`%x` 对 `uint64_t`），这个问题不大。`entry->base` 是 `uint64_t` 类型，用 `%x` 或 `%p` 输出就能正确显示。代码中用 `%016llx` 可能是写代码时的笔误或者是在某个迭代版本中保留下来的——但无论如何，实际输出是正确的，因为 `va_arg(args, uint64_t)` 读取了完整的 64 位值，`format_hex` 也正确处理了 64 位输入。
+kprintf 的第一次调用 `kprintf("Cinux Mini Kernel v0.1.0\n")` 是整个内核的"Hello World"时刻。随后的 kprintf 调用输出 BootInfo 的内容。这里用到了 `%016x`——`%016` 表示最小宽度 16、零填充，`x` 格式符输出十六进制。`%p` 格式符也输出十六进制但带 `"0x"` 前缀并固定 16 位宽度。
 
 ## 设计决策
 
@@ -478,31 +404,25 @@ Cinux Mini Kernel v0.1.0
 
 **备选方案**：函数指针 `typedef void (*putc_fn)(char); void vkprintf_impl(putc_fn putc, ...)`。xv6 的 `printf.c` 就是用函数指针回调的方式。
 
-**为什么选模板**：性能和内联。lambda 在编译时是已知的类型，编译器可以完全内联 `serial.putc(c)` 或 `debugcon_putc(c)` 的调用，消除函数指针间接跳转的开销。在内核的早期启动阶段，每一个 CPU 周期都可能影响调试时序。函数指针在每次调用时都需要一次间接跳转（查虚表/函数指针表），而且不可能被内联。
+**为什么选模板**：性能和内联。lambda 在编译时是已知的类型，编译器可以完全内联 `serial.putc(c)` 或 `debugcon_putc(c)` 的调用，消除函数指针间接跳转的开销。在内核的早期启动阶段，每一个 CPU 周期都可能影响调试时序。
 
-**扩展方向**：如果将来需要支持运行时切换输出后端（比如根据日志级别决定输出到串口还是 debugcon），函数指针会变得更灵活。可以在编译时通过模板生成两个版本（串口版和 debugcon 版），运行时根据需要调用不同的版本。
+### 决策：`vkprintf_impl` 独立头文件 vs 嵌入 kprintf.cpp
 
-### 决策：`goto do_padding` vs 提取函数
+**问题**：格式解析引擎应该放在哪里？
 
-**问题**：多个格式符共享相同的宽度填充逻辑，代码怎么组织？
+**本项目的做法**：放在独立的 `private/vkprintf_impl.h` 中，由 `kprintf.cpp` include。
 
-**本项目的做法**：在 switch 的 case 分支末尾用 `goto do_padding` 跳转到共享的填充代码块。
-
-**备选方案**：把填充逻辑提取成 `output_padded(putc, buffer, len, width, zero_pad)` 函数。
-
-**为什么不选备选方案**：在这个特定的场景下，提取函数需要传递 5 个参数，而且 `buffer`、`len`、`width`、`zero_pad` 都是局部变量——函数调用会带来参数传递和栈帧创建的开销（虽然现代编译器可能会内联掉）。`goto do_padding` 在 C 语言的 `printf` 实现中是一种常见的模式，Linux 内核的 `vsnprintf` 也大量使用 `goto` 来共享后处理代码。它在这里的语义很清晰：格式化完成，跳到填充输出阶段。
+**为什么选独立头文件**：`vkprintf_impl` 是纯模板代码，不依赖串口或 I/O 端口。把它放在独立的头文件中，Host 端测试可以直接 include 它来测试格式解析逻辑，而不需要链接任何硬件驱动。这是"算法代码与硬件代码分离"原则的体现。
 
 ## 扩展方向
 
-1. **添加 `%lld` / `%zu` 长度修饰符支持**（难度：中等）——当前格式解析器不支持 `l`、`ll`、`z` 等长度前缀。可以在解析类型字符之前增加长度修饰符解析，根据修饰符选择 `va_arg(args, int)` 或 `va_arg(args, int64_t)`。这样就能正确处理 `%lld`（long long）和 `%zu`（size_t）。
+1. **添加 `%lld` / `%zu` 长度修饰符支持**（难度：中等）——当前格式解析器不支持 `l`、`ll`、`z` 等长度前缀。可以在解析类型字符之前增加长度修饰符解析。
 
-2. **添加 `%f` 浮点格式化**（难度：困难）——浮点格式化需要处理指数、小数点、精度控制等大量边界情况。Linux 内核的 `printk` 不支持 `%f`——内核里没人用浮点。但如果需要，可以参考 `dtostr` 算法或者二进制浮点转十进制的 Dragon4 算法。
+2. **添加颜色支持**（难度：简单）——ANSI 转义序列可以让串口输出带上颜色。QEMU 的 `-serial stdio` 支持 ANSI 转义序列。
 
-3. **添加颜色支持**（难度：简单）——ANSI 转义序列（`\033[31m` 红色、`\033[32m` 绿色等）可以让串口输出带上颜色。QEMU 的 `-serial stdio` 支持 ANSI 转义序列。可以加一个 `kprintf_color(color, fmt, ...)` 函数，在输出内容前后包裹 ANSI 序列。
+3. **日志级别过滤**（难度：中等）——给 kprintf 加日志级别参数（DEBUG、INFO、WARN、ERROR），运行时根据全局日志级别变量过滤输出。
 
-4. **日志级别过滤**（难度：中等）——给 kprintf 加日志级别参数（DEBUG、INFO、WARN、ERROR），运行时根据全局日志级别变量过滤输出。这样可以避免 DEBUG 级别的信息在生产模式下污染输出。Linux 的 `printk` 就有 `pr_debug`、`pr_info`、`pr_err` 等级别。
-
-5. **环形缓冲区日志**（难度：困难）——所有 kprintf 输出同时写入一个环形缓冲区，即使串口输出被阻塞（比如高频打印），日志也不会丢失。后续可以通过调试器（GDB `x/s` 命令）读取缓冲区内容。Linux 的 `dmesg` 就是这种机制。
+4. **环形缓冲区日志**（难度：困难）——所有 kprintf 输出同时写入一个环形缓冲区，即使串口输出被阻塞，日志也不会丢失。
 
 ## 参考资料
 

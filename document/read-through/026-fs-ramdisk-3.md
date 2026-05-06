@@ -173,15 +173,18 @@ hello.txt、readme.txt、etc/passwd 三个文件）。这个测试的前提是 i
 环境中不可用。解决方案是在测试文件的 `ramdisk_test` 
 命名空间中镜像实现所有纯逻辑函数。
 
-测试分为 22 个组：
+测试按前缀分为约 12 个概念组，共 73 个用例：
 
-1-7: UstarHeader 结构体布局（sizeof、各字段偏移量）
-8: UstarType 常量值
-9-10: USTAR_MAGIC 和 USTAR_BLOCK_SIZE
-11-18: octal_to_uint 的各种输入（单数字、多位、null终止、空格终止、边界）
-19-24: is_valid_ustar（合法、非法、空、部分 magic）
-25-33: data_blocks（零、单块、对齐、非对齐、大文件）
-34+: mount_archive 的各种场景
+ramdisk_ustar_header (7): UstarHeader 结构体布局（sizeof、各字段偏移量）
+ramdisk_ustar_type (7): UstarType 常量值（'0'-'7'）
+ramdisk_magic (2): USTAR_MAGIC 和 USTAR_BLOCK_SIZE
+ramdisk_octal (~16): octal_to_uint 的各种输入（单数字、多位、null终止、空格终止、边界）
+ramdisk_valid_ustar (6): is_valid_ustar（合法、非法、空、部分 magic）
+ramdisk_data_blocks (8): data_blocks（零、单块、对齐、非对齐、大文件）
+ramdisk_mount (~14): mount_archive 的各种场景（单文件、目录、混合、空归档、错误 magic、非对齐大小）
+ramdisk_entry (1): RamdiskEntry 结构体字段
+ramdisk_name_max (1): RAMDISK_NAME_MAX 常量
+ramdisk_*_data_driven (2): 批量已知值测试
 
 `build_ustar_header` 辅助函数可以在调用者提供的缓冲区中构造有效的 ustar 
 头部，支持指定文件名、大小和类型。`mount_archive` 函数模拟 Ramdisk::mount 

@@ -234,6 +234,6 @@ Task* TaskBuilder::build() {
 ## 参考资料
 
 - Intel SDM Vol. 3A, Chapter 8 "Task Management", Section 8.7 "Task Management in 64-Bit Mode" (PDF pages 281-282): 64 位模式不支持硬件任务切换
-- System V AMD64 ABI: https://refspecs.linuxbase.org/elf/x86_64-abi-0.99.pdf — callee-saved 寄存器定义
+- System V AMD64 ABI: https://gitlab.com/x86-psABIs/x86-64-ABI — callee-saved 寄存器定义
 - xv6 `proc.h` / `swtch.S`: https://github.com/mit-pdos/xv6-public — 对比 TCB 和上下文切换设计
 - PintOS `switch.S`: https://uchicago-cs.github.io/mpcs52030/switch.html — 线程退出封装模式

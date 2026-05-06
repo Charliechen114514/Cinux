@@ -237,4 +237,4 @@ void WindowManager::init(cinux::drivers::Canvas* screen, cinux::drivers::PSFFont
 ## 参考资料
 - SerenityOS WindowManager: https://github.com/SerenityOS/serenity/tree/master/Userland/Services/WindowServer
 - ToaruOS Yutani Compositor: https://github.com/klange/toaruos
-- OSDev Wiki Drawing: https://wiki.osdev.org/Drawing_In_a_Linear_Framebuffer
+- OSDev Wiki Drawing: https://wiki.osdev.org/VBE

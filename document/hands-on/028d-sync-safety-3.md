@@ -99,8 +99,8 @@ boot continuation Task 在循环中 yield，等待所有 stress Task 完成（`t
 **实现约束**:
 - NUM_THREADS = 4，PMM_OPS = 200，HEAP_OPS = 200，原子计数器 OPS = 1000
 - 共享计数器全部使用 `std::atomic`
-- `threads_done` 使用 `memory_order_release`（store）和 `memory_order_acquire`（load）建立同步关系
-- 其他计数器使用 `memory_order_relaxed`（只关心原子性）
+- `threads_done` 使用 `MemoryOrder::Release`（store）和 `MemoryOrder::Acquire`（load）建立同步关系
+- 其他计数器使用 `MemoryOrder::Relaxed`（只关心原子性）
 - 测试入口是 `run_concurrent_stress()`，在 kernel_main 中替代 `launch_first_user`
 - 测试完成后调用 `launch_first_user` 启动 shell
 

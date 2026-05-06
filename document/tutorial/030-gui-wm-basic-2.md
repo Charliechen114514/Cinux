@@ -39,9 +39,9 @@ Window::Window(const char* title, int32_t x, int32_t y, uint32_t w, uint32_t h)
 
 构造函数手动复制标题字符串，因为我们的内核没有标准库——没有 strncpy，没有 std::string。allocate_canvas 初始化一个 w x (h + TITLE_BAR_HEIGHT) 的离屏 Canvas。每个 Window 独占自己的 Canvas 内存，所以 Window 必须是 non-copyable 的，否则两个对象指向同一块堆内存会在析构时 double-free。
 
-虚拟接口 on_key、on_paint、is_terminal 给子类留了扩展点。is_terminal 看起来有点奇怪——它的存在是为了在 PIT tick 回调里安全地判断一个 Window 是不是 Terminal 子类，避免使用 unsafe static_cast。在 C++ 里没有 RTTI 的 freestanding 环境下，虚函数是类型判断的标准做法。
+Window 的绘制接口目前只有 draw_title_bar 和 draw_content 两个方法，分别渲染标题栏和内容区。内容区暂时只做纯色填充——后续 tag 会通过继承或组合方式扩展出 Terminal 等子类。blit_to 方法把整个窗口（标题栏 + 内容）一次性拷贝到目标 Canvas，由窗口管理器在 composite 时调用。
 
-对比其他 OS 的窗口抽象：SerenityOS 的 Window 类（在 WindowServer 进程里）包含 backing store、damage rect、resize indicator、window type（normal/popup/tooltip）等几十个字段。X11 的窗口概念更复杂——每个窗口有独立的 colormap、input hint、WM_PROTOCOLS 等属性。我们的 Window 是最精简的版本，刚好能支持标题栏、关闭按钮和自定义内容绘制。
+对比其他 OS 的窗口抽象：SerenityOS 的 Window 类（在 WindowServer 进程里）包含 backing store、damage rect、resize indicator、window type（normal/popup/tooltip）等几十个字段。X11 的窗口概念更复杂——每个窗口有独立的 colormap、input hint、WM_PROTOCOLS 等属性。我们的 Window 是最精简的版本，刚好能支持标题栏、关闭按钮和内容绘制。
 
 ## 第二步——WindowManager：谁在上面，谁有焦点
 
@@ -99,4 +99,4 @@ addq $8, %rsp                     # pop padding
 - OSDev Wiki: [PS/2 Mouse](https://wiki.osdev.org/PS/2_Mouse) — event types reference
 - SerenityOS: [WindowServer](https://github.com/SerenityOS/serenity/tree/master/Userland/Services/WindowServer) — damage tracking compositor architecture
 - Linux: [Early X11 WM](https://www.x.org/wiki/) — client-server window management comparison
-- Cinux Notes: [gp_fault_stack_alignment.md](../../document/notes/030/gp_fault_stack_alignment.md) — detailed ISR alignment bug analysis
+- QEMU Mouse Cursor Offset: [torgeir.dev](https://torgeir.dev/2024/02/qemu-mouse-cursor-offset/) — PS/2 vs VNC cursor offset analysis

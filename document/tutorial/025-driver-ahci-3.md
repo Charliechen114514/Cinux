@@ -57,12 +57,14 @@ cmd_tbl->prdt[0].i    = 1;  // 完成时中断
 
 ```cpp
 uint64_t buf_phys = cinux::mm::g_pmm.alloc_page();
-constexpr uint64_t buf_virt = 0xFFFF800000300000ULL;
-cinux::mm::g_vmm.map(buf_virt, buf_phys, flags);
+constexpr uint64_t buf_virt  = 0xFFFF800000300000ULL;
+constexpr uint64_t buf_flags = cinux::arch::FLAG_PRESENT
+                             | cinux::arch::FLAG_WRITABLE;
+cinux::mm::g_vmm.map(buf_virt, buf_phys, buf_flags);
 
 ahci.read(0, 0, 1, buf_phys);  // DMA 引擎写 buf_phys
 auto* buf = reinterpret_cast<uint8_t*>(buf_virt);
-printf("[AHCI] Read sector 0: %02x %02x\n", buf[510], buf[511]);  // CPU 读 buf_virt
+cinux::lib::kprintf("[AHCI] Read sector 0: %02x %02x\n", buf[510], buf[511]);
 ```
 
 搞混这两个地址是新手最容易犯的错误之一。如果你把虚拟地址传给了 DMA 引擎，HBA 会把数据写到页表项指向的物理地址——如果那个映射恰好不存在，你就什么都读不到，甚至可能写入到随机物理地址。这种 bug 在 QEMU 上可能不炸（QEMU 对物理地址访问比较宽容），但在真机上会直接导致数据损坏或 page fault。
@@ -80,7 +82,7 @@ for (uint32_t i = 0; i < POLL_TIMEOUT; ++i) {
     if ((port->ci & (1U << slot)) == 0) {
         uint32_t tfd = port->tfd;
         if ((tfd & 0x01) != 0) {
-            kprintf("[AHCI] Port %u: command error TFD=0x%x\n",
+            cinux::lib::kprintf("[AHCI] Port %u: command error TFD=0x%x\n",
                     port_index, tfd);
             return false;
         }

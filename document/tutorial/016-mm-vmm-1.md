@@ -197,6 +197,6 @@ CR3 寄存器保存着当前 PML4 表的物理地址（SDM Vol.3A Section 2.5, p
 - Intel SDM Vol.3A Section 2.5, pp.2-14 到 2-16：CR3 寄存器格式。
 - OSDev Wiki: [Paging (64-bit)](https://wiki.osdev.org/Paging) — x86-64 四级分页结构概述。
 - OSDev Wiki: [TLB](https://wiki.osdev.org/TLB) — TLB 刷新方法对比。
-- xv6 RISC-V `vm.c`：[GitHub](https://github.com/mit-pdos/xv6-riscv/blob/master/kernel/vm.c) — xv6 的 PTE 操作和 walk 函数，可对比 RISC-V Sv39 和 x86-64 的实现差异。
+- xv6 RISC-V `vm.c`：[GitHub](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/vm.c) — xv6 的 PTE 操作和 walk 函数，可对比 RISC-V Sv39 和 x86-64 的实现差异。
 - Linux x86 pgtable：[GitHub](https://github.com/torvalds/linux/blob/master/arch/x86/mm/pgtable.c) — Linux 的多层 PTE 抽象和跨架构设计。
 - SerenityOS Memory 子系统：[GitHub](https://github.com/SerenityOS/serenity/tree/master/Kernel/Memory/) — SerenityOS 的全物理映射和 `PageTableEntry` 类封装。

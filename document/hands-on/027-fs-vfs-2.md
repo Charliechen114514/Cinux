@@ -28,9 +28,9 @@
 
 ### Step 1: 实现内核字符串函数库
 
-**目标**: 创建 `kernel/lib/string.hpp` 和 `kernel/lib/string.cpp`，实现 7 个基础函数。
+**目标**: 创建 `kernel/lib/string.hpp` 和 `kernel/lib/string.cpp`，实现 9 个基础函数。
 
-**设计思路**: 所有函数声明在 extern "C" 块内，匹配标准 libc 签名。memset 逐字节填充；memcpy 逐字节拷贝（用 __restrict__ 告诉编译器 src 和 dest 不重叠）；memmove 先判断地址大小关系再决定拷贝方向；memcmp 逐字节比较；strcmp 和 strncmp 逐字符比较到 '\0'；strlen 遍历到 '\0' 计数。
+**设计思路**: 所有函数声明在 extern "C" 块内，匹配标准 libc 签名。memset 逐字节填充；memcpy 逐字节拷贝（用 __restrict__ 告诉编译器 src 和 dest 不重叠）；memmove 先判断地址大小关系再决定拷贝方向；memcmp 逐字节比较；strcmp 和 strncmp 逐字符比较到 '\0'；strlen 遍历到 '\0' 计数；strcpy 拷贝字符串；utoa 把 uint32_t 转成十进制字符串。
 
 **实现约束**: 不要试图用 SIMD 优化这些函数——对于内核来说，简单的逐字节实现就够了，可读性和正确性远比性能重要。memcpy 的 __restrict__ 是 GCC 扩展，告诉编译器 src 和 dest 指向的内存不重叠，允许更好的优化。
 
@@ -67,13 +67,13 @@ ctest -R vfs_mount --output-on-failure
 ```
 预期：19 个测试全部通过，包括最长前缀匹配测试。
 
-### Step 4: 实现 g_global_fd_table 全局访问器
+### Step 4: 实现 g_global_fd_table 和 current_fd_table
 
-**目标**: 在 vfs_mount.cpp 中实现一个返回全局 FDTable 引用的函数。
+**目标**: 在 vfs_mount.cpp 中实现返回 FDTable 引用的函数。
 
-**设计思路**: 在 milestone 027 中，我们只有一个全局的 FDTable（单进程内核）。使用函数内的 static 局部变量实现延迟初始化——第一次调用时构造，之后每次返回同一个引用。这种方式需要 __cxa_guard_acquire/release 的支持（我们已经在 crt_stub.cpp 中实现了）。
+**设计思路**: g_global_fd_table() 使用函数内的 static 局部变量实现延迟初始化——第一次调用时构造，之后每次返回同一个引用。current_fd_table() 是更高级的访问器——先尝试获取当前任务的 per-process FDTable，如果不存在就回退到全局 FDTable。在 milestone 027 阶段所有任务都使用全局 FDTable。
 
-**实现约束**: 返回类型是 FDTable&（引用），函数名 g_global_fd_table()。在 crt_stub.cpp 中需要添加 __cxa_guard_acquire 和 __cxa_guard_release 的实现——这两个函数被编译器用来保证函数内 static 变量的线程安全初始化。在单核内核中，只需要检查 guard 变量是否为 0（未初始化）即可。
+**实现约束**: g_global_fd_table() 返回类型是 FDTable&（引用）。current_fd_table() 在内核态先查询 Scheduler::current() 获取当前任务的 fd_table，在 host 测试中直接回退到全局 FDTable。这两个函数都需要 __cxa_guard_acquire/release 的支持（我们已经在 crt_stub.cpp 中实现了）。
 
 **踩坑预警**: 如果没有实现 __cxa_guard_acquire/release，链接时会报 undefined reference 错误。这两个函数是 C++ ABI 的一部分，GCC 在编译函数内 static 变量时会自动生成对它们的调用。在 freestanding 环境下必须手动提供。
 
@@ -119,4 +119,5 @@ cd build && cmake .. && make test_host
 | vfs_resolve | 最长前缀匹配 + 路径边界检查，返回 FileSystem* 和相对路径 |
 | 路径边界 | 前缀后的字符必须是 '/' 或 '\0'，或者前缀以 '/' 结尾 |
 | g_global_fd_table | 返回全局 FDTable 引用，static 延迟初始化 |
-| string.cpp | 7 个 freestanding 字符串/内存函数，extern "C" 链接 |
+| current_fd_table | 先查 per-process FDTable，回退到全局 FDTable |
+| string.cpp | 9 个 freestanding 字符串/内存函数，extern "C" 链接 |

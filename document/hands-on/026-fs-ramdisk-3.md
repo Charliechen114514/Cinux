@@ -158,8 +158,8 @@ total_size 都正确。用 host
 HCI），然后做文件系统初始化（ramdisk），最后启动用户态程序。在 mount 
 前后加明确的 milestone 打印，方便从串口日志中定位。
 
-**实现约束**: 包含 `kernel/fs/ramdisk.hpp` 头文件。步骤编号为 Step 22（接在 
-AHCI 的 Step 21 之后）。Ramdisk 对象作为局部变量，不需要全局状态。
+**实现约束**: 包含 `kernel/fs/ramdisk.hpp` 头文件。步骤编号为 Step 22，在 
+AHCI 初始化（Step 21-22：控制器初始化和 MBR 读取）之后。Ramdisk 对象作为局部变量，不需要全局状态。
 
 **验证**: 运行 QEMU，串口输出中应出现 milestone 026 标记，然后是 `[RAMDISK] 
 Archive at ...` 和各文件的列表。

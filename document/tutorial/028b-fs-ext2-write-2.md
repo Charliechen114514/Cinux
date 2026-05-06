@@ -210,7 +210,7 @@ if (!ext2_.write_block(disk_block)) {
 ## 参考资料
 
 - [OSDev Wiki - ext2](https://wiki.osdev.org/Ext2) — ext2 Directory Entry 结构定义，rec_len 规则和 4 字节对齐要求
-- [The ext2 filesystem driver](https://www.nongnu.org/ext2-doc/ext2.html) — ext2 非官方规范文档，目录项结构的详细说明和操作规则
+- [The ext2 filesystem driver](https://wiki.osdev.org/Ext2) — ext2 非官方规范文档，目录项结构的详细说明和操作规则
 - [Linux kernel ext2 dir.c](https://github.com/torvalds/linux/blob/master/fs/ext2/dir.c) — Linux ext2 目录操作，ext2_find_entry / ext2_add_link / ext2_delete_entry，约 350 行
 - [SerenityOS Ext2FS Inode.cpp](https://github.com/SerenityOS/serenity/blob/master/Kernel/FileSystem/Ext2FS/Inode.cpp) — SerenityOS 的 add_child / remove_child 实现，整体重写策略，约 600 行
 - [Linux kernel ext2 inode.c](https://github.com/torvalds/linux/blob/master/fs/ext2/inode.c) — Linux ext2 的文件读写实现，buffer_head 缓存机制

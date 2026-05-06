@@ -278,7 +278,7 @@ set disassembly-flavor intel
 ## 8. 参考资源
 
 ### 官方文档
-- [QEMU GDB documentation](https://qemu.readthedocs.io/en/v9.1.3/system/gdb.html) - 官方 GDB 使用文档
+- [QEMU GDB documentation](https://www.qemu.org/docs/master/system/gdb.html) - 官方 GDB 使用文档
 - [GDB Remote Serial Protocol](https://sourceware.org/gdb/current/onlinedocs/gdb/Remote-Protocol.html) - 协议规范
 
 ### 社区资源

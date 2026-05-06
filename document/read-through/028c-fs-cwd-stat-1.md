@@ -22,7 +22,7 @@ struct Task {
 
 `cwd[256]` 是一个固定大小的字符数组，存储的是绝对路径字符串，NUL 结尾。256 字节对于教学内核来说完全够用——即使路径深达 20 层（每层平均 8 个字符），也不过 160+20=180 字节左右。放在 `fpu_state` 之后是因为 FPU 状态是结构体中最后一个对齐敏感的字段，新增的字符数组不需要特殊对齐。
 
-CWD 的初始化发生在两个地方。第一处是 `kernel/proc/process.cpp` 的 `TaskBuilder::build()` 中：
+CWD 的初始化发生在 `kernel/proc/process.cpp` 的 `TaskBuilder::build()` 中：
 
 ```cpp
 // Step 7.5: Initialise cwd to "/"
@@ -30,26 +30,9 @@ task->cwd[0] = '/';
 task->cwd[1] = '\0';
 ```
 
-这意味着所有通过 TaskBuilder 创建的 Task，CWD 都从根目录开始。第二处是在 `kernel/arch/x86_64/usermode.cpp` 的 `launch_first_user()` 函数中，专门为 Shell 进程准备了一个静态 Task：
+这意味着所有通过 TaskBuilder 创建的 Task，CWD 都从根目录开始。实际上，Cinux 在 tag 028c 还没有实现 fork/execve，Shell 进程是通过 `kernel/arch/x86_64/usermode.cpp` 中 `launch_first_user()` 直接跳入用户态的。在跳转之前，该函数创建了一个 `static cinux::proc::Task shell_task{}`，手动设置 `.cwd[0] = '/'` 和 `.state = Running`，然后通过 `Scheduler::set_current(&shell_task)` 注册为当前进程。所以 Shell 的 CWD 也在启动时就被设为根目录 `"/"`。
 
-```cpp
-// Create a minimal Task so chdir/getcwd can read/write a per-process cwd
-static cinux::proc::Task shell_task{};
-shell_task.cwd[0] = '/';
-shell_task.cwd[1] = '\0';
-shell_task.state = cinux::proc::TaskState::Running;
-cinux::proc::Scheduler::set_current(&shell_task);
-```
-
-这里用 `static` 局部变量是因为 `launch_first_user()` 最后会调用 `jump_to_usermode` 跳转到 Ring 3，这个函数不会返回。如果 Task 是栈上变量，理论上没问题（栈帧不会被销毁），但 static 更安全、意图更明确。
-
-为了支持 `set_current`，`kernel/proc/scheduler.hpp` 中新增了声明：
-
-```cpp
-static void set_current(Task* task);
-```
-
-实现在 `scheduler.cpp` 中：
+`Scheduler::set_current()` 在 `kernel/proc/scheduler.cpp` 中实现，用于测试代码中注册 mock Task：
 
 ```cpp
 void Scheduler::set_current(Task* task) {
@@ -58,7 +41,7 @@ void Scheduler::set_current(Task* task) {
 }
 ```
 
-同时更新了静态成员 `current_` 和 Per-CPU 数据页中的 `g_per_cpu.current`。之所以两边都要设，是因为 syscall 入口通过 `gs:0` 读取内核栈指针，而 `current()` 方法直接访问 `current_`。两边不同步会导致 chdir/getcwd 在某些路径下拿到 nullptr。
+同时更新了静态成员 `current_` 和 Per-CPU 数据结构中的 `g_per_cpu.current`。之所以两边都要设，是因为 syscall 入口通过 `gs:0` 读取内核栈指针，而 `current()` 方法直接访问 `current_`。两边不同步会导致 chdir/getcwd 在某些路径下拿到 nullptr。
 
 ## path.hpp —— 公共接口定义
 

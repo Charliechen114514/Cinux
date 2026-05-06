@@ -134,5 +134,5 @@ MockCanvas 和真实 Canvas 的区别在于：没有 Framebuffer 依赖、没有
 
 ## 参考资料
 
-- OSDev Wiki: [Drawing In a Linear Framebuffer](https://wiki.osdev.org/Drawing_In_a_Linear_Framebuffer) — 双缓冲渲染
+- OSDev Wiki: [Drawing In a Linear Framebuffer](https://wiki.osdev.org/VBE) — 双缓冲渲染
 - SerenityOS: [Painter.cpp](https://github.com/SerenityOS/serenity/blob/master/Userland/Libraries/LibGfx/Painter.cpp) — `blit_filtered()` 中 alpha==0 跳过逻辑

@@ -165,7 +165,7 @@ constexpr uint64_t LOW_MEM_BOUNDARY = 0x100000;               // 1 MB
 constexpr uint64_t KERNEL_VMA       = 0xFFFFFFFF80000000ULL;
 ```
 
-这三个常量是 PMM 全部计算的基石。`PAGE_SIZE = 4096` 对应 x86_64 long mode 的标准 4KB 页大小，Intel SDM Vol.3A Section 4.5 规定页表项中物理基地址的低 12 位必须为零，因为它们被用作标志位。`LOW_MEM_BOUNDARY = 0x100000`（1MB）是物理地址空间中"神圣不可侵犯"的分界线——低于 1MB 的区域充满了 IVT、BDA、视频内存、BIOS ROM 等固件数据结构，Intel SDM Vol.3A Chapter 3 有详细的布局描述。`KERNEL_VMA = 0xFFFFFFFF80000000ULL` 是 Cinux 内核的虚拟地址基址，在 higher-half 内核中，虚拟地址和物理地址之间有一个固定的偏移量，这个值必须和链接脚本 `kernel.ld` 中设定的 VMA 完全一致。
+这三个常量是 PMM 全部计算的基石。`PAGE_SIZE = 4096` 对应 x86_64 long mode 的标准 4KB 页大小，Intel SDM Vol.3A Section 4.5 规定页表项中物理基地址的低 12 位必须为零，因为它们被用作标志位。`LOW_MEM_BOUNDARY = 0x100000`（1MB）是物理地址空间中"神圣不可侵犯"的分界线——低于 1MB 的区域充满了 IVT、BDA、视频内存、BIOS ROM 等固件数据结构。这些布局是 PC 兼容机的固件约定，详见 OSDev Wiki "Memory Map (x86)"。`KERNEL_VMA = 0xFFFFFFFF80000000ULL` 是 Cinux 内核的虚拟地址基址，在 higher-half 内核中，虚拟地址和物理地址之间有一个固定的偏移量，这个值必须和链接脚本 `kernel.ld` 中设定的 VMA 完全一致。
 
 这里有一个很容易踩的坑：如果你在链接脚本里改了 VMA 但忘了同步这里的 `KERNEL_VMA` 常量，后面所有涉及虚拟-物理地址转换的计算都会出错。更糟糕的是，这种错误在初始化阶段不会 crash（位图只是被写到了"错误的物理内存位置"），但在分配出的页面被用于页表构建后会引发莫名其妙的 page fault，排查起来非常痛苦。所以每次修改链接脚本后，一定要确认这个常量是否还同步。
 
@@ -323,7 +323,7 @@ uint32_t parse_memory_map(const BootInfo& info,
         }
 ```
 
-低 1MB 区域在 PC 架构中有特殊地位。Intel SDM Vol.3A Chapter 3 详细描述了这个布局：0x00000-0x003FF 是中断向量表（IVT），0x00400-0x004FF 是 BIOS 数据区（BDA），0x05000-0x05FFF 是 Cinux 的 E820 缓冲区，0x06400-0x06FFF 是 VESA 信息区，0x07000-0x07FFF 是 BootInfo 结构体本身，0xA0000-0xBFFFF 是 VGA 文本/图形缓冲区，0xF0000-0xFFFFF 是 BIOS ROM。这些区域虽然 E820 可能报告为 type=1（可用），但实际上不能碰。
+低 1MB 区域在 PC 架构中有特殊地位。这些布局是 PC 兼容机的固件约定（详见 OSDev Wiki "Memory Map (x86)"），而非 Intel 架构规范的一部分：0x00000-0x003FF 是中断向量表（IVT），0x00400-0x004FF 是 BIOS 数据区（BDA），0x05000-0x05FFF 是 Cinux 的 E820 缓冲区，0x06400-0x06FFF 是 VESA 信息区，0x07000-0x07FFF 是 BootInfo 结构体本身，0xA0000-0xBFFFF 是 VGA 文本/图形缓冲区，0xF0000-0xFFFFF 是 BIOS ROM。这些区域虽然 E820 可能报告为 type=1（可用），但实际上不能碰。
 
 所以处理策略是：如果区域基地址低于 1MB，分两种情况。如果整个区域都在 1MB 以下（`base + length <= LOW_MEM_BOUNDARY`），直接跳过整条。如果区域跨越了 1MB 边界，把基地址截断到 1MB，同时缩短长度——`length -= LOW_MEM_BOUNDARY - base` 先算出"低 1MB 部分占了多少"，然后从总长度里减去。这种截断方式虽然保守——我们可能白白浪费掉传统低内存中确实空闲的某些部分——但换来了绝对的安全。在一个教学 OS 里，这一点点浪费完全值得。
 
@@ -401,7 +401,7 @@ Intel 的 4 级分页机制使用 4KB 作为最小的页大小，页表项中的
 
 ## 参考资料
 
-- Intel SDM Vol.3A Chapter 3 (Protected-Mode Memory Management) — 第一兆字节的物理地址空间布局：IVT (0x0000-0x03FF)、BDA (0x0400-0x04FF)、视频内存 (0xA0000-0xBFFFF)、BIOS ROM (0xF0000-0xFFFFF)
+- OSDev Wiki: [Memory Map (x86)](https://wiki.osdev.org/Memory_Map_(x86)) — PC 低 1MB 物理内存布局约定：IVT (0x0000-0x03FF)、BDA (0x0400-0x04FF)、视频内存 (0xA0000-0xBFFFF)、BIOS ROM (0xF0000-0xFFFFF)
 - Intel SDM Vol.3A Section 4.5 (Paging) — 4KB 页的 12 位对齐要求，页表项格式
 - OSDev Wiki: [Page Frame Allocation](https://wiki.osdev.org/Page_Frame_Allocation) — 位图、栈、buddy 等分配器设计的比较
 - OSDev Wiki: [Detecting Memory (x86)](https://wiki.osdev.org/Detecting_Memory_(x86)) — E820 INT 15h 接口，type-1 = usable RAM

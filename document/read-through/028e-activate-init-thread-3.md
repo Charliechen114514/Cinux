@@ -19,23 +19,21 @@
 虚拟地址                        区域            大小
 ─────────────────────────────────────────────────────────────
 0xFFFF8000_00000000 ─┐
-                     │ KMEM_HEAP     128 MB
-0xFFFF8000_08000000 ─┘
-                     │ KMEM_MMIO     2 MB
-0xFFFF8000_08200000 ─┘
-                     │ KMEM_FB       16 MB
-0xFFFF8000_09200000 ─┘
+                     │ KMEM_HEAP     1 MB
+0xFFFF8000_00100000 ─┘
+                     │ KMEM_MMIO     256 KB
+0xFFFF8000_00140000 ─┘
                      │ KMEM_STACK    (按需增长，~1 MB 预留)
-0xFFFF8000_0A200000 ─┘
+0xFFFF8000_00240000 ─┘
                      │ KMEM_DMA      1 MB
-0xFFFF8000_0A300000 ─┘
+0xFFFF8000_00340000 ─┘
                      │ KMEM_EXT2_DMA 1 MB
-0xFFFF8000_0A400000 ─┘
+0xFFFF8000_00440000 ─┘
 
 ... 0xFFFFFFFF_80000000 = Kernel code + data (higher-half direct map)
 ```
 
-注意：diff 中的初始值和当前代码略有不同（diff 中 heap 是 1 MB，当前代码已扩展到 128 MB），但架构设计不变。
+注意：当前 main 分支的 heap 已扩展到 128 MB，并新增了 Framebuffer 区域，但 028e tag 的初始版本如上所示。架构设计不变。
 
 ## 代码精讲
 
@@ -77,7 +75,7 @@ constexpr uint64_t KMEM_MMIO_BASE  = KMEM_HEAP_BASE + KMEM_HEAP_SIZE;
 constexpr uint64_t KMEM_STACK_BASE = KMEM_MMIO_BASE + KMEM_MMIO_SIZE;
 ```
 
-注意 Stack 区域只有 BASE 没有 SIZE——因为栈是按需增长的，通过 `alloc_stack_vaddr()` 的 atomic fetch_add 逐个分配。它紧跟 MMIO 区域之后，这是解决地址冲突的关键：在旧代码中，栈的起始地址和 MMIO 的起始地址相同（都是 `0xFFFF800000100000`），现在栈从 MMIO 区域之后开始，互不重叠。
+注意 Stack 区域只有 BASE 没有 SIZE——因为栈是按需增长的，通过 `alloc_stack_vaddr()` 的 `fetch_add` 逐个分配。它紧跟 MMIO 区域之后，这是解决地址冲突的关键：在旧代码中，栈的起始地址和 MMIO 的起始地址相同（都是 `0xFFFF800000100000`），现在栈从 MMIO 区域之后开始，互不重叠。
 
 ```cpp
 // DMA: ad-hoc DMA buffers (sector reads, etc.)
@@ -112,7 +110,7 @@ AHCI 驱动的其他部分不需要修改——`MMIO_VIRT_BASE` 只在 `map_bar5
 // std::atomic<uint64_t> next_stack_vaddr{0xFFFF800000100000ULL};
 
 // 现在：
-cinux::lib::Atomic<uint64_t> next_stack_vaddr{cinux::arch::KMEM_STACK_BASE};
+std::atomic<uint64_t> next_stack_vaddr{cinux::arch::KMEM_STACK_BASE};
 ```
 
 `next_stack_vaddr` 是一个原子变量，记录下一个可用的内核栈虚拟地址。每次 `TaskBuilder::build()` 调用 `alloc_stack_vaddr()` 时，它通过 `fetch_add` 原子地分配 `(STACK_PAGES + 1) * PAGE_SIZE` 字节的虚拟地址空间（多出的一页是 guard page）。
@@ -170,6 +168,6 @@ constexpr uint64_t buf_virt = cinux::arch::KMEM_DMA_BASE;
 ## 参考资料
 
 - OSDev Wiki: [Higher Half Kernel](https://wiki.osdev.org/Higher_Half_Kernel) — 内核虚拟地址空间布局设计
-- OSDev Wiki: [MMIO](https://wiki.osdev.org/MMIO) — MMIO 映射注意事项（cache disable、虚拟地址预留）
-- Intel SDM: Vol.3A Section 4.3 — 4-Level Paging, canonical address space (0xFFFF8000_00000000+)
+- OSDev Wiki: [Memory Mapped Registers in C/C++](https://wiki.osdev.org/Memory_mapped_registers_in_C/C%2B%2B) — MMIO 映射注意事项（cache disable、虚拟地址预留）
+- Intel SDM: Vol.3A Section 4.5 — 4-Level Paging, canonical address space (0xFFFF8000_00000000+)
 - Linux: `include/asm-generic/pgtable.h` — 内核虚拟地址区域宏定义

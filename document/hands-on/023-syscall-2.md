@@ -16,7 +16,7 @@
 
 ### 用户地址验证
 
-当用户程序调用 sys_write(fd, buf, count) 时，buf 是用户态的虚拟地址。内核必须验证这个地址确实指向用户空间而不是内核空间——否则恶意程序可以传入内核地址，让 sys_write 泄露或破坏内核数据。验证规则很简单：用户地址必须小于 0x800000000000（canonical address 的分界线，x86-64 用户空间和内核空间的分界）。这个检查虽然简单但至关重要，是操作系统安全的基础。
+当用户程序调用 sys_write(fd, buf, count) 时，buf 是用户态的虚拟地址。内核必须验证这个地址确实指向用户空间而不是内核空间——否则恶意程序可以传入内核地址，让 sys_write 泄露或破坏内核数据。验证规则是 canonical address 检查：检查 bit 47 的值，如果 bit 47=0 则 bit 48-63 必须全为 0（用户空间地址），如果 bit 47=1 则 bit 48-63 必须全为 1（内核空间地址）。这种检查比简单的阈值比较更严格，确保地址在 x86-64 的 canonical 范围内。这个检查虽然简单但至关重要，是操作系统安全的基础。
 
 ### sys_exit 的两难
 
@@ -32,19 +32,19 @@ sys_exit 的语义是终止当前进程。但在 023 阶段，调度器可能还
 
 **实现约束**：分发表是 256 个元素的数组，类型是函数指针。syscall_dispatch 要声明为 extern "C"，因为它是从汇编调用的。dispatch 函数接受 7 个参数：系统调用号 + 6 个通用参数。
 
-**验证**：注册一个测试用的 handler 到某个高号槽位（比如 200），调用 dispatch(200, 21, 0, 0, 0, 0, 0)，确认返回值是 42（handler 内部做乘法）。测试未注册的槽位返回 -1，超范围号也返回 -1。
+**验证**：注册一个测试用的 handler 到某个高号槽位，调用 dispatch 并确认返回值正确。测试未注册的槽位返回 -1，超范围号也返回 -1。
 
 ### Step 2: 实现 sys_write handler
 
 **目标**：实现 write 系统调用，将用户缓冲区的内容输出到串口和 Console。
 
-**设计思路**：sys_write 接受三个有意义的参数——文件描述符 fd、用户缓冲区虚拟地址 buf_virt、字节数 count。目前只支持 fd=1（stdout），其他 fd 返回 -1。对于 buf_virt，先做地址验证（< 0x800000000000），然后把地址强转为 char 指针，逐字节调用 kprintf 输出。返回值是写入的字节数，失败返回 -1。
+**设计思路**：sys_write 接受三个有意义的参数——文件描述符 fd、用户缓冲区虚拟地址 buf_virt、字节数 count。首先做地址验证（canonical address 检查），然后检查 fd 是否有 VFS 文件条目（如管道），如果有则走 VFS 写路径。如果没有 VFS 条目，且 fd=1（stdout），则走传统 kprintf 输出路径。其他情况返回 -1。
 
-**实现约束**：函数签名必须匹配 SyscallFn 类型（6 个 uint64_t 参数，返回 int64_t）。地址验证常量 USER_ADDR_MAX 定义为 0x800000000000ULL。只接受 fd==1。
+**实现约束**：函数签名必须匹配 SyscallFn 类型（6 个 uint64_t 参数，返回 int64_t）。地址验证使用 canonical address 检查（检查 bit 47 和 bit 48-63 的一致性）。优先检查 VFS fd 表，如果 fd 有有效的 VFS 文件条目就走 VFS 写路径；否则 fd==1 走传统 kprintf 路径。
 
 **踩坑预警**：buf_virt 是用户态虚拟地址，在内核态可以直接访问是因为我们的用户地址空间在低半区有映射。但在更完善的内核中，这里应该用 copy_from_user 之类的函数配合缺页处理。当前实现够用但不安全。
 
-**验证**：直接调用 sys_write(1, valid_addr, count)，确认返回 count。调用 sys_write(0, ...) 和 sys_write(2, ...) 确认返回 -1。调用 sys_write(1, kernel_addr, ...) 确认返回 -1。
+**验证**：直接调用 sys_write(1, valid_addr, count)，确认返回 count。调用 sys_write(1, kernel_addr, ...) 确认返回 -1（canonical address 检查拦截）。
 
 ### Step 3: 实现 sys_exit handler
 
@@ -72,9 +72,9 @@ sys_exit 的语义是终止当前进程。但在 023 阶段，调度器可能还
 
 **目标**：在 kernel_main 的初始化序列中，调用 syscall_init() 后注册所有 syscall handler。
 
-**设计思路**：在 kernel_main 里，usermode_init() 之后、launch_first_user() 之前，先获取当前内核栈指针，然后调用 syscall_init(kernel_rsp) 配置 MSR，接着逐个调用 syscall_register 注册 sys_write（号 1）、sys_exit（号 60）、sys_yield（号 24）。
+**设计思路**：在 kernel_main 里，usermode_init() 之后调用 syscall_init()。syscall_init 内部会自己读取当前 RSP 作为内核栈指针，然后配置 LSTAR/STAR/SFMASK MSR，最后调用 register_builtin_handlers() 一次性注册所有内置的 syscall handler（包括 sys_write、sys_exit、sys_yield 等）。不需要在 kernel_main 里逐个调用 syscall_register。
 
-**实现约束**：kernel_main 里获取 RSP 的方式是内联汇编 `movq %%rsp, %0`。注册顺序无所谓，但必须全部在 launch_first_user 之前完成。
+**实现约束**：syscall_init 不接受参数，内部通过内联汇编读取 RSP。所有 handler 在 syscall_init 内部通过 register_builtin_handlers() 统一注册。
 
 **验证**：编译运行，串口输出应包含 `[SYSCALL] LSTAR=... STAR configured SFMASK=0x200`。
 
@@ -85,7 +85,7 @@ sys_exit 的语义是终止当前进程。但在 023 阶段，调度器可能还
 ## 调试技巧
 
 - 如果 dispatch 返回 -1 但 handler 已注册：检查系统调用号是否匹配枚举值，确认 register 和 dispatch 用的是同一个号
-- 如果 sys_write 没有输出：检查 fd 是否为 1、buf_virt 是否低于 USER_ADDR_MAX
+- 如果 sys_write 没有输出：检查 fd 是否为 1、buf_virt 是否通过 canonical address 验证
 - 如果 sys_exit 后系统卡死：检查是否走了"无调度器"分支——这是 023 阶段的预期行为
 
 ## 本章小结
@@ -94,7 +94,7 @@ sys_exit 的语义是终止当前进程。但在 023 阶段，调度器可能还
 |------|------|
 | syscall_table[256] | 函数指针分发表，索引为系统调用号 |
 | syscall_dispatch() | 从汇编调用，查表分发，未注册返回 -1 |
-| sys_write | fd=1 输出到串口，验证 buf_virt < USER_ADDR_MAX |
+| sys_write | fd=1 输出到串口，验证 buf_virt 为 canonical address |
 | sys_exit | 标记 Dead + yield（有调度器）或 cli; hlt（无调度器） |
 | sys_yield | 直接调用 Scheduler::yield() |
 | syscall_register() | 注册 handler 到分发表指定槽位 |

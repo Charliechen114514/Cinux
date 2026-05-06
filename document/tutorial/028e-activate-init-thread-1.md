@@ -75,7 +75,7 @@ void Scheduler::run_first(Task* boot_task) {
     current_          = boot_task;
     g_per_cpu.current = boot_task;
     cinux::arch::GDT::tss_set_rsp0(boot_task->kernel_stack_top);
-    current_slice_.store(0, lib::MemoryOrder::Relaxed);
+    current_slice_.store(0, std::memory_order_relaxed);
 
     Task* next = default_rr_.pick_next();  // 从队列中取出 kernel_init
     // ... 设置 current_ = next ...
@@ -112,6 +112,6 @@ xv6 这种设计很巧妙（复用了 fork 返回路径），但也有局限：�
 ## 参考资料
 
 - Linux init/main.c: `rest_init()` 和 `kernel_init()` — [GitHub](https://github.com/torvalds/linux/blob/master/init/main.c)
-- xv6 proc.c: `userinit()` — [GitHub](https://github.com/mit-pdos/xv6-riscv/blob/main/kernel/proc.c)
+- xv6 proc.c: `userinit()` — [GitHub](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/proc.c)
 - OSDev Wiki: [Higher Half Kernel](https://wiki.osdev.org/Higher_Half_Kernel) — 内核启动后的虚拟地址空间设计
-- Intel SDM: Vol.3A Section 4.3 — 4-Level Paging and canonical address space
+- Intel SDM: Vol.3A Section 4.5 — 4-Level Paging and canonical address space

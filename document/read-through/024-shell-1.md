@@ -107,6 +107,7 @@ void GDT::init() {
         SegmentFlags::Granularity4K | SegmentFlags::LongMode);
 
     // TSS at Idx 7-8
+    tss_.ist[0] = reinterpret_cast<uint64_t>(&df_stack_[sizeof(df_stack_)]);
     const auto tss_addr = reinterpret_cast<uint64_t>(&tss_);
     entries_[7] = tss_low_entry(tss_addr, sizeof(TaskStateSegment) - 1);
     entries_[8] = tss_high_entry(tss_addr);
@@ -151,7 +152,7 @@ TSS 从旧的 Idx 5-6 移到了新的 Idx 7-8，selector 从 0x28 变成了 0x38
     sysretq
 ```
 
-这段代码的修改点只有三处，但每一处都至关重要。第一处是把 `movq %rax, %rbx` 改成了 `movq %rax, %gs:16`——返回值不再暂存在 RBX，而是存在 GS 段的 scratch slot 中。第二处是新增了 `movq 80(%rsp), %rbx`——从 trap frame 的 offset 80 恢复用户态的 RBX 值。这个 offset 对应的是入口时 push RBX 的位置（按照 syscall.S 的 push 顺序：RSP、RIP、RFLAGS、RDI、RSI、RDX、RCX、RBX——RBX 是第 11 个 push，offset = 10*8 = 80）。第三处是把 `movq %rbx, %rax` 改成了 `movq %gs:16, %rax`。
+这段代码的修改点只有三处，但每一处都至关重要。第一处是把 `movq %rax, %rbx` 改成了 `movq %rax, %gs:16`——返回值不再暂存在 RBX，而是存在 GS 段的 scratch slot 中。第二处是新增了 `movq 80(%rsp), %rbx`——从 trap frame 的 offset 80 恢复用户态的 RBX 值。这个 offset 对应的是入口时 push RBX 的位置（按照 syscall.S 的 trap frame 布局：offset 0 是 user RSP，8 是 user RIP，16 是 user RFLAGS，24 是 syscall number (RAX)，32-72 是 RDI/RSI/RDX/R10/R8/R9，80 是 RBX——所以 RBX 的 offset = 10*8 = 80）。第三处是把 `movq %rbx, %rax` 改成了 `movq %gs:16, %rax`。
 
 这三处修改保证了 RBX 在 SYSCALL 调用前后的一致性。从用户态代码的角度看，SYSCALL 就像一次普通函数调用——callee-saved 寄存器不变，RAX 存返回值，RCX 和 R11 被破坏（ caller-saved ）。
 
@@ -172,7 +173,7 @@ void syscall_init() {
     g_syscall_kernel_rsp = kernel_rsp;
 
     for (uint64_t i = 0; i < cinux::syscall::SYSCALL_TABLE_SIZE; i++) {
-        cinux::arch::syscall_table[i] = nullptr;
+        syscall_table[i] = nullptr;
     }
 
     constexpr uint32_t MSR_STAR  = 0xC0000081;

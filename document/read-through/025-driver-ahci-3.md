@@ -102,7 +102,8 @@ for (uint32_t i = 0; i < POLL_TIMEOUT; ++i) {
     if ((port->ci & (1U << slot)) == 0) {
         uint32_t tfd = port->tfd;
         if ((tfd & 0x01) != 0) {
-            // TFD.ERR 置位，命令失败
+            cinux::lib::kprintf("[AHCI] Port %u: command error TFD=0x%x\n",
+                                port_index, tfd);
             return false;
         }
         return true;
@@ -120,45 +121,60 @@ for (uint32_t i = 0; i < POLL_TIMEOUT; ++i) {
 ```cpp
 bool AHCI::read(uint8_t port_index, uint64_t lba, uint16_t count,
                 uint64_t buf) {
-    if (hba_mem_ == nullptr || port_index >= MAX_PORTS) return false;
-    if (cmd_list_phys_[port_index] == 0) return false;
+    if (hba_mem_ == nullptr || port_index >= MAX_PORTS) {
+        return false;
+    }
+    if (cmd_list_phys_[port_index] == 0) {
+        cinux::lib::kprintf("[AHCI] Port %u not initialised.\n", port_index);
+        return false;
+    }
     return execute_command(port_index, 0, false, lba, count, buf);
 }
 ```
 
-参数校验确保 HBA 已初始化且目标端口已配置。slot 硬编码为 0（单命令操作）。buf 是物理地址——调用者负责确保缓冲区物理连续且已映射。
+参数校验确保 HBA 已初始化且目标端口已配置。未配置的端口会打印警告而非静默失败。slot 硬编码为 0（单命令操作）。buf 是物理地址——调用者负责确保缓冲区物理连续且已映射。
 
 ### kernel/main.cpp 集成
 
 内核主函数中的 AHCI 测试代码展示了完整的使用流程：
 
 ```cpp
-// Step 20: PCI 枚举
+// Step 20: PCI enumeration
 cinux::drivers::pci::PCI pci;
 pci.init();
 
-// Step 21: 查找 AHCI 控制器并初始化
-cinux::drivers::pci::PCIDevice ahci_dev;
+// Step 21: Find AHCI controller and initialise
+cinux::drivers::ahci::AHCI ahci;
+cinux::drivers::pci::PCIDevice    ahci_dev;
 if (pci.find_ahci(ahci_dev)) {
-    cinux::drivers::ahci::AHCI ahci;
     ahci.init(ahci_dev);
 
-    // Step 22: 读取扇区 0 并检查 MBR 签名
+    // Step 22: Read sector 0 (MBR) and check boot signature
     uint64_t buf_phys = cinux::mm::g_pmm.alloc_page();
     if (buf_phys != 0) {
-        constexpr uint64_t buf_virt = 0xFFFF800000300000ULL;
-        cinux::mm::g_vmm.map(buf_virt, buf_phys, flags);
+        constexpr uint64_t buf_virt  = 0xFFFF800000300000ULL;
+        constexpr uint64_t buf_flags = cinux::arch::FLAG_PRESENT
+                                     | cinux::arch::FLAG_WRITABLE;
+        cinux::mm::g_vmm.map(buf_virt, buf_phys, buf_flags);
+
         auto* buf = reinterpret_cast<uint8_t*>(buf_virt);
-        // 清零缓冲区...
+        for (uint32_t i = 0; i < 512; ++i) {
+            buf[i] = 0;
+        }
+
         if (ahci.read(0, 0, 1, buf_phys)) {
-            kprintf("[AHCI] Read sector 0: %02x %02x\n",
-                    buf[510], buf[511]);
+            cinux::lib::kprintf("[AHCI] Read sector 0: %02x %02x\n",
+                                buf[510], buf[511]);
+        } else {
+            cinux::lib::kprintf("[AHCI] Failed to read sector 0.\n");
         }
     }
+} else {
+    cinux::lib::kprintf("[AHCI] No AHCI controller found.\n");
 }
 ```
 
-注意 buf_phys（传给 DMA 引擎的物理地址）和 buf_virt（CPU 访问数据的虚拟地址）是两个不同的值。HBA 只知道物理地址，CPU 只知道虚拟地址。
+注意几个要点。buf_virt 使用硬编码的地址 0xFFFF800000300000（内核 DMA 缓冲区区域），而不是随意挑选的地址。buf_phys（传给 DMA 引擎的物理地址）和 buf_virt（CPU 访问数据的虚拟地址）是两个不同的值——HBA 只知道物理地址，CPU 只知道虚拟地址。
 
 ### QEMU 测试磁盘脚本
 
@@ -170,7 +186,7 @@ if (pci.find_ahci(ahci_dev)) {
 
 ### test/unit/test_ahci.cpp — 主机端单元测试
 
-827 行的主机端单元测试覆盖了所有寄存器结构体大小（static_assert）、常量值、FIS 构造逻辑、LBA 编码、扇区计数编码、PCI 地址字构造、BAR 类型检测等纯算术逻辑。不链接内核代码，纯 C++ 测试。
+约 820 行的主机端单元测试覆盖了所有寄存器结构体大小（static_assert）、常量值、FIS 构造逻辑、LBA 编码、扇区计数编码、PCI 地址字构造、BAR 类型检测等纯算术逻辑。不链接内核代码，纯 C++ 测试。
 
 ## 设计决策
 

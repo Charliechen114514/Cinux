@@ -243,7 +243,7 @@ xv6 的 printf.c 和我们的结构很像——也是逐字符解析格式字符
 
 - Intel SDM: Vol.2A — `IN`/`OUT` 指令参考
 - OSDev Wiki: [Serial Ports](https://wiki.osdev.org/Serial_Ports) — UART 16550 寄存器
-- OSDev Wiki: [Kernel Printf](https://wiki.osdev.org/Kernel_printf)
+- OSDev Wiki: [Kernel Printf](https://wiki.osdev.org/Printing_To_Screen)
 - Linux: [8250 serial driver](https://github.com/torvalds/linux/blob/master/drivers/tty/serial/8250/8250_core.c)
 - xv6: [printf.c](https://github.com/mit-pdos/xv6-public/blob/master/printf.c)
-- SerenityOS: [SerialDevice](https://github.com/SerenityOS/serenity/blob/master/Kernel/Devices/SerialDevice.h)
+- SerenityOS: [SerialDevice](https://github.com/SerenityOS/serenity/blob/master/Kernel/Arch/x86_64/ISABus/Serial16550.cpp)

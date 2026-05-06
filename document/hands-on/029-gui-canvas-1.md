@@ -149,7 +149,7 @@ cmake .. -DCINUX_GUI=ON && make -j$(nproc)
 qemu-system-x86_64 -cdrom cinux.iso -serial stdio -no-reboot
 ```
 
-你应该在 QEMU 窗口中看到黑色屏幕（Canvas 已初始化但还没画东西），串口输出中会看到 `[HEAP] Expanded by ...` 和 `[BIG] Canvas initialised` 等日志。
+你应该在 QEMU 窗口中看到黑色屏幕（Canvas 已初始化但还没画东西），串口输出中会看到 `[HEAP] Expanded by ...` 和 `[BIG] GUI Canvas initialised: 1024x768` 等日志。
 
 如果你想在不启用 GUI 的情况下验证内核仍然正常工作：
 ```

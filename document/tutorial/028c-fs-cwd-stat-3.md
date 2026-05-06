@@ -172,14 +172,14 @@ void cmd_stat(int argc, char** argv) {
   File: /hello.txt
   Size: 42	Blocks: 2
   Inode: 12	Links: 1
-  Mode: 81A4	Uid: 0	Gid: 0
+  Mode: 100644	Uid: 0	Gid: 0
 ```
 
-Mode `81A4` 的八进制是 `040755`——`04` 表示目录（如果文件则是 `010`），`0755` 是 rwxr-xr-x 权限。对于教学目的来说，直接显示十六进制的 mode 值已经足够了。
+Mode `100644` 是八进制表示——`010` 表示普通文件（目录则是 `004`），`0644` 是 rw-r--r-- 权限。`write_octal` 输出的是八进制数字（不带前导 `0`），所以 `0100644` 显示为 `100644`。
 
 ## 测试覆盖
 
-`kernel/test/test_cwd_stat.cpp` 有 861 行测试代码，24 个测试用例。测试结构清晰，分七组覆盖了从底层算法到 Shell 命令的完整调用链。每组测试都用自己的 `setup_cwd_stat()` / `teardown_cwd_stat()` 管理文件系统资源，确保测试之间不互相干扰。
+`kernel/test/test_cwd_stat.cpp` 有 885 行测试代码，24 个测试用例。测试结构清晰，分七组覆盖了从底层算法到 Shell 命令的完整调用链。每组测试都用自己的 `setup_cwd_stat()` / `teardown_cwd_stat()` 管理文件系统资源，确保测试之间不互相干扰。
 
 值得特别提一下的是连续 chdir 测试——先 `cd /dir1`，然后用相对路径 `cd dir2`（不写 `/dir1/dir2`）。这个测试验证了"chdir 改变 CWD -> 下一个 syscall 的路径解析基于新 CWD"这条链路的正确性。如果 resolve_user_path 没有正确读取当前进程的 CWD（比如读到了旧值），这个测试就会失败。
 

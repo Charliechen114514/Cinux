@@ -171,6 +171,6 @@ shell> _
 ## 参考资料
 
 - Linux init/main.c: `kernel_init()` — [GitHub](https://github.com/torvalds/linux/blob/master/init/main.c)
-- xv6 proc.c: `userinit()` — [GitHub](https://github.com/mit-pdos/xv6-riscv/blob/main/kernel/proc.c)
+- xv6 proc.c: `userinit()` — [GitHub](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/proc.c)
 - C++ Placement New: [cppreference](https://en.cppreference.com/w/cpp/language/new#Placement_new)
-- OSDev Wiki: [Object Lifecycle](https://wiki.osdev.org/Object_Lifecycle) — 内核对象析构处理
+- OSDev Wiki: [C++](https://wiki.osdev.org/C%2B%2B) — 内核中使用 C++ 的注意事项（析构器、new/delete 等）

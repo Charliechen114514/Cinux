@@ -38,7 +38,7 @@ PK (bit 5):  1 = Protection Key 违反
 对我们来说最重要的是 bit 0（P 位）。当 P=0 时，说明触发 fault 的原因是"页不存在"——这正是按需分页要处理的场景。当 P=1 时，说明页是存在的但访问被拒绝了——这是权限错误，按需分页无法处理，应该直接 panic。
 
 > 参考：Intel SDM Vol.3A Section 4.7, pp.4-37 to 4-38
-> 参考：[OSDev Wiki - Page Fault](https://wiki.osdev.org/Page_Fault)
+> 参考：[OSDev Wiki - Page Fault](https://wiki.osdev.org/Exceptions#Page_Fault)
 
 ### 按需分页的工作原理
 

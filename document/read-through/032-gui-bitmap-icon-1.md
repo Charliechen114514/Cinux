@@ -168,6 +168,6 @@ blit 做的是无条件拷贝——直接把源 Canvas 的像素覆盖到目标 
 
 ## 参考资料
 
-- OSDev Wiki: [Drawing In a Linear Framebuffer](https://wiki.osdev.org/Drawing_In_a_Linear_Framebuffer) — 像素定位公式 `vram + y * pitch + x * pixelwidth`、双缓冲策略、putpixel/fillrect 优化建议
+- OSDev Wiki: [Drawing In a Linear Framebuffer](https://wiki.osdev.org/VBE) — 像素定位公式 `vram + y * pitch + x * pixelwidth`、双缓冲策略、putpixel/fillrect 优化建议
 - SerenityOS: [Painter.cpp](https://github.com/SerenityOS/serenity/blob/master/Userland/Libraries/LibGfx/Painter.cpp) — `blit_filtered()` 中 `alpha == 0` 跳过逻辑、`BlitState` 模板化 alpha 路径选择
 - SerenityOS Issue: [#69 SIMD optimized alpha blending](https://github.com/SerenityOS/serenity/issues/69) — 使用 SSE/AVX 加速 alpha blending 的讨论

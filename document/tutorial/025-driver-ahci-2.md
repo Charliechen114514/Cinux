@@ -15,7 +15,7 @@
 
 ## 第一步——映射 BAR5 到虚拟空间
 
-BAR5 的物理地址拿到手后，第一件事是把它映射到内核的虚拟地址空间。我们选了 0xFFFF800000100000 作为 MMIO 基地址，在内核的高位 canonical 区域内，不会和堆、用户态区域冲突。
+BAR5 的物理地址拿到手后，第一件事是把它映射到内核的虚拟地址空间。我们选了 0xFFFF800000100000 作为 MMIO 基地址（硬编码在 MMIO_VIRT_BASE 常量中），在内核的高位 canonical 区域内，不会和堆、用户态区域冲突。
 
 映射时有一个非常重要的细节：MMIO 寄存器必须映射为非缓存的。普通 RAM 可以安全地被 CPU 缓存，因为 RAM 的内容不会自己变。但硬件寄存器不一样——HBA 的中断状态寄存器可能在任何时候被硬件修改，如果 CPU 缓存了旧值，你就永远读不到最新的中断状态。所以在映射标志里必须加上 PCD（Page Cache Disable）位。
 
@@ -29,7 +29,7 @@ constexpr uint64_t mmio_flags = cinux::arch::FLAG_PRESENT
 
 映射完成后，虚拟地址被 reinterpret_cast 成 HBAMem* 指针。从此以后所有 AHCI 寄存器的访问都通过这个指针完成——读 hba_mem_->pi 拿端口位图，读 hba_mem_->cap 拿能力信息，写 hba_mem_->ghc 控制全局状态。
 
-这一点上 Linux 的做法更完善：它用 ioremap() 做映射，自动处理缓存属性，还通过 devm 框架做资源自动回收。Cinux 直接硬编码虚拟地址，简单粗暴但对教学内核来说够了。SerenityOS 介于两者之间——它有独立的 MMIO 区域管理器，但不做自动回收。
+这一点上 Linux 的做法更完善：它用 ioremap() 做映射，自动处理缓存属性，还通过 devm 框架做资源自动回收。Cinux 使用硬编码的 MMIO_VIRT_BASE 地址（0xFFFF800000100000）作为 MMIO 映射起点，简单但对教学内核来说够了。SerenityOS 介于两者之间——它有独立的 MMIO 区域管理器，但不做自动回收。
 
 ## 第二步——HBA 复位和 AHCI 模式使能
 

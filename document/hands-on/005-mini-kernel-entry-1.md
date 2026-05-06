@@ -57,6 +57,8 @@ UART 的寄存器通过基地址加偏移来访问。我们关心的寄存器并
 
 参考来源：OSDev Wiki Serial Ports（https://wiki.osdev.org/Serial_Ports）对 UART 寄存器映射和初始化流程有完整的说明。
 
+Intel SDM Vol. 3A Chapter 18 对 I/O 保护机制有详细说明——IOPL 字段在 EFLAGS 中控制 IN/OUT 指令的特权级别，TSS 中的 I/O 位图可以精确到每个端口的访问控制。不过由于我们的内核运行在 Ring 0，所有 I/O 端口操作都是允许的，所以暂时不需要关心这些保护机制。
+
 ### QEMU 的两条输出通道：串口 vs debugcon
 
 在继续之前，我们需要厘清 Cinux 项目里两个不同的调试输出通道，因为后面会同时用到它们。
@@ -67,7 +69,11 @@ UART 的寄存器通过基地址加偏移来访问。我们关心的寄存器并
 
 在之前几章里我们一直用 debugcon 输出 `O`、`P`、`L`、`H` 这些标记字符来追踪 Bootloader 的执行进度。从本篇开始，我们要加一条新的通道——串口。串口是内核正式的输出通道，`kprintf` 的输出走串口；`kdebugf` 的输出走 debugcon。两条通道互为备份，串口看不到的时候去看 debugcon 日志，往往能找到线索。
 
+在实际的内核开发中，这种"双通道"策略非常实用——串口输出面向开发者日常查看（实时、直观），debugcon 输出面向自动化测试和事后分析（持久化、不影响串口交互）。两个通道的格式化引擎是同一套代码（下一篇会讲的 `vkprintf_impl` 模板函数），只是输出后端不同。
+
 ---
+
+好了，概念铺垫得差不多了，下面我们正式开始动手。
 
 ## 动手实现
 
@@ -99,7 +105,7 @@ UART 的寄存器通过基地址加偏移来访问。我们关心的寄存器并
 
 **踩坑预警**：关于波特率的问题——很多人照着教程设置了 DLAB（Divisor Latch Access Bit，LCR 的第 7 位）和分频系数，然后在 QEMU 里发现设不设都一样。这是因为 QEMU 的虚拟串口不受物理时钟限制，115200 的默认波特率在模拟环境下始终成立。但如果你的代码将来要跑在真实硬件上，就必须正确设置 DLAB 和分频系数。所以一种稳妥的做法是：在 QEMU 开发阶段先跳过波特率设置（反正不影响功能），等上真机测试前再补上。
 
-**验证**：这一步暂时还没有可见的输出效果，需要等 Step 3 的 `putc()` 实现后一起验证。
+**验证**：这一步暂时还没有可见的输出效果，需要等 Step 3 的 `putc()` 实现后一起验证。但你可以先检查 `serial.h` 是否被正确 include 到项目中——在 `main.cpp` 中 `#include "driver/serial.h"`，编译通过说明头文件路径配置正确。
 
 ### Step 3: 实现 Serial 类——字符和字符串输出
 
@@ -129,17 +135,21 @@ UART 的寄存器通过基地址加偏移来访问。我们关心的寄存器并
 
 **踩坑预警**：全局构造函数的执行依赖于链接脚本里 `.init_array` 段的正确设置，以及 `boot.S` 里 `_init_global_ctors` 的正确调用。如果这两步有任何一个出了问题（比如下一节要讲的链接脚本 LMA 计算错误），全局构造函数数组里存放的就是垃圾指针（0xFFFFFFFF 之类），一调用就 Triple Fault。所以如果你的内核在进入 `mini_kernel_main()` 之前就崩溃了，除了检查 boot.S 的逻辑，还要检查 `.init_array` 的内容——用 `readelf -l kernel.elf` 查看 LMA 是否正确。
 
-**验证**：在 `main.cpp` 中通过全局获取函数拿到 Serial 对象，调用 `puts` 输出一段文字。同时用 `debugcon_putc` 输出几个字符到 debugcon。构建运行后，串口终端应该看到 `puts` 的输出，`debug.log` 文件里应该看到 debugcon 的输出。
+另外需要注意的是，如果你的 `boot.S` 中没有正确处理 `__boot_info_ptr`（把它保存在 BSS 清零之前），全局构造函数中如果有人访问了依赖 BootInfo 的数据，也会出问题。不过我们的 Serial 不依赖 BootInfo，所以这一点在这里不影响。
+
+**验证**：在 `main.cpp` 中通过全局获取函数拿到 Serial 对象，调用 `puts` 输出一段文字。同时用 `debugcon_putc` 输出几个字符到 debugcon。构建运行后，串口终端应该看到 `puts` 的输出，`debug.log` 文件里应该看到 debugcon 的输出。注意，如果你在 `mini_kernel_main` 之前就尝试使用串口（比如在全局构造函数里），这也是安全的——因为全局 Serial 对象的构造函数会先于其他全局构造函数执行（只要它在链接顺序上排在前面）。
 
 ## 构建与运行
 
-完成以上步骤后，在项目根目录执行完整构建。确保 CMake 配置启用了测试和 Serial 驱动相关的源文件后，构建并运行：
+完成以上步骤后，在项目根目录执行完整构建。确保 CMake 配置中 `kernel/mini/CMakeLists.txt` 已经把 `driver/serial.cpp` 加入了 `mini_kernel` 的源文件列表中（`target_sources` 或 `add_executable` 参数中应包含 `driver/serial.cpp`），然后构建并运行：
 
 ```
 cmake -B build -DCMAKE_BUILD_TYPE=Debug
 cmake --build build
 cd build && make run
 ```
+
+如果编译时出现 `undefined reference to 'cinux::mini::io::outb(unsigned short, unsigned char)'` 之类的错误，说明 `io.h` 的 include 路径配置有问题。检查 `serial.cpp` 中的 `#include "driver/io.h"` 能否被正确解析——`target_include_directories` 应该包含 `kernel/mini/` 目录。
 
 QEMU 启动后，你应该在终端看到两个输出通道的结果。串口终端（stdout）应该出现类似这样的输出：
 
@@ -165,6 +175,14 @@ debugcon 日志文件（`build/debug.log`）里应该有 Bootloader 阶段的标
 
 QEMU 对串口的模拟有一个值得注意的特点：它的虚拟 UART 在任何时刻都是"就绪"的——THRE 位永远为 1。这意味着在 QEMU 环境下，`putc()` 里的轮询循环实际上永远不会真的等，第一次检查就通过了。但在真实硬件上，THRE 位的轮询是必须的，因为物理 UART 发送一个字节需要时间（115200 波特率下大约 87 微秒），连续写入而不等待会导致数据丢失。所以在 QEMU 里"能跑"不代表在真机上也没问题——这一点在代码审查时要注意。
 
+### 关于 io.h 中额外的 I/O 函数
+
+实际的 `io.h` 中除了 `inb`/`outb` 之外，还定义了 `inw`/`outw`（16 位）和 `inl`/`outl`（32 位）函数。它们的实现模式完全相同——唯一的区别是约束的寄存器大小和汇编指令后缀（`w` 对应 AX，`l` 对应 EAX）。当前我们只用到了 `inb`/`outb`（8 位），但后续章节在配置 `isa-debug-exit` 设备时会用到 `outl`，所以理解它们的封装方式是有价值的。如果感兴趣可以提前看看 `io.h` 中 16 位和 32 位版本的定义，它们和 8 位版本是对称的。
+
+### 用 readelf 验证构建产物
+
+构建完成后可以用 `readelf -l build/kernel/mini/mini_kernel` 查看 ELF 的 Program Headers。你应该能看到至少两个 LOAD 段：一个只读的（.text + .rodata）和一个可写的（.data + .init_array + .bss）。VirtAddr 列应该显示 0xFFFFFFFF8002xxxx 的高半核地址，PhysAddr 列应该显示 0x000000000002xxxx 的物理地址。如果 PhysAddr 不是从 0x20000 开始的，说明链接脚本的 LMA 计算有问题——这个问题我们在第三篇会详细讲到。
+
 ## 本章小结
 
 | 概念 | 要点 |
@@ -177,3 +195,7 @@ QEMU 对串口的模拟有一个值得注意的特点：它的虚拟 UART 在任
 | \r\n 转换 | `puts()` 中遇到 `\n` 先输出 `\r`，否则终端呈阶梯状偏移 |
 | 全局 Serial 单例 | 利用 `.init_array` 全局构造函数自动初始化 |
 | debugcon vs 串口 | debugcon(0xE9) 是 QEMU 私有快通道，串口(0x3F8) 是标准硬件接口 |
+
+---
+
+**下一篇预告**：有了串口驱动，内核能发送固定字符串了。但调试时我们需要输出变量的值、地址、十六进制数——这些需要格式化输出的支持。下一篇我们实现 `kprintf`，内核的格式化输出引擎。

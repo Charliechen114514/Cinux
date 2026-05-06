@@ -172,7 +172,7 @@ gdb build/kernel/mini/mini_kernel
 
 GDB 的 Remote Serial Protocol 本身是一个基于 ASCII hex 的文本协议。GDB 发送 `$packet#checksum` 格式的数据包，QEMU 返回响应。比如 `$g#7a` 是读取所有寄存器，`$m addr,len#xx` 是读取内存。你不需要手动拼这些数据包——GDB 自动处理——但了解底层协议有助于理解调试过程中偶尔出现的超时或连接错误。
 
-QEMU 文档（https://qemu.readthedocs.io/en/v9.1.3/system/gdb.html）和 OSDev Wiki 的 GDB 页面（https://wiki.osdev.org/GDB）有更详细的说明。
+QEMU 文档（https://www.qemu.org/docs/master/system/gdb.html）和 OSDev Wiki 的 GDB 页面（https://wiki.osdev.org/GDB）有更详细的说明。
 
 ## VSCode 调试配置
 
@@ -226,9 +226,9 @@ VSCode 的 `.vscode/tasks.json` 还提供了一个 `QEMU: Run debug mode` 任务
   https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html
 
 - GNU LD Manual — `ADDR(section)` and `SIZEOF(section)`：`ADDR()` 返回段的 VMA（包含对齐后的正确地址），`SIZEOF()` 返回段内容大小（不含对齐填充）。Cinux 的链接脚本修正从 `SIZEOF()` 累加改为 `ADDR() - offset` 公式。
-  https://sourceware.org/binutils/docs/ld/Built-in-Functions.html
+  https://sourceware.org/binutils/docs/ld/Builtin-Functions.html
 
-- QEMU Documentation — GDB Usage (https://qemu.readthedocs.io/en/v9.1.3/system/gdb.html)：QEMU 内置 GDB stub 的使用文档，`-s` 和 `-S` 参数说明，远程调试协议概述。
+- QEMU Documentation — GDB Usage (https://www.qemu.org/docs/master/system/gdb.html)：QEMU 内置 GDB stub 的使用文档，`-s` 和 `-S` 参数说明，远程调试协议概述。
 
 - OSDev Wiki — GDB (https://wiki.osdev.org/GDB)：OS 开发环境下的 GDB 远程调试指南，包括 QEMU 集成和常见问题排查。
 

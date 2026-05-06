@@ -457,7 +457,7 @@ cinux::lib::kprintf("[KPRINTF] mix: %s n=%d hex=%08x ptr=%p\n",
 
 ## 参考资料
 
-- OSDev Wiki: [Kernel printf](https://wiki.osdev.org/Kernel_printf) — 内核格式化输出的一般指导，格式说明符解析，变参处理
+- OSDev Wiki: [Kernel printf](https://wiki.osdev.org/Printing_To_Screen) — 内核格式化输出的一般指导，格式说明符解析，变参处理
 - Linux `lib/vsprintf.c` — Linux 内核的完整 `vsnprintf` 实现，支持几乎所有标准 printf 格式以及 `%p` 扩展（`%pI4` IP 地址、`%pE` 转义字符串等）
 - xv6 `printf.c` — 极简的内核 printf，用单一 `printint()` 函数配合 base 参数处理所有进制，支持 `%l`/`%ll` 长度修饰符
 - C++ 标准 `[expr.call]` — va_list 和变参函数的行为定义，`va_arg` 的类型提升规则（`char`/`short` 提升为 `int`，`float` 提升为 `double`）

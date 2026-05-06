@@ -167,7 +167,7 @@ enum class SyscallNr : uint64_t {
 
 ## Shell 命令实现
 
-三个 Shell 命令的实现都非常简洁。cmd_cd（`user/programs/shell/cmd_cd.cpp`）只有 36 行：
+三个 Shell 命令的实现都非常简洁。cmd_cd（`user/programs/shell/cmd_cd.cpp`）只有 35 行：
 
 ```cpp
 void cmd_cd(int argc, char** argv) {
@@ -187,7 +187,7 @@ void cmd_cd(int argc, char** argv) {
 
 参数不足时提示错误，调用 sys_chdir，失败时输出错误信息。成功时不输出任何东西——和 bash 的 cd 行为一致。
 
-cmd_pwd（`user/programs/shell/cmd_pwd.cpp`）更短，34 行：
+cmd_pwd（`user/programs/shell/cmd_pwd.cpp`）更短，33 行：
 
 ```cpp
 void cmd_pwd(int, char**) {
@@ -205,7 +205,7 @@ void cmd_pwd(int, char**) {
 
 256 字节的缓冲区对于 CWD 路径来说绰绰有余。getcwd 成功时返回字节数（含 NUL），失败时返回 -1。
 
-cmd_stat（`user/programs/shell/cmd_stat.cpp`）稍长一些（112 行），但大部分代码是数字格式化辅助函数：
+cmd_stat（`user/programs/shell/cmd_stat.cpp`）稍长一些（111 行），但大部分代码是数字格式化辅助函数：
 
 ```cpp
 void write_uint64(uint64_t val) {
@@ -311,12 +311,12 @@ void cmd_stat(int argc, char** argv) {
   File: /hello.txt
   Size: 42	Blocks: 2
   Inode: 12	Links: 1
-  Mode: 81A4	Uid: 0	Gid: 0
+  Mode: 100644	Uid: 0	Gid: 0
 ```
 
 ## 测试代码概览
 
-`kernel/test/test_cwd_stat.cpp` 是这个 tag 最长的文件（861 行），包含了 24 个测试用例，覆盖了路径解析、四个 syscall、Shell 命令的完整流程。测试入口函数 `run_cwd_stat_tests()` 首先设置一个 mock Task 作为当前进程：
+`kernel/test/test_cwd_stat.cpp` 是这个 tag 最长的文件（885 行），包含了 24 个测试用例，覆盖了路径解析、四个 syscall、Shell 命令的完整流程。测试入口函数 `run_cwd_stat_tests()` 首先设置一个 mock Task 作为当前进程：
 
 ```cpp
 extern "C" void run_cwd_stat_tests() {

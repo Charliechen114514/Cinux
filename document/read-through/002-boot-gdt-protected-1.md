@@ -342,7 +342,7 @@ Bit 0   (A=0)    : Accessed
 
 - Intel SDM Vol.3A §2.4.1 — Global Descriptor Table Register (GDTR)：`lgdt` 指令加载 6 字节（16 位 limit + 32 位 base）到 GDTR
 - Intel SDM Vol.3A §3.4.5 — Segment Descriptors：8 字节描述符格式，Base/Limit/Access/Flags 字段的分散排列方式
-- Intel SDM Vol.3A §9.9 — Switching to Protected Mode：完整的 6 步切换流程
+- Intel SDM Vol.3A §10.9.1 — Switching to Protected Mode：完整的 6 步切换流程
 - OSDev Wiki: [Global Descriptor Table](https://wiki.osdev.org/Global_Descriptor_Table)
 - OSDev Wiki: [GDT Tutorial](https://wiki.osdev.org/GDT_Tutorial)
 - xv6 bootasm.S: [https://github.com/mit-pdos/xv6-public/blob/master/bootasm.S](https://github.com/mit-pdos/xv6-public/blob/master/bootasm.S)

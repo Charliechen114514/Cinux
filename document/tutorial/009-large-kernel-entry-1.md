@@ -216,5 +216,5 @@ extern "C" void kernel_main() {
 - OSDev Wiki: [Calling Global Constructors](https://wiki.osdev.org/Calling_Global_Constructors)
 - Linux: [head_64.S](https://github.com/torvalds/linux/blob/master/arch/x86/kernel/head_64.S) — boot_params 保存到 %r15
 - xv6: [entry.S](https://github.com/mit-pdos/xv6-public/blob/master/entry.S) — 简化的 C 内核启动
-- xv6-riscv: [kernel.ld](https://github.com/mit-pdos/xv6-riscv/blob/master/kernel/kernel.ld) — 简单 `. = 0x80000000` 布局
+- xv6-riscv: [kernel.ld](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/kernel.ld) — 简单 `. = 0x80000000` 布局
 - SerenityOS: [linker.ld](https://github.com/SerenityOS/serenity/blob/master/Kernel/Arch/x86_64/linker.ld) — PHDRS 显式定义

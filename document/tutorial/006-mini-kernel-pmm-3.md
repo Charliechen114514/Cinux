@@ -13,6 +13,15 @@
 
 开发环境延续前面的配置：QEMU 128MB 内存，debugcon 端口用于调试，串口用于正式输出。PMM 代码位于 `kernel/mini/mm/pmm.cpp`，测试代码位于 `kernel/mini/test/test_pmm.cpp`。构建系统使用 CMake 对象库，生产内核和测试内核共享同一批编译后的 `.o` 文件。
 
+本篇覆盖的核心文件：
+
+| 文件 | 本篇涉及的功能点 |
+|------|-----------------|
+| `kernel/mini/mm/pmm.cpp` | 位图操作、E820 解析、初始化流程、分配/释放 |
+| `kernel/mini/mm/pmm.h` | 常量定义和接口声明 |
+| `kernel/mini/test/test_pmm.cpp` | 6 个测试用例 |
+| `kernel/mini/test/kernel_test.h` | 测试框架宏定义 |
+
 ## 位图操作——PMM 的心脏
 
 ### 内部状态
@@ -159,6 +168,8 @@ void free_page(uint64_t phys) {
 ```
 
 释放函数有三道防线。空地址（0）静默忽略——这是为了防止"释放空指针"式的误用。越界地址静默忽略——PMM 只管理 4GB 以下。`test_bit` 检查防止双重释放——如果页已经是空闲的，不做任何操作。Linux 的 bootmem 分配器在 `free_all_bootmem_core` 中释放页时也不检查双重释放，但那是启动阶段的批量操作，不会出问题。xv6 的 `kfree` 更暴力——它先 `memset(v, 1, PGSIZE)` 填充垃圾数据再释放，这个技巧能帮你检测 use-after-free，但对双重释放没有防护。Cinux 的 `test_bit` 检查在这一点上比 xv6 更安全。
+
+一个值得思考的取舍是：`free_page` 在遇到无效输入时选择"静默忽略"而不是"报错"。在用户态程序中，`free(NULL)` 的行为是明确定义的（C 标准规定它什么都不做），但 `free` 一个已经释放的指针是未定义行为。Cinux 的 `free_page` 把这两种情况都处理成了静默忽略——这在内核环境中是合理的，因为内核没有 stderr 可以输出错误信息，也没有异常机制可以抛出。但如果你希望更严格地检测错误，可以添加一个返回值（比如 `bool` 表示成功/失败），让调用者决定如何处理。
 
 ## 测试框架与验证
 

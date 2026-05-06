@@ -1,6 +1,6 @@
 # 鼠标交互与 GUI 启动集成
 
-> 标签：鼠标拖拽, hit testing, PIT 事件循环, GUI 初始化, 延迟工作
+> 标签：鼠标拖拽, hit testing, PIT 事件循环, GUI 初始化, ISR 栈对齐
 > 前置：[030-2 窗口管理器](030-gui-wm-basic-2.md)
 
 ## 前言
@@ -44,7 +44,7 @@ MouseUp 事件清除拖拽标志，回到空闲状态。整个状态机就这三
 
 第一，清空事件队列。循环 dequeue 直到队列空，每个事件根据类型分发给 handle_mouse 或 handle_key。这意味着从上一次 tick 到这一次之间积累的所有事件会被一次性处理。
 
-第二，轮询所有终端窗口。不是只轮询焦点终端——所有打开的终端都要 poll，这样后台的 shell 输出也能实时显示。
+第二，handle_key 处理键盘事件。在当前 tag 里 handle_key 是一个空操作——只是 `(void)ev;` 保留接口给后续 tag 使用。不过框架已经搭好：只要 EventQueue 里有 KeyDown/KeyUp 事件，它们就会被分发到 handle_key。
 
 第三，调用 composite 合成一帧。清屏 → blit 所有窗口 → 画光标 → flip。
 
@@ -52,38 +52,21 @@ MouseUp 事件清除拖拽标志，回到空闲状态。整个状态机就这三
 
 另一种设计是独立 GUI 线程——一个专用线程在主循环里做 dequeue + composite，不占用中断处理时间。SerenityOS 的 WindowServer 就是这么做的——它是一个用户空间进程，有自己的事件循环和渲染线程。不过对于我们的内核来说，tick 回调方案实现更简单，因为不需要额外的线程调度和同步机制。
 
-## 第三步——延迟工作队列
-
-在 PIT tick 回调里有些操作不能安全执行。比如用户双击桌面上的 Shell 图标，我们需要 fork + execve 创建一个新的 shell 终端窗口。fork 需要操作进程表、复制地址空间——这些在中断上下文里做太危险了。
-
-解决方案是一个简单的 Atomic 标志。tick 回调检测到图标点击时设置 `g_pending_action.store(IconAction::OpenShell)`，一个专门的 gui_worker 内核线程在主循环里轮询这个标志：
-
-```cpp
-void gui_worker_thread() {
-    while (true) {
-        cinux::gui::gui_process_pending();
-        Scheduler::yield();
-    }
-}
-```
-
-gui_process_pending 通过 Atomic exchange 获取并清除标志。如果标志是 OpenShell，就在正常进程上下文里执行 create_shell_terminal——fork 子进程、创建地址空间、设置管道、execve shell。这是经典的"中断上下文 defer to 进程上下文"模式，在 Linux 内核里随处可见（比如 softirq、tasklet、workqueue）。
-
-## 第四步——GUI 启动的两阶段初始化
+## 第三步——GUI 启动的两阶段初始化
 
 GUI 的初始化分成了两个阶段，因为各组件的依赖顺序不同。
 
-第一阶段在 kernel_main 里完成。这个阶段在中断开启之前运行。我们创建 static Canvas 对象（避免栈溢出——Canvas 持有大块堆内存），初始化窗口管理器，渲染 demo 画面。然后 unmask IRQ12（鼠标中断），为后续鼠标初始化做准备。
+第一阶段在 kernel_main 里完成。这个阶段在中断开启之前运行。我们创建 static Canvas 对象（避免栈溢出——Canvas 持有大块堆内存），调用 gui_init 初始化窗口管理器，渲染 demo 画面（深色背景 + 10 个随机色矩形 + "Cinux GUI" 标题文字），然后 unmask IRQ12（鼠标中断），为后续鼠标初始化做准备。demo 画面在窗口管理器接管之前闪一下，给用户一个"从 Canvas 到 WM"的过渡效果。
 
-第二阶段在 kernel_init_thread 里完成。这个阶段在调度器启动之后运行。我们调用 gui_start，初始化鼠标驱动（需要中断已开启，要等 ACK）、设置屏幕边界、注册桌面图标、安装 PIT tick 回调。最后创建 gui_worker 线程处理延迟工作。
+第二阶段在 kernel_init_thread 里完成。这个阶段在调度器启动之后运行。我们调用 gui_start，它做三件事：初始化鼠标驱动（需要中断已开启，要等 ACK）、设置屏幕边界、创建三个测试窗口（"Window 1" 320x200、"Window 2" 280x180、"Window 3" 250x160），最后注册 PIT tick 回调（gui_tick_callback）驱动事件循环。三个窗口按照创建顺序依次偏移 (30px, 30px)，避免完全重叠。
 
 这种两阶段设计不是因为代码组织好看，而是因为真实的硬件依赖——Canvas 需要 Framebuffer 就绪，鼠标驱动需要中断开启，tick 回调需要调度器运行。每一层都有自己的前置条件，没法在同一个地方全部搞定。
 
-## 第五步——光标渲染与 QEMU 双光标问题
+## 第四步——光标渲染与 QEMU 双光标问题
 
-光标渲染在 composite 的最后阶段完成。我们用一个 16x16 的 uint16_t 数组编码经典箭头形状——每行的 bit 15 到 bit 0 对应最左到最右的像素。值为 1 的像素画灰色（0x888888），四周画一圈白色（0xFFFFFF）描边增加可见度。光标位置从 Mouse::x() 和 Mouse::y() 获取。
+光标渲染在 composite 的最后阶段完成。我们用一个 16x16 的 uint16_t 数组编码经典箭头形状——每行的 bit 15 到 bit 0 对应最左到最右的像素。值为 1 的像素画白色（0xFFFFFF），四周画一圈黑色（0x000000）描边增加可见度。光标位置从 Mouse::x() 和 Mouse::y() 获取。
 
-这里有一个有趣的问题：在 QEMU VNC 窗口里，你会看到两个光标。一个是我们画的灰色箭头，一个是 QEMU 自带的圆点覆盖层。两者之间有一个固定偏移，方向取决于我们的初始光标位置。
+这里有一个有趣的问题：在 QEMU VNC 窗口里，你会看到两个光标。一个是我们画的白色箭头，一个是 QEMU 自带的圆点覆盖层。两者之间有一个固定偏移，方向取决于我们的初始光标位置。
 
 原因在于 PS/2 协议只报告相对位移。QEMU 的 VNC 光标使用宿主机的绝对坐标，而我们的内核从初始位置（0, 0）开始累积 delta。两者的"原点"不同，所以永远有一个固定偏移。这不是代码 bug，而是 PS/2 鼠标在虚拟化环境下的固有缺陷。
 
@@ -93,14 +76,12 @@ GUI 的初始化分成了两个阶段，因为各组件的依赖顺序不同。
 
 ## 收尾
 
-到这里，我们的 GUI 子系统已经完整了——PS/2 鼠标驱动收集输入，事件队列统一分发，窗口管理器处理交互，桌面合成呈现画面，PIT tick 驱动整个事件循环。`make run` 后你应该能看到深色桌面、彩色矩形装饰、灰色箭头光标跟随鼠标移动。
+到这里，我们的 GUI 子系统已经完整了——PS/2 鼠标驱动收集输入，事件队列统一分发，窗口管理器处理交互，桌面合成呈现画面，PIT tick 驱动整个事件循环。`make run` 后你应该能看到深色桌面、彩色矩形装饰、白色箭头光标跟随鼠标移动。
 
 如果一切正常，下一阶段我们会在这个基础上添加桌面图标、终端窗口和 shell 集成，让 GUI 变成一个真正能用的桌面环境。
 
 ## 参考资料
 - OSDev Wiki: [PS/2 Mouse](https://wiki.osdev.org/PS/2_Mouse) — streaming mode, ACK protocol
 - OSDev Wiki: [I8042 PS/2 Controller](https://wiki.osdev.org/I8042_PS/2_Controller) — auxiliary port commands
-- QEMU Mouse Cursor Offset: https://torgeir.dev/2024/02/qemu-mouse-cursor-offset/
+- QEMU Mouse Cursor Offset: [torgeir.dev](https://torgeir.dev/2024/02/qemu-mouse-cursor-offset/) — PS/2 vs VNC cursor offset analysis
 - SerenityOS: [WindowServer Compositor](https://github.com/SerenityOS/serenity/tree/master/Userland/Services/WindowServer) — event loop + damage tracking
-- Linux: [workqueue](https://www.kernel.org/doc/html/latest/core-api/workqueue.html) — deferred work pattern in kernel
-- Cinux Notes: [mouse_cursor_offset.md](../../document/notes/030/mouse_cursor_offset.md) — QEMU dual cursor analysis

@@ -35,15 +35,7 @@ task->cwd[0] = '/';
 task->cwd[1] = '\0';
 ```
 
-Shell 进程的 CWD 初始化在 `launch_first_user()` 中完成，那里创建了一个静态 Task 并通过 `Scheduler::set_current()` 注册：
-
-```cpp
-static cinux::proc::Task shell_task{};
-shell_task.cwd[0] = '/';
-shell_task.cwd[1] = '\0';
-shell_task.state = cinux::proc::TaskState::Running;
-cinux::proc::Scheduler::set_current(&shell_task);
-```
+Shell 进程在 `kernel/arch/x86_64/usermode.cpp` 的 `launch_first_user()` 中启动。该函数创建一个 `static cinux::proc::Task shell_task{}`，手动设置 `.cwd[0] = '/'` 和 `.state = Running`，然后通过 `Scheduler::set_current(&shell_task)` 注册为当前进程。这样 Shell 的 CWD 在启动时就被初始化为根目录。
 
 ## 路径规范化：把乱七八糟的路径收拾干净
 

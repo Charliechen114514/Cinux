@@ -83,9 +83,7 @@ Spinlock 的核心思路很直接：用一个 `bool` 变量表示锁的状态，
 
 Guard 的 RAII 模式也很标准——构造时获取锁，析构时释放锁，禁用拷贝。`[[nodiscard]]` 属性防止调用者忽略返回值。如果写了 `lock.guard()` 却不保存返回值，Guard 的析构函数会立即执行，锁就等于没加。这种模式在 Linux 内核的 `guard(spinlock_irqsave)` 中也经常出现。虽然 Cinux 当前的内核线程不会抛出 C++ 异常，但 RAII 的优势不仅在于异常安全——它还防止了程序员忘记在某个 early-return 路径上调用 `release()`。这类 bug 在内核代码中非常隐蔽，因为忘记释放锁不会立即崩溃，而是以难以复现的死锁形式出现。
 
-不过这里有一个更深层的自旋锁安全陷阱需要提一下。Spinlock 本身只能保证同一时刻只有一个执行流进入临界区，但它不能防止中断。如果在持有 Spinlock 的同时收到定时器中断，而中断 handler 又试图获取同一把锁，就会产生自死锁——自己等自己释放锁。这就是为什么 RoundRobin 的 `pick_next()`、`enqueue()` 和 `dequeue()` 最终使用的不是普通的 `Guard`，而是一个"中断安全的 IrqGuard"——获取锁之前先关中断，释放锁之后恢复中断状态。IrqGuard 在构造时保存当前的 RFLAGS（包含 IF 标志），然后执行 `cli` 关中断，再获取锁；析构时先释放锁，再通过 `popfq` 恢复之前保存的 RFLAGS。这种 `pushfq/cli/popfq` 的模式能正确处理嵌套——多层 IrqGuard 嵌套时，只有最外层的析构才会真正恢复 IF。Linux 内核的 `spin_lock_irqsave()` / `spin_unlock_irqrestore()` 做的也是完全一样的事情。
-
-你可能会问：既然 IrqGuard 更安全，为什么不直接用 IrqGuard 替代所有 Guard 的使用场景？答案在于性能。IrqGuard 的构造和析构各多了一条 `pushfq` / `popfq` 指令，而且关中断会增加中断延迟。在确认不会被中断上下文访问的代码路径中（比如初始化阶段或已确认关中断的上下文），普通 Guard 就够了。这种"最小权限"的锁使用策略在 Linux 内核中也非常常见——`spin_lock` 用于你知道不会在中断中访问的场景，`spin_lock_irqsave` 用于可能被中断上下文访问的场景。Cinux 目前的 RoundRobin 队列操作全部使用 IrqGuard，因为它们确实可能同时被普通调用路径和中断 handler 的 `tick()` -> `schedule()` 路径访问。
+不过这里有一个更深层的自旋锁安全陷阱需要提一下。Spinlock 本身只能保证同一时刻只有一个执行流进入临界区，但它不能防止中断。如果在持有 Spinlock 的同时收到定时器中断，而中断 handler 又试图获取同一把锁，就会产生自死锁——自己等自己释放锁。解决思路是"获取锁之前先关中断，释放锁之后恢复中断状态"——Linux 内核的 `spin_lock_irqsave()` / `spin_unlock_irqrestore()` 做的也是完全一样的事情。在 tag 020 中我们暂时没有实现这个"中断安全的 Guard"——RoundRobin 的队列操作使用的是普通 Guard。这是因为 tag 020 的 `tick()` 调用链（IRQ0 -> ISR -> tick() -> schedule()）在中断门语义下 IF 已经被自动清零，不会触发另一个 IRQ0，所以普通 Guard 在当前阶段是安全的。但如果未来 tick() 的调用上下文发生变化（比如从 trap gate 进入，IF 不被清零），就需要升级为中断安全的版本。
 
 ## PerCPU：为 SMP 做好占位
 
@@ -181,13 +179,15 @@ tss_set_rsp0 为什么在每次 schedule 都要调用？因为每次上下文切
 
 Spinlock 提供了最底层的互斥原语，确保中断驱动的调度不会踩坏共享队列；PerCPU 为 per-CPU 数据访问铺好了路，是 SMP 扩展的第一步；TSS.RSP0 更新把硬件级别的栈切换机制和软件调度器连接了起来，为未来的用户态任务做好准备。这三块基础设施本身不执行调度——真正让线程被抢占、被切换、被重新调度的核心逻辑，是下一篇要讲的 `tick()` / `schedule()` / `block()` / `unblock()` 的完整实现。
 
+从代码量来看，tag 020 的三块基础设施涉及两个新增文件（`sync.hpp` 45 行、`per_cpu.hpp` 16 行）和两个修改文件（`gdt.hpp/cpp` 各增几行）。和第二篇的 scheduler.cpp（新增约 100 行）相比，这一篇的代码量并不大，但概念密度很高——Spinlock 的原子语义、PerCPU 的 SMP 设计意图、TSS.RSP0 的硬件约束——每一个都值得深入理解。
+
 ## 扩展方向
 
 当前的 Spinlock 是最简单的 test-and-set 自旋锁。在 SMP 环境下，多个 CPU 同时自旋时会导致总线争用和 cache line bouncing——所有 CPU 都在疯狂写同一个 `locked_` 变量，每次写入都使其他 CPU 的 cache line 失效。Linux 使用 ticket spinlock（或 MCS lock）来保证 FIFO 公平性和更低的 cache 压力——每个 CPU 取一个"号码"，按号码顺序获取锁，避免了多 CPU 同时竞争同一个变量的问题。当 Cinux 引入 SMP 支持时，这是一个值得优先升级的组件。
 
 PerCPU 也有明确的扩展路径。当前 RoundRobin 是全局唯一的队列，所有调度操作都通过同一把锁保护。在多核系统中，全局队列的 Spinlock 竞争会成为瓶颈。Linux 的 CFS 使用 per-CPU 运行队列（`struct rq`），每个 CPU 在本地队列上做调度决策，只在负载均衡时才访问其他 CPU 的队列。Cinux 可以把 `RoundRobin` 实例移到 `PerCPU` 结构体中，作为 SMP 扩展的第一步。这个改动在架构上非常自然——`g_per_cpu.current` 已经是 per-CPU 的了，把运行队列也放进去只是顺水推舟。
 
-还有一个值得一提的扩展方向是中断安全的通用化。当前 IrqGuard 是 Spinlock 的内部类，只在需要同时获取锁和关中断的场景中使用。未来可以考虑提取一个独立的 `InterruptGuard` 类，供任何需要关中断的临界区使用——不一定是持有锁的场景。比如修改 TSS.RSP0 的操作理论上也应该在关中断状态下完成，防止在写入一半时被中断打断。
+还有一个值得一提的扩展方向是中断安全的通用化。当前 Spinlock 只提供了普通的 Guard，不涉及中断控制。未来可以考虑引入一个"中断安全的 Guard"——在获取锁之前先保存 RFLAGS 并关中断，释放锁之后用保存的 RFLAGS 恢复中断状态。这能防止持有 Spinlock 时被中断打断导致的自死锁。Linux 内核的 `spin_lock_irqsave()` / `spin_unlock_irqrestore()` 就是这个模式。
 
 ## 参考资料
 

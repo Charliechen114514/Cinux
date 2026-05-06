@@ -6,8 +6,9 @@
  * clipping, and DesktopIcon::contains hit testing.  Uses the real kernel
  * Canvas and Framebuffer for pixel verification.
  *
- * Note: icon_data.hpp uses consteval (C++20) which is not available in the
- * freestanding kernel build, so icon_data constant tests and real icon
+ * Note: icon_data.hpp uses constexpr templates that depend on <array> and
+ * the full icon.hpp include chain.  Since the kernel test build does not
+ * include the full icon header path, icon constant tests and real icon
  * rendering tests are covered in the host-side unit tests instead.
  *
  * Preconditions (set up by main_test.cpp):

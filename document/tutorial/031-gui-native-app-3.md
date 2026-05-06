@@ -77,5 +77,5 @@ Cinux 简化了这一切——没有 tty 驱动层，没有 login 认证，shell
 
 - OSDev Wiki: [Unix Pipes](https://wiki.osdev.org/Unix_Pipes) — fork/execve/pipe 三件套和文件描述符继承机制
 - xv6 RISC-V: [kernel/pipe.c](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/pipe.c) — 经典教学 OS 的 fork+execve+pipe 集成，使用 FD_PIPE 类型分发
-- Intel SDM: Vol.2A SYSRETQ — SYSRETQ 从 R11 恢复 RFLAGS 的行为，IF 位自动设置，不需要手动 sti
+- Intel SDM: Vol.2B Chapter 4 Page 4-708 (SYSRET) — "loading RFLAGS from R11"，IF 位由 R11 内容决定，不需要手动 sti
 - Oracle Linux Blog: [Pipe and Splice](https://blogs.oracle.com/linux/pipe-and-splice) — Linux 内核的 file_operations 多态分发模式和 pipe_buffer 结构

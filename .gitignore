@@ -104,3 +104,6 @@ coverage/
 #   模式: document/site/, document/_build/
 document/site/
 document/_build/
+
+# Python虚拟环境
+.venv/

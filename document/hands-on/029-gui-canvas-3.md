@@ -101,7 +101,7 @@ draw_text 的工作流程是：遍历字符串的每个字符，用字符的 ASC
 
 **实现约束**: Canvas 和 font 都声明为 static 局部变量，确保生命周期覆盖整个内核运行期间。gui_init 在中断使能之前调用，但 PIT 回调的注册（gui_start）在 init 线程中进行。
 
-**验证**: 运行 QEMU，你应该看到深色背景上画着 10 个随机颜色的矩形，顶部居中显示白色的 "Cinux GUI" 文字。串口输出 `[GUI] Demo rendered to framebuffer.`。
+**验证**: 运行 QEMU，你应该看到深色背景上画着 10 个随机颜色的矩形，顶部居中显示白色的 "Cinux GUI" 文字。串口输出 `[BIG] GUI demo rendered to framebuffer.`。
 
 ### Step 7: 更新测试适配全量直接映射
 

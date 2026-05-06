@@ -238,5 +238,3 @@ Boot Memory Info: mmap_count=5
 - OSDev Wiki — Serial Ports (https://wiki.osdev.org/Serial_Ports)：UART 寄存器映射表、标准初始化序列、LSR 位定义、轮询发送示例代码。COM1 基地址 0x3F8，THR/LSR 寄存器偏移。Cinux 的初始化序列参考了这个页面。
 
 - xv6 RISC-V `uart.c` (https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/uart.c)：MIT 教学操作系统的 UART 驱动。使用 MMIO（RISC-V 架构）而非 PMIO，支持中断驱动 + 轮询回退。`uartputc_sync()` 的逻辑和 Cinux 的 `Serial::putc()` 几乎一致。
-
-- NS16550A Datasheet (https://pdf.datasheetcatalog.com/datasheet2/national/447461.pdf)：UART 芯片的官方数据手册。包含完整的寄存器描述、时序参数、FIFO 操作细节。

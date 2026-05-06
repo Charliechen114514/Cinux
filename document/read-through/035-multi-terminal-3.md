@@ -77,11 +77,11 @@ pipe 需要包装成 Inode 才能放进 FDTable——因为 FDTable 存的是 Fi
         task->addr_space = new cinux::mm::AddressSpace();
 
         task->fd_table = new cinux::fs::FDTable();
-        task->fd_table->set(0, new cinux::fs::File(stdin_read_inode, 0, RDONLY));
-        task->fd_table->set(1, new cinux::fs::File(stdout_write_inode, 0, WRONLY));
+        task->fd_table->set(0, new cinux::fs::File(stdin_read_inode, 0, cinux::fs::OpenFlags::RDONLY));
+        task->fd_table->set(1, new cinux::fs::File(stdout_write_inode, 0, cinux::fs::OpenFlags::WRONLY));
 
         auto result = cinux::proc::execve("/bin/sh", argv, envp);
-        if (result != ExecveResult::Ok) Scheduler::exit_current();
+        if (result != cinux::proc::ExecveResult::Ok) Scheduler::exit_current();
 
         uint64_t entry = task->ctx.rip;
         // ... alloc user stack pages, map ...
@@ -102,7 +102,7 @@ void gui_tick_callback(void* /*ctx*/) {
     // ... drain mouse events ...
     IconAction action = wm.consume_pending_icon_action();
     if (action != IconAction::None) {
-        g_pending_action.store(action, std::memory_order::Release);
+        g_pending_action.store(action, std::memory_order_release);
     }
 
     for (uint32_t i = 0; i < wm.window_count(); i++) {
@@ -134,13 +134,13 @@ Terminal::~Terminal() {
             int status = 0;
             auto result = cinux::proc::waitpid(shell_pid_, &status,
                                                 cinux::proc::g_pid_alloc);
-            if (result == WaitpidResult::Ok) {
-                kprintf("[TERM] Reaped shell pid=%d status=%d\n",
+            if (result == cinux::proc::WaitpidResult::Ok) {
+                cinux::lib::kprintf("[TERM] Reaped shell pid=%d status=%d\n",
                         shell_pid_, status);
                 break;
             }
-            if (result == WaitpidResult::NoChildren ||
-                result == WaitpidResult::NotFound) break;
+            if (result == cinux::proc::WaitpidResult::NoChildren ||
+                result == cinux::proc::WaitpidResult::NotFound) break;
         }
         shell_pid_ = 0;
     }
@@ -158,13 +158,17 @@ void kernel_init_thread() {
     // ... ext2 mount, VFS init ...
 
 #ifdef CINUX_GUI
+    cinux::lib::kprintf("[INIT] ===== Milestone 035: Multi-Terminal =====\n");
     cinux::gui::gui_start();  // 注册图标 + tick callback
     auto* gui_task = TaskBuilder().set_entry(gui_worker_thread)
                                   .set_name("gui_worker").build();
-    Scheduler::add_task(gui_task);
+    if (gui_task != nullptr) {
+        Scheduler::add_task(gui_task);
+        cinux::lib::kprintf("[INIT] GUI worker thread launched\n");
+    }
 #else
     // Non-GUI: fork shell directly
-    int child_pid = fork(g_pid_alloc);
+    int child_pid = cinux::proc::fork(cinux::proc::g_pid_alloc);
     if (child_pid == 0) {
         // ... execve, user stack, jump_to_usermode ...
     }
@@ -196,8 +200,8 @@ void handle_pf(InterruptFrame* frame) {
 
     // Boot stack guard
     if (cur == nullptr) {
-        uint64_t guard_start = (uint64_t)__boot_guard_start;
-        uint64_t guard_end   = (uint64_t)__boot_guard_end;
+        uint64_t guard_start = reinterpret_cast<uint64_t>(__boot_guard_start);
+        uint64_t guard_end   = reinterpret_cast<uint64_t>(__boot_guard_end);
         if (fault_addr >= guard_start && fault_addr < guard_end) {
             kprintf("  BOOT STACK OVERFLOW DETECTED\n");
             kpanic("boot stack overflow: ...");
@@ -226,5 +230,5 @@ void handle_pf(InterruptFrame* frame) {
 
 ## 参考资料
 - Linux PTY (pseudo-terminal): https://man7.org/linux/man-pages/man7/pty.7.html
-- SerenityOS Terminal: https://github.com/SerenityOS/serenity/tree/master/Userland/Terminal
-- OSDev Wiki IPC: https://wiki.osdev.org/IPC
+- SerenityOS Terminal: https://github.com/SerenityOS/serenity/tree/master/Userland/Applications/Terminal
+- OSDev Wiki IPC: https://wiki.osdev.org/Message_Passing

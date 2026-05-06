@@ -107,7 +107,7 @@ void clear_user_mappings(cinux::mm::AddressSpace& space) {
 
 这个函数做四层嵌套遍历：PML4 -> PDPT -> PD -> PT -> data page。释放所有用户空间的物理页（包括数据页和页表页本身），将所有 entry 清零。execve 后旧的地址空间被彻底清除，为新程序腾出位置。
 
-### execve() — PT_LOAD 段加载（页内偏移修复版）
+### execve() — PT_LOAD 段加载
 
 ```cpp
     for (uint64_t vaddr = seg_start; vaddr < seg_end; vaddr += PAGE_SIZE) {
@@ -115,26 +115,26 @@ void clear_user_mappings(cinux::mm::AddressSpace& space) {
         auto* dst = reinterpret_cast<uint8_t*>(phys + KERNEL_VMA);
         for (uint64_t b = 0; b < PAGE_SIZE; b++) dst[b] = 0;  // 清零
 
-        uint64_t data_vaddr  = (vaddr < phdr.p_vaddr) ? phdr.p_vaddr : vaddr;
-        uint64_t in_page_off = data_vaddr - vaddr;
-        uint64_t seg_offset  = data_vaddr - phdr.p_vaddr;
+        uint64_t page_base_offset = vaddr - phdr.p_vaddr;
+        uint64_t copy_start = 0;
+        uint64_t copy_len = 0;
 
-        if (seg_offset < phdr.p_filesz) {
-            uint64_t copy_len = phdr.p_filesz - seg_offset;
-            uint64_t avail    = PAGE_SIZE - in_page_off;
-            if (copy_len > avail) copy_len = avail;
+        if (page_base_offset < phdr.p_filesz) {
+            copy_start = page_base_offset;
+            copy_len = phdr.p_filesz - page_base_offset;
+            if (copy_len > PAGE_SIZE) copy_len = PAGE_SIZE;
 
-            inode->ops->read(inode, phdr.p_offset + seg_offset,
-                             dst + in_page_off, copy_len);
+            inode->ops->read(inode, phdr.p_offset + copy_start,
+                             dst + copy_start, copy_len);
         }
 
         task->addr_space->map(vaddr, phys, page_flags);
     }
 ```
 
-页内偏移计算是这段代码的精髓。data_vaddr 取 vaddr 和 p_vaddr 的较大值——第一页时 p_vaddr 可能大于 vaddr（段起始非页对齐），后续页 data_vaddr = vaddr。in_page_off 是段数据在这一页内的起始位置——第一页可能非零，后续页都是 0。seg_offset 是段内偏移——用于计算文件读取位置。
+PT_LOAD 段加载的核心逻辑是对每个段覆盖的虚拟地址范围逐页处理。seg_start 是 p_vaddr 向下对齐到页，seg_end 是 (p_vaddr + p_memsz) 向上对齐到页。对每一页：分配物理页、清零、从 ELF 文件填充数据、map 到地址空间。
 
-举个例子：p_vaddr = 0x400260，那么 seg_start = 0x400000。第一页 vaddr = 0x400000，data_vaddr = max(0x400000, 0x400260) = 0x400260，in_page_off = 0x260，seg_offset = 0。写入物理页的 offset 0x260 处。第二页 vaddr = 0x401000，data_vaddr = max(0x401000, 0x400260) = 0x401000，in_page_off = 0，seg_offset = 0xDA0。写入物理页的 offset 0 处。
+page_base_offset = vaddr - p_vaddr 是当前页在段内的字节偏移。如果这个偏移还在 p_filesz 范围内，说明这一页有对应的文件数据需要读取。copy_start 等于 page_base_offset（文件内偏移的起点），copy_len 是剩余文件数据量（不超过一页）。注意这里的前提是 ELF 的 PT_LOAD 段的 p_vaddr 是页对齐的（p_align 通常为 0x1000），所以 seg_start 等于 p_vaddr，page_base_offset 从 0 开始递增。如果 p_vaddr 不是页对齐的，这个简单算法需要额外的页内偏移处理。
 
 ### execve() — 设置入口点
 

@@ -111,13 +111,12 @@ constexpr uint64_t FLAG_ACCESSED = 1ULL << 5;
 constexpr uint64_t FLAG_DIRTY    = 1ULL << 6;
 constexpr uint64_t FLAG_HUGE     = 1ULL << 7;
 constexpr uint64_t FLAG_GLOBAL   = 1ULL << 8;
-constexpr uint64_t FLAG_COW      = 1ULL << 9;  // Available bit 9: Copy-On-Write marker
 constexpr uint64_t FLAG_NX       = 1ULL << 63;
 ```
 
 你会发现这组标志位和 Intel SDM Vol.3A Table 4-20 定义的 PTE 格式一一对应。bit 0 的 Present 位决定这一页是否在物理内存中——当 P=0 时，MMU 不会做地址翻译，而是直接触发 #PF 异常，这正是后面按需分页（demand paging）的基础。bit 1 的 Writable 控制写权限，bit 2 的 User 控制用户态（Ring 3）访问权限。bit 3-4 的 PWT（Page-level Write-Through）和 PCD（Page-level Cache Disable）控制这一页的缓存策略，在设备 MMIO 映射时特别有用——如果你映射的是帧缓冲区这样的写合并（write-combining）区域，就需要配合 MTRR/PAT 来设置正确的缓存属性。bit 5-6 的 Accessed 和 Dirty 是由 CPU 硬件自动设置的"粘滞位"——CPU 每次通过某个 PTE 做地址翻译就置 Accessed，每次写入就置 Dirty，而且 CPU 永远不会清零这两位，这为未来的页面置换算法提供了最基本的热度信息。
 
-bit 7 的 Huge 在不同层级有不同含义：在 PDPT 层置位表示 1GB 大页，在 PD 层置位表示 2MB 大页，在 PT 层则变成 PAT（Page Attribute Table）位。Cinux 统一用 `huge` 这个名字，因为它在非叶节点上的语义确实就是"这是一个大页而非指向下一级页表的指针"。bit 8 的 Global 标志防止该 PTE 在 CR3 重载时被刷出 TLB——内核代码页通常会设这个位以减少 TLB miss。bit 9 是 Available 位之一，Cinux 将它征用为 `FLAG_COW`（Copy-On-Write 标记），为未来的 fork() 实现做准备。bit 63 的 NX（No eXecute）禁止在这个页上执行代码，是 W^X 安全策略的硬件基础。
+bit 7 的 Huge 在不同层级有不同含义：在 PDPT 层置位表示 1GB 大页，在 PD 层置位表示 2MB 大页，在 PT 层则变成 PAT（Page Attribute Table）位。Cinux 统一用 `huge` 这个名字，因为它在非叶节点上的语义确实就是"这是一个大页而非指向下一级页表的指针"。bit 8 的 Global 标志防止该 PTE 在 CR3 重载时被刷出 TLB——内核代码页通常会设这个位以减少 TLB miss。bit 9-11 是 Available 位，OS 可以自由使用，未来可以为 Copy-On-Write 标记等用途预留。bit 63 的 NX（No eXecute）禁止在这个页上执行代码，是 W^X 安全策略的硬件基础。
 
 最后是四个索引提取函数，它们是页表遍历的"导航工具"：
 
@@ -135,15 +134,9 @@ constexpr uint64_t PD_INDEX(uint64_t virt) {
 constexpr uint64_t PT_INDEX(uint64_t virt) {
     return (virt >> PT_SHIFT) & 0x1FF;
 }
-
-// True if the virtual address falls in the canonical lower half (user space).
-// x86_48 user space: bit 47 = 0, i.e. 0x0000000000000000 .. 0x00007FFFFFFFFFFF.
-constexpr bool is_user_vaddr(uint64_t virt) {
-    return !(virt & (1ULL << 47));
-}
 ```
 
-每个函数做的事情完全一样：右移对应位数，然后和 `0x1FF`（9 个 1）做与运算，提取出 9 位的索引值。`constexpr` 修饰意味着编译器可以在编译期计算出常量虚拟地址的索引——对于内核的静态映射来说，这省掉了一堆运行时计算。`is_user_vaddr` 是一个便利函数，通过检查虚拟地址的第 47 位来判断地址属于用户空间还是内核空间。在 x86-64 的 48 位虚拟地址空间中，bit 47 = 0 表示下半部分（用户空间 0 到 128TB），bit 47 = 1 表示上半部分（内核空间），这就是所谓的"规范地址"（canonical address）约束。
+每个函数做的事情完全一样：右移对应位数，然后和 `0x1FF`（9 个 1）做与运算，提取出 9 位的索引值。`constexpr` 修饰意味着编译器可以在编译期计算出常量虚拟地址的索引——对于内核的静态映射来说，这省掉了一堆运行时计算。
 
 ### PageEntry 联合体——软件眼中的 PTE
 

@@ -164,15 +164,15 @@ _Static_assert(sizeof(BootInfo) == 824, "BootInfo size mismatch");
 
 ```
   虚拟地址: 0xFFFFFFFF80020000
-  二进制:   1111...1111 10000000 00000010 00000000 00000000
+  二进制:   1111...1111 11111110 00000000 00100000 00000000 00000000
 
   PML4 索引 (bits 47:39):  111111111 = 511 = 0x1FF
-  PDPT 索引 (bits 38:30):  100000000 = 510 = 0x1FE
-  PD   索引 (bits 29:21):  000000001 = 1   = 0x001
-  页偏移   (bits 20:00):   00000000 00000000 00000000 = 0x00000 (within 2MB page)
+  PDPT 索引 (bits 38:30):  111111110 = 510 = 0x1FE
+  PD   索引 (bits 29:21):  000000000 = 0   = 0x000
+  页偏移   (bits 20:00):   0x20000 = 0x20000 (within 2MB page)
 ```
 
-PML4[511] 指向 PDPT（和 PML4[0] 指向的是同一个 PDPT），PDPT[510] 指向 PD（和 PDPT[0] 指向的是同一个 PD）。这意味着 identity mapping 和 higher-half mapping 共享了同一套 PD 条目。PD[1] 映射了物理地址 0x200000~0x400000 的 2MB 大页，而 `0x20000` 落在 PD[0] 的范围内（PD[0] 映射 0~2MB），所以不管是通过 identity mapping 访问 0x20000 还是通过 higher-half mapping 访问 0xFFFFFFFF80020000，CPU 穿过页表之后都会到达同一块物理内存。
+PML4[511] 指向 PDPT（和 PML4[0] 指向的是同一个 PDPT），PDPT[510] 指向 PD（和 PDPT[0] 指向的是同一个 PD）。这意味着 identity mapping 和 higher-half mapping 共享了同一套 PD 条目。PD[0] 映射了物理地址 0~2MB 的 2MB 大页，而 `0x20000` 正好落在 PD[0] 的范围内，所以不管是通过 identity mapping 访问 0x20000 还是通过 higher-half mapping 访问 0xFFFFFFFF80020000，CPU 穿过页表之后都会到达同一块物理内存。
 
 这个设计的巧妙之处在于：只增加了两条页表项（PML4[511] 和 PDPT[510]），就建立起了一个完整的虚拟地址映射，不需要额外分配任何物理页来存放新的页表。代价是 PML4[511] 和 PDPT[510] 把整个 1GB 区域（PDPT[510] 映射的 0xFFFFFFFF80000000~0xFFFFFFFFBFFFFFFF）全部映射到了和 identity mapping 相同的物理内存上——这在启动阶段完全没问题，后续建立正式页表时会替换掉这些映射。
 

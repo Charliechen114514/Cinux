@@ -18,7 +18,7 @@
 
 在 Linux 里，CWD 存储在 `task_struct->fs->pwd` 中，类型是 `struct path`（包含一个指向 dentry 和 vfsmount 的指针）。Cinux 的做法更简单直接——我们在 `Task` 结构体里直接塞一个 `char cwd[256]` 字段，存的是绝对路径字符串。256 字节对教学内核来说绰绰有余了——Linux 的 PATH_MAX 也是 4096，但我们的路径不会那么长。
 
-进程创建的时候，CWD 初始化为根目录 `"/"`。子进程继承父进程的 CWD——不过 Cinux 目前还没有 fork，所以初始化阶段只要把第一个进程的 CWD 设为 `/` 就行。
+进程创建的时候，CWD 初始化为根目录 `"/"`。Cinux 目前还没有 fork/execve，Shell 进程是在 `kernel/arch/x86_64/usermode.cpp` 的 `launch_first_user()` 中通过创建一个 `static Task shell_task{}` 并设置 `.cwd[0] = '/'` 来启动的，所以初始化阶段只要把第一个进程的 CWD 设为 `/` 就行。
 
 ### 路径规范化 —— 把乱七八糟的路径收拾干净
 
@@ -40,7 +40,7 @@
 
 **设计思路**: 在 `Task` 结构体末尾添加 `char cwd[256]` 字段。选择 256 字节而不是更小的值，是因为要容纳一定深度的目录路径。选择固定大小数组而不是动态分配，是为了避免在内核里引入堆分配的复杂性。字段初始化为 `"/"`。
 
-**实现约束**: 新字段添加在 `fpu_state[512]` 之后。所有创建 Task 的代码路径（包括 `TaskBuilder::build()` 和 `launch_first_user()` 里的静态 Task）都需要确保 cwd 被正确初始化。
+**实现约束**: 新字段添加在 `fpu_state[512]` 之后。所有创建 Task 的代码路径（包括 `TaskBuilder::build()` 和通过 `fork()` 复制 Task 的路径）都需要确保 cwd 被正确初始化。
 
 **验证**: 编译通过，确认 sizeof(Task) 变化合理：
 ```bash
@@ -105,11 +105,9 @@ cd build && cmake .. && make big_kernel_common 2>&1 | tail -5
 
 ### Step 5: Scheduler::set_current 和 CWD 初始化
 
-**目标**: 提供 `set_current()` 方法用于测试和 Shell 启动时设置当前进程，确保 CWD 在内核启动流程中被初始化。
+**目标**: 提供 `set_current()` 方法用于测试中设置当前进程，确保 CWD 在内核启动流程中被正确初始化。
 
-**设计思路**: `Scheduler::set_current(Task* task)` 同时更新 `current_` 静态成员和 `g_per_cpu.current`。在 `launch_first_user()` 中，jump_to_usermode 之前创建一个静态 Task，设置 cwd 为 `"/"`，状态为 Running，然后通过 set_current 注册到调度器中。
-
-**实现约束**: `launch_first_user` 中使用 static 局部变量存储 Task，避免栈上的 Task 在跳转到用户态后被回收。set_current 要在 jump_to_usermode 之前调用，因为 Shell 的第一个 syscall 可能就是需要访问 CWD 的。
+**设计思路**: `Scheduler::set_current(Task* task)` 同时更新 `current_` 静态成员和 `g_per_cpu.current`。Shell 进程在 `launch_first_user()` 中通过创建 `static Task shell_task{}` 并设置 `.cwd[0] = '/'`、`.state = Running`，然后调用 `set_current(&shell_task)` 来注册。测试代码中同样通过 `set_current()` 注册一个 mock Task 来测试 CWD 相关功能。
 
 **验证**: 运行完整内核测试，确认 CWD 初始值测试通过：
 ```bash

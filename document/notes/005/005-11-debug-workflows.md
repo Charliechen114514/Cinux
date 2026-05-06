@@ -292,7 +292,7 @@ kdebugf("Debug: %s\n", msg);
 - [005-10: 串口调试详解](005-10-serial-debug.md) - UART 驱动
 
 ### 外部资源
-- [QEMU GDB documentation](https://qemu.readthedocs.io/en/v9.1.3/system/gdb.html)
+- [QEMU GDB documentation](https://www.qemu.org/docs/master/system/gdb.html)
 - [Building a VS Code Debugging Workflow for a Custom x64 OS](https://www.sqlpassion.at/archive/2025/07/22/building-a-vs-code-debugging-workflow-for-a-custom-x64-operating-system-with-qemu-and-gdb/)
 - [OSDev Wiki: GDB](https://wiki.osdev.org/GDB)
 

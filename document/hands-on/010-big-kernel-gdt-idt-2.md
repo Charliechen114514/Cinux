@@ -1,12 +1,12 @@
-# 010-2 Hands-on: 大内核 IDT + ISR + 异常处理——中断栈帧与寄存器 dump
+# 010-2 Hands-on: 大内核 IDT 与 ISR 汇编跳板——中断描述符表与中断栈帧
 
 ## 导语
 
 上一节我们给大内核配好了 GDT——七个描述符全部到位，段寄存器也都刷新到了正确的选择子。但光有 GDT 还不够，CPU 遇到异常（除零、缺页、非法指令）时需要一个"电话簿"来查找对应的处理程序地址——这就是 IDT（Interrupt Descriptor Table）。没有 IDT，或者 IDT 里对应向量的条目是空的，CPU 就会触发 Double Fault，如果 Double Fault 也没人处理，就 Triple Fault，QEMU 直接重启。
 
-本节我们要完成四件事：创建 IDT 的 C++ 类（配合 scoped enum 表达门类型和特权级）、编写 ISR（Interrupt Service Routine）的汇编跳板代码（负责保存/恢复寄存器）、实现一组 C++ 异常处理函数（打印寄存器 dump + 判断致命/非致命）、然后把所有东西集成到 `kernel_main` 里用 `int $3` 触发一个断点异常来验证整个链路。
+本节我们要完成 IDT 的核心基础设施：创建 IDT 的 C++ 类（配合 scoped enum 表达门类型和特权级）、编写 ISR（Interrupt Service Routine）的汇编跳板代码（负责保存/恢复寄存器），然后用数据驱动的路由表将 ISR stub 注册到 IDT 条目中。
 
-完成本节后，你会看到这样的串口输出：触发 `int $3` → 串口打印完整的寄存器 dump → 程序继续执行打印 "Breakpoint returned, continuing." → 进入 halt 循环。这就是我们的目标：触发异常不死机，能看到 CPU 当时的完整状态，然后程序还能继续执行。
+完成本节后，IDT 的初始化和 ISR stub 全部就绪，但还需要下一节的 C++ 异常处理函数才能真正处理异常。
 
 前置知识：上一节（010-1）的 GDT 初始化，以及 009 章的 kprintf 串口输出。
 
@@ -30,10 +30,6 @@ IDT 里有两种 64 位门类型。Interrupt Gate（类型 0xE）在跳转到处
 
 问题在于：我们的 C 处理函数需要接收一个统一的 `InterruptFrame*` 参数来读取所有寄存器的值。如果有的异常栈上有错误码、有的没有，结构体就对不齐了。解决方案是在 ISR stub 里做一个"填零"操作——对于没有硬件错误码的异常，stub 自己推一个假的 error code 0，这样所有异常到达 C 处理函数时，栈帧的布局就完全统一了。
 
-### 致命异常 vs 非致命异常
-
-x86 的 CPU 异常大致可以分成两类。一类是"通知型"的——#BP（断点）和 #DB（调试），处理完后程序可以继续执行。另一类是"致命型"的——#DE（除零）、#UD（非法指令）、#GP（保护错误）、#PF（页错误）等，意味着程序状态已经不可恢复。对于致命异常，我们打印完寄存器 dump 之后进入 `cli; hlt` 死循环。#PF 的处理稍微特殊一点——除了打印寄存器 dump，我们还会从 CR2 寄存器读出触发缺页的虚拟地址，然后把错误码的各个 bit 拆解成可读的字符串。
-
 ---
 
 ## 动手实现
@@ -42,7 +38,7 @@ x86 的 CPU 异常大致可以分成两类。一类是"通知型"的——#BP（
 
 **目标**: 创建 `kernel/arch/x86_64/idt.hpp`，定义 `ExceptionVector` scoped enum（向量 0-14 的符号名）、`IDTGateType` 和 `IDTPrivilege` 枚举、`InterruptFrame` 结构体、`IDT` class（含 Entry/Pointer 内部结构体、Handler/Stub 类型别名、set_handler/init/load 方法）。
 
-**设计思路**: `ExceptionVector` 枚举把魔术数字变成有意义的符号名（`ExceptionVector::DE` 代替 `0`，`ExceptionVector::PF` 代替 `14`）。`IDTGateType` 和 `IDTPrivilege` 枚举使得 IDT 条目的配置在类型层面就是正确的——你不可能意外地把 Interrupt Gate 的值传给一个期望 Trap Gate 的地方。`InterruptFrame` 结构体的字段顺序必须和 ISR 汇编中 push 的顺序完全一致。
+**设计思路**: `ExceptionVector` 枚举把魔术数字变成有意义的符号名（`ExceptionVector::DE` 代替 `0`，`ExceptionVector::PF` 代替 `14`）。`IDTGateType` 和 `IDTPrivilege` 枚举使得 IDT 条目的配置在类型层面就是正确的。`InterruptFrame` 结构体的字段顺序必须和 ISR 汇编中 push 的顺序完全一致。
 
 **实现约束**:
 - `ExceptionVector` 枚举值：DE=0, DB=1, NMI=2, BP=3, OF=4, BR=5, UD=6, NM=7, DF=8, TS=10, NP=11, SS=12, GP=13, PF=14
@@ -71,7 +67,7 @@ cmake --build build --target big_kernel 2>&1 | tail -5
 
 **目标**: 创建 `kernel/arch/x86_64/interrupts.S`，定义两个 GAS 宏用于生成 ISR stub，然后实例化 15 个异常处理 stub（向量 0-8, 10-14）。
 
-**设计思路**: 两个宏的区别只有一处——`ISR_NOERRCODE` 在保存寄存器之前先 `pushq $0` 填一个假的 error code，`ISR_ERRCODE` 不需要（CPU 已经 push 了真的 error code）。之后两者的流程完全相同：保存 15 个通用寄存器（RAX→R15 的 push 顺序）、把 RSP 传给 RDI（System V ABI 第一个参数）、调用 C handler、恢复 15 个寄存器、跳过 error code（`addq $8, %rsp`）、`iretq`。
+**设计思路**: 两个宏的区别只有一处——`ISR_NOERRCODE` 在保存寄存器之前先 `pushq $0` 填一个假的 error code，`ISR_ERRCODE` 不需要（CPU 已经 push 了真的 error code）。之后两者的流程完全相同：保存 15 个通用寄存器（RAX->R15 的 push 顺序）、把 RSP 传给 RDI（System V ABI 第一个参数）、调用 C handler、恢复 15 个寄存器、跳过 error code（`addq $8, %rsp`）、`iretq`。
 
 **实现约束**:
 - 宏参数：`ISR_NOERRCODE name handler` 和 `ISR_ERRCODE name handler`
@@ -89,7 +85,6 @@ cmake --build build --target big_kernel 2>&1 | tail -5
 - AT&T 语法的操作数顺序是 `source, destination`——`pushq %rax` 是把 RAX 压入栈，`movq %rsp, %rdi` 是把 RSP 复制到 RDI。如果你习惯 Intel 语法，这里非常容易搞反。
 - `call \handler` 中的 handler 是 C linkage 函数名。C++ 中定义在 `extern "C"` 块里的函数不会被 name mangle，所以汇编里可以直接用函数名调用。如果你的 handler 忘了加 `extern "C"`，链接时找不到符号。
 - 向量 9（Coprocessor Segment Overrun）在现代 CPU 上已经不用了，所以我们跳过了它，实例化的 stub 是 0-8 和 10-14 共 15 个。
-- `addq $8, %rsp` 不能用 `popq` 代替——因为 pop 会把值写入一个寄存器，而 error code 不需要保存到任何地方，直接跳过更高效。不过如果你真的用 pop 到一个临时寄存器然后丢弃，也不会出错，只是多了一次无意义的寄存器写入。
 
 **验证**: 此步完成后编译应该通过，但还没有可运行的输出（因为 C handler 还没写）。
 
@@ -97,35 +92,7 @@ cmake --build build --target big_kernel 2>&1 | tail -5
 cmake --build build --target big_kernel 2>&1 | tail -5
 ```
 
-### Step 3: 实现异常处理函数——寄存器 dump 与致命/非致命策略
-
-**目标**: 创建 `kernel/arch/x86_64/exception_handlers.cpp`，实现 15 个 C handler 函数（extern "C" linkage），包含 `dump_registers()` 辅助函数和 `fatal_halt()` 死循环。
-
-**设计思路**: 所有 handler 共享 `dump_registers()` 函数来打印 `InterruptFrame` 中的所有寄存器值（RAX-R15 + RIP + CS + RFLAGS + RSP + SS + Error Code）。非致命异常（#BP 和 #DB）打印完后直接返回（ISR stub 中的 iretq 会恢复执行）。致命异常打印完后调用 `fatal_halt()` 进入 `cli; hlt` 死循环。#PF 特殊处理：从 CR2 读出缺页地址，解码 error code 的各个 bit 成可读字符串。
-
-**实现约束**:
-- 所有 handler 函数签名：`void handle_xx(InterruptFrame* frame)`，声明在 `extern "C"` 块中
-- `dump_registers(frame, name, vector)` 打印异常名、向量号、所有寄存器值（用 `%p` 格式化指针样式输出）
-- `fatal_halt()` 标记为 `[[noreturn]]`，内部是 `while(1) { asm volatile("cli; hlt"); }`
-- #BP handler：dump + 打印 "Breakpoint at RIP=xxx" + 打印 "Continuing..."，然后返回
-- #DB handler：dump + 打印 "Debug exception, continuing..."，然后返回
-- #DE/#NMI/#OF/#BR/#UD/#NM handler：dump + 打印 "FATAL: xxx -- halting."，调用 fatal_halt()
-- #DF/#TS/#NP/#SS/#GP handler：dump + 打印 error code 值，调用 fatal_halt()
-- #PF handler：dump + 从 CR2 读 faulting address + 解码 error code（present/write/user/reserved/fetch）+ 打印全部信息，调用 fatal_halt()
-- CR2 读取方式：`asm volatile("movq %%cr2, %0" : "=r"(fault_addr))`
-
-**踩坑预警**:
-- `dump_registers` 中的 `kprintf` 用 `%p` 格式化寄存器值时，需要用 `reinterpret_cast<void*>(value)` 转换，因为 `%p` 期望 `void*` 类型。如果直接传 `uint64_t`，在某些编译器配置下可能打印出错误的值（虽然在实践中大部分编译器会把 uint64_t 和 void* 等价处理，但标准不保证这一点）。
-- `fatal_halt()` 中的 `cli; hlt` 放在循环里是因为——虽然 `cli` 已经关了中断，`hlt` 理论上永远不会被唤醒（没有中断来唤醒它），但为了防御性地处理可能的 NMI（不可屏蔽中断），放在循环里是更安全的做法。NMI 可以唤醒 hlt 的 CPU，此时循环回来再 cli; hlt 就行。
-- #DF（Double Fault，向量 8）的 error code 总是 0，但 CPU 仍然会 push 它。不要因为知道是 0 就在 ISR stub 里用 ISR_NOERRCODE——Double Fault 必须用 ISR_ERRCODE。
-
-**验证**: 编译通过即可。完整验证在 Step 4 的集成测试中进行。
-
-```bash
-cmake --build build --target big_kernel 2>&1 | tail -5
-```
-
-### Step 4: 实现 IDT 初始化——数据驱动的路由表
+### Step 3: 实现 IDT 初始化——数据驱动的路由表
 
 **目标**: 创建 `kernel/arch/x86_64/idt.cpp`，声明 ISR stub 和 C handler 的 extern "C" 引用，实现 `IDT::set_handler()`、`IDT::init()` 和 `IDT::load()`。
 
@@ -143,85 +110,30 @@ cmake --build build --target big_kernel 2>&1 | tail -5
 
 **踩坑预警**:
 - `set_handler` 中地址拆分的位操作必须正确：offset_low = addr & 0xFFFF, offset_mid = (addr >> 16) & 0xFFFF, offset_high = (addr >> 32) & 0xFFFFFFFF。如果位移搞错了，CPU 跳转到错误的地址处理中断，100% triple fault。
-- 路由表里向量 9 被跳过了（现代 CPU 不用），所以向量号是 0-8 和 10-14，不是连续的。如果你不小心按 0-13 连续编号，向量 9 的 stub 会被安装到向量 10 的位置，然后向量 10 的 ISR stub 对应 #TS 但 IDT 指向了 #MP 的 handler——不会崩但行为是错的。
+- 路由表里向量 9 被跳过了（现代 CPU 不用），所以向量号是 0-8 和 10-14，不是连续的。
 
-**验证**: 编译通过后进入 Step 5 做完整的集成测试。
+**验证**: 编译通过后进入下一节做完整的集成测试。
 
 ```bash
 cmake --build build --target big_kernel 2>&1 | tail -5
 ```
 
-### Step 5: 集成到 kernel_main 并触发 int $3 验证
+### 关于 `extern "C"` 块的细节
 
-**目标**: 修改 `kernel/main.cpp`，在 `kernel_main()` 中依次初始化串口、GDT、IDT，然后执行 `asm volatile("int $3")` 触发断点异常。
+`idt.cpp` 文件顶部有两个 `extern "C"` 块。第一个声明了 15 个 ISR stub（定义在 `interrupts.S`），第二个声明了 15 个 C handler（定义在 `exception_handlers.cpp`）。使用块语法 `extern "C" { ... }` 比在每个函数前单独写 `extern "C"` 更简洁。
 
-**设计思路**: 初始化顺序很重要：串口先初始化（kprintf_init），然后 GDT（因为 IDT 的 selector 依赖 GDT 中的 code segment），然后 IDT。初始化完成后打印确认信息，然后用 `int $3` 触发 #BP 异常来验证整个中断处理链路——ISR stub → dump registers → return → continue。
+为什么需要 `extern "C"`？因为 C++ 编译器会对函数名做 name mangling（把 `handle_bp` 变成类似 `_Z9handle_bpPN6cinux4arch15InterruptFrameE` 的内部名），而汇编代码中的 `call handle_bp` 使用的是原始的 C 符号名。如果不加 `extern "C"`，链接器会报 "undefined reference to handle_bp" 错误。这个坑在 C++ 内核开发中非常常见——每次新增一个被汇编调用的 C 函数，都必须记得加 `extern "C"`。
 
-**实现约束**:
-- 初始化顺序：`kprintf_init()` → `g_gdt.init()` → `g_idt.init()`
-- 在每一步之间打印确认信息
-- 触发断点：`asm volatile("int $3")`
-- 断点后打印 "Breakpoint returned, continuing."
-- 最后进入 `while(1) { asm volatile("cli; hlt"); }` 死循环
-- **绝对不能** 在断点测试之前执行 `sti`——因为我们没有 IRQ 处理程序，PIT 定时器中断会触发未处理的 IRQ，导致 Double Fault
+### 关于中断栈帧布局的再强调
 
-**踩坑预警**:
-- 如果你手滑在 `int $3` 之前写了 `sti`，QEMU 会在几毫秒内收到 PIT 定时器中断（IRQ 0），然后跳到 IDT[32]——一个空条目——触发 #GP → Double Fault → Triple Fault → 重启。这个坑我踩了不止一次。
-- `int $3` 是一字节指令（opcode 0xCC），而 `int $N`（N != 3）是两字节指令（0xCD N）。`int $3` 被设计成一字节是有原因的——调试器可以在任意位置插入断点（只需覆盖一个字节），而不需要考虑指令对齐。不过对我们来说这两个形式效果一样。
+`InterruptFrame` 结构体的字段顺序需要再强调一次——从上到下必须和汇编里 push 的顺序完全一致。ISR stub 先 push R15（最后被 push 的在最低地址，也就是结构体的第一个字段），然后依次 R14、R13...RAX，然后是 error_code（CPU 压入的或 stub 填零的），最后是 CPU 自动压入的 RIP、CS、RFLAGS、RSP、SS。
 
-**验证**: 运行大内核，串口应该输出类似以下内容：
+一个验证字段顺序的好方法是：在 `int $3` 之前给某个寄存器设置已知的值（比如 `movq $0xDEADBEEF, %rax`），然后看 dump 里 RAX 是不是这个值。如果不是，字段顺序就搞反了。
 
-```
-[BIG] Big kernel running @ 0x1000000
-[BIG] GDT loaded.
-[BIG] IDT loaded.
-[BIG] Triggering int $3 breakpoint...
-
-==== EXCEPTION: #BP (vector 3) ====
-  RIP   = 0x...   CS  = 0x0008
-  RFLAGS= 0x...
-  RSP   = 0x...   SS  = 0x0010
-  ... (all register values)
-  ERROR CODE = 0x0
-========================================
-[EXCEPTION] Breakpoint at RIP=0x...
-[EXCEPTION] Continuing...
-[BIG] Breakpoint returned, continuing.
-```
+**验证**: 编译通过后进入下一节做完整的集成测试。
 
 ```bash
-# 运行大内核
-cmake --build build --target run 2>&1 | head -40
-
-# 或者运行自动化测试
-cmake --build build --target run-big-kernel-test
-# 预期：8 个测试全部 PASS，QEMU 自动退出
-```
-
-### Step 6: 编写集成测试（可选但推荐）
-
-**目标**: 创建 `kernel/test/test_gdt_idt.cpp`，在 QEMU 内运行自动化测试验证 GDT 段寄存器值和 #BP 异常处理。
-
-**实现约束**:
-- 测试框架定义在 `kernel/test/big_kernel_test.h`（轻量级，用 kprintf 输出）
-- 测试用例：读 CS/DS/SS/ES 寄存器验证值、触发 int $3 验证程序继续执行、多次触发验证栈帧不损坏、验证 make_idt_attr 的返回值
-- 测试入口在 `kernel/test/main_test.cpp`（替代 kernel_main）
-- 测试完成后通过 QEMU isa-debug-exit 设备退出
-
-**验证**:
-
-```bash
-cmake --build build --target run-big-kernel-test
-# 预期输出：
-# [TEST] Big Kernel Test Suite starting...
-# [TEST] GDT loaded.
-# [TEST] IDT loaded.
-# === Big Kernel GDT/IDT/Interrupt Tests (010) ===
-# [RUN] test_cs_register
-# [PASS] test_cs_register
-# ... (8 tests)
-# === Tests: 8 passed, 0 failed ===
-# [TEST] ALL TESTS PASSED
+cmake --build build --target big_kernel 2>&1 | tail -5
 ```
 
 ---
@@ -232,12 +144,6 @@ cmake --build build --target run-big-kernel-test
 # 完整编译
 cmake --build build --target big-kernel-test-image
 
-# 运行测试（自动退出）
-cmake --build build --target run-big-kernel-test
-
-# 运行生产内核（手动 Ctrl+C 退出）
-cmake --build build --target run
-
 # 仅编译不运行
 cmake --build build --target big_kernel
 ```
@@ -246,37 +152,29 @@ cmake --build build --target big_kernel
 
 ## 调试技巧
 
-**问题: int $3 触发后 triple fault**
-最可能的原因是 IDT 中向量 3 的条目配置不对。用 QEMU 的 `-d int` 选项可以查看每次中断/异常的详细信息，包括向量号、error code、IDT 条目内容。`-d int` 的输出里会显示 CPU 在 IDT 中找到了什么——如果是 `type=0` 说明条目为空（未 present），如果是 `selector=0x0000` 说明段选择子没设。
+**问题: lidt 后 triple fault**
+用 QEMU monitor 的 `info registers` 查看 IDTR 的值，确认 base 和 limit 正确。limit 应该是 4095（256 * 16 - 1）。
 
-**问题: 寄存器值看起来全部是错的**
-`InterruptFrame` 的字段顺序和汇编中的 push 顺序不一致。回头检查 idt.hpp 中的结构体定义——r15 必须在最前面（因为它最先被 push，在栈上最深），rax 在最后面（因为它最后被 push，在栈上最浅）。
+**问题: ISR stub 链接错误（undefined reference）**
+检查 `interrupts.S` 中的 stub 名字和 `idt.cpp` 中 `extern "C"` 声明的名字是否完全一致。注意 C++ 的 name mangling——如果忘了 `extern "C"`，链接器会找不到符号。
 
-**问题: 多次 int $3 后程序崩溃**
-ISR stub 中的 `addq $8, %rsp` 是否正确？如果漏了这一步，每次 iretq 后栈上会残留 error code，导致栈指针偏移，最终栈溢出或对齐错误。另一个可能是 push/pop 顺序不对称——少 pop 了一个寄存器或者多 push 了一个。
+**问题: ISR_ERRCODE / ISR_NOERRCODE 用反了**
+这是非常危险的 bug。如果一个有硬件错误码的异常（比如 #GP）用了 ISR_NOERRCODE，栈上会多出一个 CPU 压入的错误码，IRETQ 时弹出的 RIP 实际上是错误码的值，CPU 跳到随机地址。反过来，如果无错误码的异常（比如 #BP）用了 ISR_ERRCODE，栈上会少 8 字节，ISR stub 保存的 R15 覆盖了 CPU 压入的 RIP。排查方法是查 Intel SDM 的 Table 6-1 确认每个异常是否有 error code。
 
-**调试命令**:
+**问题: IDT 路由表中向量 9 的处理**
+向量 9（Coprocessor Segment Overrun）在现代 x86_64 CPU 上已经不再产生。我们选择跳过它——不注册任何 handler，如果（理论上）触发了，CPU 会走到 IDT[9] 的空条目，触发 #GP。这比注册一个无用的 stub 更简洁。路由表中向量号从 8 直接到 10（不是连续的），编码时不要写成连续的 0-13。
 
 ```bash
-# 查看 QEMU 中断事件日志
-qemu-system-x86_64 ... -d int 2>int.log
-# 触发异常后查看 int.log
-
-# GDB 调试 ISR
+# GDB 调试
 gdb build/kernel/big/big_kernel
 (gdb) target remote :1234
 (gdb) break isr_bp_stub
-(gdb) break handle_bp
-(gdb) info registers  # 对比 dump_registers 的输出
-
-# 查看段寄存器
-(gdb) info registers cs ds ss es fs gs
-# 预期：cs=0x0008, ds=0x0010, ss=0x0010
+(gdb) info registers  # 查看 IDTR
 ```
 
 ---
 
-## 本章小结
+## 本节小结
 
 | 概念 | 要点 |
 |------|------|
@@ -286,10 +184,6 @@ gdb build/kernel/big/big_kernel
 | DPL | #BP/#DB = 3（用户可触发），其余 = 0 |
 | ISR_NOERRCODE | push $0 填伪 error code |
 | ISR_ERRCODE | CPU 已 push error code |
-| InterruptFrame | r15→rax + error_code + rip/cs/rflags/rsp/ss |
-| dump_registers | 格式化输出所有寄存器值 |
-| fatal_halt | cli; hlt 死循环，用于致命异常 |
-| #PF 特殊处理 | 读 CR2 + 解码 error code bit |
+| InterruptFrame | r15->rax + error_code + rip/cs/rflags/rsp/ss |
 | 数据驱动路由表 | Route 数组遍历配置 IDT |
-| 初始化顺序 | kprintf_init → gdt.init → idt.init |
-| 不要 sti | 没有 IRQ handler 时开中断会 DF |
+| make_idt_attr | 0x80 | priv | gate 组合 type_attr 字节 |

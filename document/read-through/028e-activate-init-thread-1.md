@@ -172,4 +172,4 @@ constexpr uint64_t buf_virt = cinux::arch::KMEM_DMA_BASE;
 
 - Linux init/main.c: `rest_init()` → `kernel_init` 线程 — [GitHub](https://github.com/torvalds/linux/blob/master/init/main.c)
 - OSDev Wiki: [Higher Half Kernel](https://wiki.osdev.org/Higher_Half_Kernel) — 内核虚拟地址空间布局
-- Intel SDM: Vol.3A Section 4.3 — 4-Level Paging, canonical address space
+- Intel SDM: Vol.3A Section 4.5 — 4-Level Paging, canonical address space

@@ -205,5 +205,5 @@ block/unblock 为什么不在内部加锁？如前所述，当前是单核系统
 - Intel SDM Vol. 3A, Section 6.8.1 "Masking Maskable Hardware Interrupts" (PDF page 203)：IF 标志控制可屏蔽中断
 - OSDev Wiki, "Scheduling Algorithms"：[https://wiki.osdev.org/Scheduling_Algorithms](https://wiki.osdev.org/Scheduling_Algorithms) — Round Robin 时间片建议 20ms-50ms
 - OSDev Wiki, "Programmable Interval Timer"：[https://wiki.osdev.org/Programmable_Interval_Timer](https://wiki.osdev.org/Programmable_Interval_Timer) — Intel 8253/8254 PIT 作为 IRQ0 定时源
-- Linux `kernel/sched/core.c`, `scheduler_tick()`：[https://docs.kernel.org/core-api/real-time/theory.html](https://docs.kernel.org/core-api/real-time/theory.html) — Linux 的延迟抢占模型
+- Linux `kernel/sched/core.c`, `scheduler_tick()`：[https://docs.kernel.org/scheduler/sched-design-CFS.html](https://docs.kernel.org/scheduler/sched-design-CFS.html) — Linux 的延迟抢占模型
 - xv6-riscv `trap.c` / `proc.c`：[https://github.com/mit-pdos/xv6-riscv](https://github.com/mit-pdos/xv6-riscv) — timer interrupt -> yield -> sched -> swtch

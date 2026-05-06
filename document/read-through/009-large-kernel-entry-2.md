@@ -354,6 +354,6 @@ void kprintf(const char* fmt, ...) {
 
 - Intel SDM: Vol.2A — `IN`/`OUT` 指令参考
 - OSDev Wiki: [Serial Ports](https://wiki.osdev.org/Serial_Ports) — UART 16550 寄存器映射
-- OSDev Wiki: [Kernel Printf](https://wiki.osdev.org/Kernel_printf) — 内核 printf 实现参考
+- OSDev Wiki: [Kernel Printf](https://wiki.osdev.org/Printing_To_Screen) — 内核 printf 实现参考
 - Linux: [8250 serial driver](https://github.com/torvalds/linux/blob/master/drivers/tty/serial/8250/8250_core.c) — 生产级 UART 驱动
 - xv6: [printf.c](https://github.com/mit-pdos/xv6-public/blob/master/printf.c) — 简化的内核 printf

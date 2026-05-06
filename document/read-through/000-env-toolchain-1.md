@@ -2,7 +2,7 @@
 
 ## 概览
 
-本文是 tag `000_env_toolchain` 的第一篇通读，聚焦整个构建基础设施——从顶层 CMakeLists.txt 到 toolchain file、QEMU 集成、boot 子目录的编译配置、以及辅助脚本。这些文件在功能上是"胶水代码"：它们本身不实现任何 OS 功能，但没有它们，后面的 bootloader 和内核根本编译不起来。我们会逐个文件走一遍，搞清楚每一行配置的作用和背后的设计考量。
+本文是 tag `000_env_toolchain` 的第一篇通读，聚焦整个构建基础设施——从顶层 CMakeLists.txt 到 toolchain file、QEMU 集成、boot 子目录的编译配置、以及辅助脚本。这些文件在功能上是"胶水代码"：它们本身不实现任何 OS 功能，但没有它们，后面的 bootloader 和内核根本编译不起来。我们会逐个文件走一遍，搞清楚每一行配置的作用和背后的设计考量。注意，本文展示的是 tag 000 时刻的代码快照——随着后续 tag 的推进，部分文件（特别是 `boot/CMakeLists.txt` 和链接脚本）会被扩展。
 
 ## 架构图
 
@@ -20,8 +20,8 @@ cmake/toolchain-x86_64.cmake     ← 编译 flag 注入
 
                     编译流水线 (以 MBR 为例)
 
-    mbr_stub.S ──→ mbr.o ──→ mbr.elf ──→ mbr.bin ──→ cinux.img
-     (汇编)      (AS)     (ld + linkerscript) (objcopy)  (dd)
+    mbr.S ──→ mbr.o ──→ mbr.elf ──→ mbr.bin ──→ cinux.img
+     (汇编)   (AS)    (ld + linkerscript) (objcopy)  (dd)
 
                     辅助脚本
 
@@ -114,9 +114,9 @@ set(CMAKE_CXX_FLAGS_INIT ${CMAKE_C_FLAGS_INIT} "
 set(CMAKE_ASM_FLAGS_INIT "-Wa,--divide")
 
 set(CMAKE_EXE_LINKER_FLAGS_INIT "
-    -nostdlib                
+    -nostdlib
     -static
-    -Wl,--build-id=none      
+    -Wl,--build-id=none
 ")
 ```
 
@@ -126,7 +126,7 @@ set(CMAKE_EXE_LINKER_FLAGS_INIT "
 
 C++ 特有的 flag：`-fno-exceptions` 禁用异常（异常需要 `.eh_frame` 段和 `__cxa_begin_catch` 等运行时支持，内核里都没有），`-fno-rtti` 禁用 RTTI（`dynamic_cast` 和 `typeid` 需要额外元数据），`-std=c++23` 选择最新的 C++ 标准。
 
-汇编器 flag `-Wa,--divide` 允许汇编代码里直接写除法符号 `/` 而不被 GNU AS 误解析（某些版本的 GNU AS 默认把 `/` 当注释符）。链接器 flag `-nostdlib` 不链接标准启动文件和库，`-static` 纯静态链接不依赖动态链接器，`-Wl,--build-id=none` 禁用 build-id 段（这个段会增加二进制体积，对裸机启动没有意义）。
+汇编器 flag `-Wa,--divide` 允许汇编代码里直接写除法符号 `/` 而不被 GNU AS 误解析（某些版本的 GNU AS 默认把 `/` 当注释符）。链接器 flag `-nostdlib` 不链接标准启动文件和库，`-static` 纯静态链接不依赖动态链接器。
 
 ```cmake
 set(CMAKE_FIND_ROOT_PATH "")
@@ -141,12 +141,18 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 ```cmake
 add_executable(mbr
-    mbr_stub.S
+    mbr.S
+)
+
+target_compile_options(mbr PRIVATE
+    -Wa,--32                    # Assemble as 32-bit (allows 16-bit code)
 )
 
 target_link_options(mbr PRIVATE
+    -Wl,-m,elf_i386
     -T ${CMAKE_CURRENT_BINARY_DIR}/mbr.ld
     -nostdlib
+    -no-pie
 )
 
 add_custom_command(
@@ -158,7 +164,7 @@ add_custom_command(
 )
 ```
 
-MBR 的编译分三步：汇编成 ELF 目标文件（`add_executable` 自动调用 AS），链接成 ELF 可执行文件（`target_link_options` 指定链接脚本和 `-nostdlib`），然后 `add_custom_command(POST_BUILD)` 在链接完成后自动执行 `objcopy -O binary` 把 ELF 转成裸二进制。为什么要转裸二进制？因为 BIOS 不认识 ELF 格式——它只认磁盘上的原始字节，ELF 文件头、段头表这些元数据对 BIOS 来说是垃圾数据。`objcopy -O binary` 会去掉所有元数据，只保留代码和数据的原始内容。
+MBR 的编译分三步：汇编成 ELF 目标文件（`add_executable` 自动调用 AS），链接成 ELF 可执行文件（`target_link_options` 指定链接脚本和 `-nostdlib`），然后 `add_custom_command(POST_BUILD)` 在链接完成后自动执行 `objcopy -O binary` 把 ELF 转成裸二进制。`-Wa,--32` 让汇编器生成 32 位目标文件——这是必要的，因为 16 位代码（`.code16`）在 32 位 ELF 里编码兼容性最好。`-Wl,-m,elf_i386` 指定链接器使用 32 位 i386 ELF 格式，而 `-no-pie` 禁用位置无关可执行文件——MBR 运行在固定地址 `0x7C00`，不需要也不允许 PIC 重定位。为什么要转裸二进制？因为 BIOS 不认识 ELF 格式——它只认磁盘上的原始字节，ELF 文件头、段头表这些元数据对 BIOS 来说是垃圾数据。`objcopy -O binary` 会去掉所有元数据，只保留代码和数据的原始内容。
 
 ```cmake
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/mbr.ld
@@ -168,7 +174,10 @@ ENTRY(_start)
 SECTIONS
 {
     . = 0x7C00;
-    .text : { *(.text) }
+    .text : {
+        *(.text)
+        *(.rodata)
+    }
     .data : { *(.data) }
     .bss  : { *(.bss) }
     /DISCARD/ : { *(.comment*) *(.note*) }
@@ -176,7 +185,7 @@ SECTIONS
 ")
 ```
 
-链接脚本在 CMake configure 时通过 `file(WRITE)` 生成到 build 目录。`. = 0x7C00` 设置起始虚拟地址——这让链接器知道代码应该从 `0x7C00` 开始布局，这样 `objcopy` 输出的裸二进制就是 BIOS 期望的格式。`OUTPUT_FORMAT("elf64-x86-64")` 在 tag 000 里用的是 64 位格式（后续 tag 会改为 `elf32-i386`，因为 16 位代码在 32 位目标文件里编码兼容性更好，通过 `.code16` 前缀区分）。`/DISCARD/` 段丢掉编译器自动生成的 `.comment` 和 `.note` 段，它们对裸机执行没有意义，留着只会浪费宝贵的 512 字节空间。
+链接脚本在 CMake configure 时通过 `file(WRITE)` 生成到 build 目录。`. = 0x7C00` 设置起始虚拟地址——这让链接器知道代码应该从 `0x7C00` 开始布局，这样 `objcopy` 输出的裸二进制就是 BIOS 期望的格式。`OUTPUT_FORMAT("elf64-x86-64")` 指定 64 位 ELF 格式——虽然 MBR 里是 16 位代码（`.code16`），但链接器在 elf64 目标文件中同样能正确处理 16 位指令编码，且与后续 64 位内核的编译工具链保持一致。`.rodata` 被合并到 `.text` 段里，这样 MBR 里嵌入的字符串常量（如启动消息）会和代码放在一起，方便 `objcopy` 一次性提取。`/DISCARD/` 段丢掉编译器自动生成的 `.comment` 和 `.note` 段，它们对裸机执行没有意义，留着只会浪费宝贵的 512 字节空间。
 
 ### 辅助脚本 — 日志模块
 

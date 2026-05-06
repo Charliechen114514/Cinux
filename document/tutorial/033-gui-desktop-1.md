@@ -159,4 +159,4 @@ Cinux 的 pending_icon_action 模式与 ToaruOS 的 PEX 消息队列在概念上
 - SerenityOS LibGUI Widget Framework: https://github.com/SerenityOS/serenity/tree/master/Userland/Libraries/LibGUI
 - ToaruOS Yutani Compositor Architecture: https://github.com/klange/toaruos
 - xv6-gui: https://github.com/KevinVan720/xv6-gui
-- OSDev Wiki Drawing In a Linear Framebuffer: https://wiki.osdev.org/Drawing_In_a_Linear_Framebuffer
+- OSDev Wiki Drawing In a Linear Framebuffer: https://wiki.osdev.org/VBE

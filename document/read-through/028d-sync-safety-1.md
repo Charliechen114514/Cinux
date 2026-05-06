@@ -168,7 +168,7 @@ private:
 ## 参考资料
 
 - Intel SDM: Vol.2A Section 4.3 — PAUSE 指令 (Spin Wait Hint)
-- Intel SDM: Vol.3A Section 8.1 — LOCK 前缀与原子操作
+- Intel SDM: Vol.3A Section 9.1 — LOCK 前缀与原子操作
 - OSDev Wiki: [Synchronization Primitives](https://wiki.osdev.org/Synchronization_Primitives)
 - Linux: `spinlock_irqsave` / `spinlock_irqrestore` 实现
 - xv6-riscv: `spinlock.c` 中的 `push_off`/`pop_off` 中断嵌套机制

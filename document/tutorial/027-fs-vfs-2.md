@@ -17,7 +17,7 @@
 
 在写挂载点表之前，我们需要 memset、memcpy、strcmp、strncmp、strlen 这些最基本的函数——挂载点表的路径拷贝和比较全靠它们。在 freestanding 环境下（编译选项 -ffreestanding），标准库不可用，这些函数必须自己实现。这是每一个 OS 内核项目的必经之路——Linux 内核也有自己的 lib/string.c，提供完全相同的一组函数。
 
-七个函数的声明全部放在 `extern "C"` 块里，匹配标准 libc 签名。这样做有两个好处：C++ 代码可以正常调用（链接器会找 C 链接名的符号），而且如果以后有纯 C 的内核代码也能链接到这些函数。memcpy 的 src 和 dest 参数加了 `__restrict__` 关键字——这是 GCC 扩展，告诉编译器两个指针指向的内存不重叠，允许更激进的优化。memmove 没有 __restrict__，因为它必须正确处理重叠。
+九个函数的声明全部放在 `extern "C"` 块里，匹配标准 libc 签名。这样做有两个好处：C++ 代码可以正常调用（链接器会找 C 链接名的符号），而且如果以后有纯 C 的内核代码也能链接到这些函数。memcpy 的 src 和 dest 参数加了 `__restrict__` 关键字——这是 GCC 扩展，告诉编译器两个指针指向的内存不重叠，允许更激进的优化。memmove 没有 __restrict__，因为它必须正确处理重叠。除了 7 个标准函数外，还提供了 strcpy（字符串拷贝）和 utoa（无符号整数转字符串）。
 
 memmove 是七个函数里唯一需要特别处理的——当源和目标有重叠区域时，拷贝方向决定了正确性。我们用最直觉的方式处理：dest < src 时正向拷贝，dest > src 时反向拷贝，dest == src 时什么都不做（直接返回）。Linux 内核的 memmove 也是这么写的，只是它在某些架构上有汇编优化的版本。我们不需要那种级别的优化——逐字节的 C 实现在可读性和正确性上都是最佳选择。
 
@@ -57,7 +57,7 @@ FDTable& g_global_fd_table() {
 }
 ```
 
-这行代码看着无害，但它触发了 C++ ABI 中一个不太为人知的机制——__cxa_guard。编译器为每个函数内 static 变量生成一个 64 位的 guard 变量，首次调用时通过 __cxa_guard_acquire 检查是否需要初始化，初始化完成后通过 __cxa_guard_release 标记已初始化。在 freestanding 环境下这两个函数不会被自动提供，必须在 crt_stub.cpp 中手动实现。
+这行代码看着无害，但它触发了 C++ ABI 中一个不太为人知的机制——__cxa_guard。编译器为每个函数内 static 变量生成一个 64 位的 guard 变量，首次调用时通过 __cxa_guard_acquire 检查是否需要初始化，初始化完成后通过 __cxa_guard_release 标记已初始化。在 freestanding 环境下这两个函数不会被自动提供，必须在 crt_stub.cpp 中手动实现。此外，实际代码中还有一个 current_fd_table() 函数——它会先尝试获取当前任务的 per-process FDTable，不存在时回退到全局 FDTable，为将来的进程隔离做好了准备。
 
 这个坑我踩了半天。编译的时候一切正常，链接的时候突然冒出来两个 undefined reference to __cxa_guard_acquire 和 __cxa_guard_release。搜了一圈才知道这是 Itanium C++ ABI 的一部分——GCC 在编译函数内 static 变量时会自动生成调用。解决方案很简单，在 crt_stub.cpp 中加两个函数：acquire 检查 guard 是否为 0（未初始化），release 设为 1（已初始化）。在单核内核中这完全安全，没有并发问题。多核环境下需要原子操作，但那是以后 028b_sync_safety 的事了。
 

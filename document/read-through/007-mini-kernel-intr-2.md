@@ -1,297 +1,206 @@
-# 007-2 Read-through: ISR Stub 与异常处理
+# 007-2 Read-through: IDT 实现
 
 ## 本章概览
 
-这一篇我们通读 Cinux mini kernel 的 ISR Stub 汇编、异常处理函数和主函数整合部分——interrupts.S、exception_handlers.cpp 和 main.cpp 的变更。在整个 tag 007 的架构中，这三部分构成了中断处理链路的后半段：ISR Stub 负责在汇编层面接住异常、保存寄存器、构造 InterruptFrame、调用 C 处理函数；异常处理函数负责打印寄存器 dump 和错误信息；main.cpp 负责把所有组件串起来做最终的点火测试。
+这一篇我们通读 Cinux mini kernel 的 IDT 实现代码——idt.hpp 和 idt.cpp 这两个文件。在整个 tag 007 的架构中，IDT 是中断处理链路的第二环：GDT 提供段寄存器配置（上一篇），IDT 提供中断向量表（本篇），ISR Stub 和异常处理函数（下一篇）负责实际执行。
 
-上一篇我们看了 GDT 和 IDT 的"表格数据"——它们告诉 CPU 去哪里找处理程序。这一篇我们看到的是处理程序本身——真正执行工作的代码。从整个调用链路来看：CPU 异常 → 查 IDT → 查 GDT → 压栈 → 跳转 ISR Stub → 保存寄存器 → 调用 C handler → 打印信息 → 恢复寄存器 → IRETQ → 继续执行。
+关键设计决策有三个。第一，IDT 只配两个向量（#BP 和 #PF），因为我们当前阶段只需要断点调试和缺页检测。第二，InterruptFrame 的字段布局严格匹配 ISR stub 的 push 顺序，确保 C 处理函数能正确读取寄存器值。第三，ISR stub 和 handler 函数用 `extern "C"` 声明，保证 C++ 和汇编之间的符号链接正确。
 
 ---
 
 ## 架构图
 
 ```
-异常触发与处理完整流程（以 int $3 为例）：
+IDT 初始化链路：
 
 mini_kernel_main()
-       │
-       │ asm volatile("int $3")
-       ▼
-   ┌─ CPU ─────────────────────────────────────┐
-   │ 1. 查 IDT[3] → selector=0x08, offset=isr_bp_stub │
-   │ 2. 查 GDT[1] → code64 segment 验证通过    │
-   │ 3. 压栈: SS, RSP, RFLAGS, CS, RIP (5×8=40字节) │
-   │ 4. 跳转到 isr_bp_stub                      │
-   └────────────────────────────────────────────┘
-       │
-       ▼
-   ┌─ isr_bp_stub (interrupts.S) ──────────────┐
-   │ pushq $0          (伪错误码，保持栈对齐)    │
-   │ pushq %rax ~ %r15 (保存 15 个通用寄存器)    │
-   │ movq %rsp, %rdi   (InterruptFrame* → RDI)  │
-   │ call handle_bp    (跳转 C 处理函数)         │
-   │ popq %r15 ~ %rax  (恢复寄存器)              │
-   │ addq $8, %rsp     (弹出伪错误码)            │
-   │ iretq             (返回被中断代码)           │
-   └────────────────────────────────────────────┘
-       │
-       ▼
-   ┌─ handle_bp (exception_handlers.cpp) ───────┐
-   │ dump_interrupt_frame() → 串口打印寄存器     │
-   │ kprintf 断点地址和提示信息                   │
-   │ return → 回到 isr_bp_stub                    │
-   └────────────────────────────────────────────┘
-       │
-       ▼
-   继续执行 mini_kernel_main 后续代码
+       |
+       +-- gdt_init()  (上一篇)
+       |
+       +-- idt_init()
+             |
+             +-- 清空 256 个 IdtEntry
+             +-- set_idt_entry(3, isr_bp_stub, 0x08, 0x8F)  <- Trap Gate
+             +-- set_idt_entry(14, isr_pf_stub, 0x08, 0x8E) <- Interrupt Gate
+             +-- 构造 IdtPointer
+             +-- LIDT
 
 
-栈帧布局（InterruptFrame，从高地址到低地址）：
+CPU 查找链路（中断触发时）：
 
-高地址 ──────────────────────────────────────────
-  SS              │ CPU 自动压入
-  RSP             │ CPU 自动压入
-  RFLAGS          │ CPU 自动压入
-  CS              │ CPU 自动压入
-  RIP             │ CPU 自动压入
-  ─────────────── │
-  Error Code      │ #PF: CPU压入; #BP: stub压入$0
-  ─────────────── │ ISR stub 保存
-  RAX             │ pushq %rax (最先push)
-  RBX             │ pushq %rbx
-  RCX             │ pushq %rcx
-  RDX             │ pushq %rdx
-  RBP             │ pushq %rbp
-  RSI             │ pushq %rsi
-  RDI             │ pushq %rdi
-  R8              │ pushq %r8
-  R9              │ pushq %r9
-  R10             │ pushq %r10
-  R11             │ pushq %r11
-  R12             │ pushq %r12
-  R13             │ pushq %r13
-  R14             │ pushq %r14
-  R15             │ pushq %r15 (最后push)
-低地址 ──────────── RSP 指向这里 ────────────────
+CPU 异常 -> 查 IDT[向量号] -> 得到 selector(0x08) + handler 地址
+                                    |
+                             查 GDT[selector>>3] -> 得到 code64 段属性
+                                    |
+                             压栈 SS/RSP/RFLAGS/CS/RIP -> 跳转 handler
 ```
 
 ---
 
 ## 代码精讲
 
-### ISR Stub 汇编 — interrupts.S
+### IDT 头文件 — idt.hpp
 
-这个文件定义了两个宏——`ISR_NOERRCODE` 和 `ISR_ERRCODE`——以及用它们实例化的两个 stub。整个文件使用 AT&T 语法（GNU AS 默认），操作数顺序是"源, 目标"，寄存器前缀 `%`，立即数前缀 `$`。
+IDT 的头文件比 GDT 大一些，因为除了 IDT 表本身的描述符结构外，还需要定义 InterruptFrame——这是整个中断处理链路中最关键的数据结构。
 
-先看 `ISR_NOERRCODE` 宏，这是给 #BP 这种没有硬件错误码的异常用的。宏接受三个参数：stub 名称（name）、向量号（vector，虽然当前代码中没用到，但保留了给将来可能的扩展）和 C 处理函数名（handler）。
-
-```asm
-.macro ISR_NOERRCODE name vector handler
-.global \name
-.type \name, @function
-\name:
-    pushq $0              /* 压入伪错误码 0，保持栈帧统一 */
-    pushq %rax
-    pushq %rbx
-    pushq %rcx
-    pushq %rdx
-    pushq %rbp
-    pushq %rsi
-    pushq %rdi
-    pushq %r8
-    pushq %r9
-    pushq %r10
-    pushq %r11
-    pushq %r12
-    pushq %r13
-    pushq %r14
-    pushq %r15
-    movq %rsp, %rdi       /* InterruptFrame* 作为第一个参数 */
-    call \handler
-    popq %r15
-    popq %r14
-    popq %r13
-    popq %r12
-    popq %r11
-    popq %r10
-    popq %r9
-    popq %r8
-    popq %rdi
-    popq %rsi
-    popq %rbp
-    popq %rdx
-    popq %rcx
-    popq %rbx
-    popq %rax
-    addq $8, %rsp         /* 弹出伪错误码 */
-    iretq
-.endm
-```
-
-这里有几个关键细节需要逐一理解。
-
-第一，`pushq $0` 压入伪错误码的作用是保持栈帧统一。对于 #BP 这种没有硬件错误码的异常，CPU 只压入了 SS/RSP/RFLAGS/CS/RIP 五个值（5×8=40 字节），而 InterruptFrame 结构体中有一个 error_code 字段。如果不手动压入一个 0 来占位，后面 push 的寄存器就会从错误的位置开始，C 处理函数读到的 `frame->error_code` 实际上是 CPU 压入的 RIP，所有字段的偏移全部错位。
-
-第二，寄存器的保存顺序（rax → rbx → rcx → ... → r15）必须和 InterruptFrame 结构体中字段的声明顺序（r15 → ... → rax）"反过来"。这是因为栈从高地址往低地址增长，而结构体从低地址往高地址排列——先 push 的值在栈的低地址端，对应结构体的前面成员。所以第一个 push 的 rax 对应结构体中最后声明的 rax 字段，最后一个 push 的 r15 对应结构体中第一个声明的 r15 字段。
-
-第三，`movq %rsp, %rdi` 把当前栈指针作为第一个参数传给 C 处理函数。在 x86_64 的 System V ABI 中，第一个参数通过 RDI 传递，此时 RSP 正好指向 InterruptFrame 结构体的起始位置（即 r15 字段），所以 C 函数收到的就是一个指向完整中断栈帧的指针。
-
-第四，恢复寄存器的顺序和保存时完全相反——先 pop r15（栈顶，最后 push 的），最后 pop rax（栈底，最先 push 的），然后 `addq $8, %rsp` 跳过伪错误码（不需要 pop，因为没有对应的 push 寄存器），最后 IRETQ 弹出 CPU 压入的 5 个值并恢复执行。
-
-`ISR_ERRCODE` 宏几乎一模一样，唯一区别是不压入伪错误码——因为 CPU 在进入 ISR 之前已经帮你压入了错误码。恢复时仍然是 `addq $8, %rsp` 跳过错误码，只不过这次跳过的是 CPU 压的而不是 stub 压的。
-
-```asm
-.macro ISR_ERRCODE name vector handler
-.global \name
-.type \name, @function
-\name:
-    /* 错误码已在栈上，直接保存寄存器 */
-    pushq %rax
-    pushq %rbx
-    /* ... 其余同 ISR_NOERRCODE ... */
-    pushq %r15
-    movq %rsp, %rdi
-    call \handler
-    popq %r15
-    /* ... 反向恢复 ... */
-    popq %rax
-    addq $8, %rsp        /* 跳过 CPU 压入的错误码 */
-    iretq
-.endm
-```
-
-文件末尾用这两个宏实例化了两个 stub：
-
-```asm
-ISR_NOERRCODE isr_bp_stub, 3, handle_bp
-ISR_ERRCODE   isr_pf_stub, 14, handle_pf
-```
-
-### 异常处理函数 — exception_handlers.cpp
-
-这个文件实现了两个 C 处理函数和一个辅助打印函数。文件先用匿名命名空间的 using 声明简化了类型引用。
-
-辅助函数 `dump_interrupt_frame` 负责把 InterruptFrame 的所有字段格式化打印到串口。打印内容包括异常名称和向量号、RIP/CS/RFLAGS/RSP/SS（CPU 自动压入的关键状态）、全部 15 个通用寄存器（ISR stub 保存的）以及错误码。这个函数被两个处理函数共用。
+常量部分定义了 IDT 最大条目数（256）、本阶段需要配置的两个向量号（#BP=3, #PF=14）以及两种门类型（Interrupt Gate=0x0E, Trap Gate=0x0F）。这些常量在后续代码中多处引用，集中定义方便维护。
 
 ```cpp
-void dump_interrupt_frame(const InterruptFrame* frame, const char* vec_name, uint8_t vector) {
-    kprintf("\n");
-    kprintf("==== EXCEPTION: %s (vector %u) ====\n", vec_name, vector);
-    kprintf("  RIP   = 0x%016x   CS  = 0x%04x\n", frame->rip, frame->cs);
-    kprintf("  RFLAGS= 0x%016x\n", frame->rflags);
-    kprintf("  RSP   = 0x%016x   SS  = 0x%04x\n", frame->rsp, frame->ss);
-    kprintf("  RAX=0x%016x  RBX=0x%016x\n", frame->rax, frame->rbx);
-    // ... 其余寄存器 ...
-    kprintf("  ERROR CODE = 0x%016x\n", frame->error_code);
-    kprintf("========================================\n");
+// idt.hpp 常量
+constexpr uint16_t IDT_MAX_ENTRIES = 256;
+constexpr uint8_t IDT_VEC_BP = 3;
+constexpr uint8_t IDT_VEC_PF = 14;
+constexpr uint8_t IDT_TYPE_INTERRUPT_GATE = 0x0E;
+constexpr uint8_t IDT_TYPE_TRAP_GATE = 0x0F;
+```
+
+`IdtEntry` 是 16 字节的 packed 结构，和 GDT 的 8 字节描述符相比大了一倍。这 16 字节中，handler 的 64 位地址被拆成了三段存放——`offset_low`（低 16 位）、`offset_mid`（中 16 位）和 `offset_high`（高 32 位）。这是 x86_64 的 IDT 格式决定的（Intel SDM Figure 6-8），没法用一条指令设置完整地址，必须手动拆分。`selector` 字段指向 GDT 中的代码段——这里填的就是 `SEGMENT_CODE64`（0x08），这就是 IDT 必须依赖 GDT 先初始化的原因。`ist` 字段是 IST（Interrupt Stack Table）偏移，填 0 表示不使用 IST 机制。`type_attr` 字段编码了 Present、DPL 和 Gate Type 三个信息。
+
+```cpp
+// idt.hpp IdtEntry 结构
+struct IdtEntry {
+    uint16_t offset_low;    // handler 地址 [0:15]
+    uint16_t selector;      // 代码段选择子（CS）
+    uint8_t  ist;           // IST 偏移（0 = 不用）
+    uint8_t  type_attr;     // P | DPL | 0 | Gate Type
+    uint16_t offset_mid;    // handler 地址 [16:31]
+    uint32_t offset_high;   // handler 地址 [32:63]
+    uint32_t reserved;
+} __attribute__((packed));
+```
+
+`InterruptFrame` 的布局需要特别仔细地理解。前 15 个字段（r15 到 rax）由 ISR stub 手动保存，error_code 也是 stub 处理的——有硬件错误码的异常就保留 CPU 压入的值，没有的就压一个 0。最后 5 个字段（rip 到 ss）是 CPU 自动压入的。这个布局必须和 interrupts.S 中的 push 顺序严格对应——任何错位都会导致 C 处理函数读到错误的寄存器值，而且这种 bug 非常难发现，因为它不会立刻 crash。
+
+```cpp
+// idt.hpp InterruptFrame 结构
+struct InterruptFrame {
+    uint64_t r15, r14, r13, r12;
+    uint64_t r11, r10, r9, r8;
+    uint64_t rdi, rsi, rbp, rdx;
+    uint64_t rcx, rbx, rax;
+    uint64_t error_code;
+    uint64_t rip, cs, rflags, rsp, ss;
+};
+```
+
+为什么字段的声明顺序和 push 顺序是"反过来"的？因为栈从高地址往低地址增长，而结构体从低地址往高地址排列。先 push 的值在栈的低地址端，对应结构体的前面成员。所以汇编中先 push rax（最后面），最后 push r15（最前面），这样 pop 的时候 pop r15 刚好对应结构体的第一个字段。这个 push/pop 的顺序问题在下一篇讲 ISR Stub 时会更详细地分析。
+
+### IDT 实现 — idt.cpp
+
+IDT 的实现文件和 GDT 类似，也是静态全局变量加辅助函数加公开接口的模式。
+
+ISR stub 和异常处理函数的声明用 `extern "C"` 包裹，确保使用 C 链接约定。这是因为 interrupts.S 中的 `call handle_bp` 是 C 链接的符号名——如果用 C++ 的 name mangling，`handle_bp` 会被编译器改写成类似 `_Z8handle_bpP16InterruptFrame` 的名字，链接器就找不到匹配的符号了。这是内核开发中混合 C/C++/汇编时的标准做法。
+
+```cpp
+// idt.cpp - 外部声明
+extern "C" void isr_bp_stub();
+extern "C" void isr_pf_stub();
+extern "C" void handle_bp(InterruptFrame* frame);
+extern "C" void handle_pf(InterruptFrame* frame);
+```
+
+辅助函数 `set_idt_entry` 把 handler 的 64 位地址拆成三段填入 IdtEntry。地址拆分的位操作非常直观：低 16 位用 `addr & 0xFFFF`，中 16 位用 `(addr >> 16) & 0xFFFF`，高 32 位用 `(addr >> 32) & 0xFFFFFFFF`。每次设置都会把 reserved 字段清零、ist 和 type_attr 设为传入的参数。
+
+```cpp
+// idt.cpp - set_idt_entry 辅助函数
+static void set_idt_entry(uint8_t vector, void* handler, uint16_t selector,
+                          uint8_t type_attr, uint8_t ist) {
+    uint64_t addr = reinterpret_cast<uint64_t>(handler);
+    s_idt[vector].offset_low  = addr & 0xFFFF;
+    s_idt[vector].offset_mid  = (addr >> 16) & 0xFFFF;
+    s_idt[vector].offset_high = (addr >> 32) & 0xFFFFFFFF;
+    s_idt[vector].selector   = selector;
+    s_idt[vector].ist        = ist;
+    s_idt[vector].type_attr  = type_attr;
+    s_idt[vector].reserved   = 0;
 }
 ```
 
-`handle_bp` 的实现非常简洁——先调用 dump_interrupt_frame 打印完整的寄存器快照，然后额外打印断点地址和提示信息。注意这个函数用 `extern "C"` 声明，这是因为 interrupts.S 中的 `call handle_bp` 使用 C 链接约定——如果用 C++ 的 name mangling，链接器会找不到符号。这是内核开发中混合 C/C++/汇编时的常见模式。
+`idt_init()` 的实现很直白。先清空全部 256 个条目（全零意味着 Present=0，访问时触发 #GP），然后只配置两个向量。#BP 用陷阱门（type_attr=0x8F），这意味着进入处理程序时 IF 不被清除，允许在断点处理期间响应其他中断；#PF 用中断门（0x8E），CPU 会自动关中断。两者都是 Present=1、DPL=0，只有 ring 0 能触发。最后构造 IDTR 并执行 LIDT——和 LGDT 不同的是，LIDT 之后不需要任何刷新操作，因为 IDTR 不是段寄存器，它的内容在下一次中断触发时自然生效。
+
+---
+
+## 别人怎么做的
+
+### xv6 的 IDT
+
+xv6 在 `tvinit()` 中一次性配置全部 256 个 IDT 条目，使用 Perl 脚本（vectors.pl）在构建时自动生成 256 个 ISR stub。所有向量默认使用 Interrupt Gate（istrap=0），只有系统调用向量 T_SYSCALL 使用 Trap Gate 并设置 DPL=DPL_USER 允许用户态触发。
+
+和 Cinux 的 16 字节 IdtEntry 相比，xv6 的 `gatedesc` 只有 8 字节（32 位 IDT 条目），因为 32 位模式下处理程序地址只需要 32 位，不需要拆成三段。这是 32 位和 64 位 x86 在中断机制上的一个关键差异。
+
+### SerenityOS 的 IDT
+
+SerenityOS 的 IDT 配置更为复杂——它使用 Local APIC + I/O APIC（而不是传统 8259 PIC），支持 256 个全部可用向量。每个 CPU 有独立的 IDTR，AP 启动时从 BSP 复制 IDT。SerenityOS 还使用了 IST 机制为 #DF 和 #MC 配置独立栈。
+
+---
+
+## 代码精讲（续）
 
 ```cpp
-extern "C" void handle_bp(InterruptFrame* frame) {
-    dump_interrupt_frame(frame, "#BP", 3);
-    kprintf("[EXCEPTION] Breakpoint triggered at RIP=0x%x\n", frame->rip);
-    kprintf("[EXCEPTION] This is a software breakpoint, continuing...\n");
+// idt.cpp - idt_init
+void idt_init() {
+    for (uint16_t i = 0; i < IDT_MAX_ENTRIES; i++)
+        s_idt[i] = IdtEntry{};
+
+    set_idt_entry(IDT_VEC_BP, reinterpret_cast<void*>(isr_bp_stub),
+                  SEGMENT_CODE64, 0x8F, 0);
+    set_idt_entry(IDT_VEC_PF, reinterpret_cast<void*>(isr_pf_stub),
+                  SEGMENT_CODE64, 0x8E, 0);
+
+    s_idt_pointer.limit = static_cast<uint16_t>(sizeof(s_idt) - 1);
+    s_idt_pointer.base  = reinterpret_cast<uint64_t>(&s_idt);
+    __asm__ volatile ("lidt %[idtr]" : : [idtr] "m" (s_idt_pointer) : "memory");
 }
 ```
-
-`handle_pf` 的实现更有趣，因为它需要读取 CR2 寄存器和解析页错误码。CR2 是 x86 架构专门为页错误保留的寄存器——CPU 在触发 #PF 时会自动把导致缺页的线性地址写入 CR2，所以我们在处理函数里第一时间把它读出来（用内联汇编 `movq %%cr2, %0`）。必须第一时间读取的原因是，kprintf 内部的任何内存操作理论上都可能触发另一个页错误（虽然在这个简单的 mini kernel 里不太可能），覆盖 CR2 的值。
-
-```cpp
-extern "C" void handle_pf(InterruptFrame* frame) {
-    uint64_t fault_addr;
-    __asm__ volatile ("movq %%cr2, %0" : "=r"(fault_addr));
-
-    uint64_t err = frame->error_code;
-    const char* present  = (err & 0x01) ? "protection violation" : "page not present";
-    const char* access   = (err & 0x02) ? "write" : "read";
-    const char* mode     = (err & 0x04) ? "user" : "kernel";
-    const char* reserved = (err & 0x08) ? ", reserved bits" : "";
-    const char* fetch    = (err & 0x10) ? ", instruction fetch" : "";
-
-    dump_interrupt_frame(frame, "#PF", 14);
-    kprintf("[EXCEPTION] Page Fault: %s %s %s%s%s\n",
-            present, access, mode, reserved, fetch);
-    kprintf("[EXCEPTION] Faulting address (CR2) = 0x%016x\n", fault_addr);
-    kprintf("[EXCEPTION] Continuing execution...\n");
-}
-```
-
-错误码的解析也非常有用。bit 0 区分"页不存在"（P=0）和"权限冲突"（P=1），bit 1 区分读操作和写操作，bit 2 区分内核态和用户态，bit 3 表示页表保留位被设置了，bit 4 表示这是一次取指操作（指令缓存缺页）。这些信息在调试缺页问题的时候非常关键，尤其是 CR2 地址结合错误码可以精确定位是哪条指令访问了哪个地址导致了问题。
-
-值得注意的是当前 `handle_pf` 只打印信息不做修复——因为这是 Fault 类型的异常，IRETQ 返回后会重新执行触发缺页的指令。如果不修复页表就返回，就会形成无限循环触发 #PF。这意味着我们目前不能像 `int $3` 那样安全地测试 #PF——故意触发 #PF 会导致死循环打印。等到后续加入 VMM（虚拟内存管理器）后，handle_pf 会变成缺页处理的核心：根据 CR2 地址分配新页、修改页表项、然后 IRETQ 返回重试。
-
-### 主函数变更 — main.cpp
-
-main.cpp 的变更集中在三个方面：include 新头文件、添加初始化调用、以及 `int $3` 测试。
-
-头文件引入了 gdt.hpp 和 idt.hpp，这两个头文件提供了 `gdt_init()` 和 `idt_init()` 的声明。初始化调用按固定顺序排列：先 gdt_init()（必须在最前面，因为 IDT 依赖 GDT），然后 idt_init()，最后 pmm::init()。每步之间都有 kprintf 打印状态信息，这在调试的时候非常方便——如果某个初始化步骤出了问题 triple fault 了，你至少能看到是哪一步之前的最后一条输出。
-
-```cpp
-// main.cpp - 初始化序列
-kprintf("[INIT] Setting up GDT...\n");
-cinux::mini::arch::gdt_init();
-kprintf("[INIT] GDT loaded successfully.\n");
-
-kprintf("[INIT] Setting up IDT...\n");
-cinux::mini::arch::idt_init();
-kprintf("[INIT] IDT loaded successfully.\n");
-
-cinux::mini::mm::pmm::init(boot_info);
-```
-
-点火测试部分是整个 tag 007 的高潮。`__asm__ volatile("int $3")` 触发 #BP 断点异常，如果整个中断链路配置正确的话，CPU 会跳转到 isr_bp_stub → handle_bp → 打印寄存器 dump → 返回 stub → IRETQ → 继续执行后面的 kprintf 打印 "Breakpoint test passed!"。
-
-```cpp
-// main.cpp - int $3 测试
-kprintf("\n[TEST] Triggering breakpoint exception (int $3)...\n");
-__asm__ volatile("int $3");
-kprintf("[TEST] Breakpoint test passed! Execution continued after #BP.\n\n");
-```
-
-`int $3` 是 x86 的断点指令（opcode 0xCC），它触发 #BP 异常。这是一个 Trap 类型的异常，CPU 压入的 RIP 指向下一条指令——也就是说 IRETQ 返回后会继续执行后面的 kprintf，打印 "Breakpoint test passed"。这正是我们要验证的：触发异常不死机，能继续执行。
 
 ---
 
 ## 设计决策
 
-### 决策：ISR Stub 用宏生成而不是手写每个向量
+### 决策：IDT 只配两个向量
 
-**问题**: 需要决定 ISR stub 的编写方式——为每个向量手写一个 stub，还是用宏批量生成。
+**问题**: IDT 配多少向量——256 个全配还是最小子集。
 
-**本项目的做法**: 定义 ISR_NOERRCODE 和 ISR_ERRCODE 两个宏，每个向量一行实例化。
+**本项目的做法**: 只配 #BP(3) 和 #PF(14)。
 
-**备选方案**: 像 xv6 那样用 Perl 脚本生成 256 个 stub。
+**备选方案**: 配全部 32 个 CPU 异常向量。
 
-**为什么不选备选方案**: 一是当前只有 2 个向量，用脚本反而更复杂；二是手写宏让学习者能直接看到每个 stub 的汇编代码，比生成文件更有教学价值；三是宏和脚本在本质上做的事情一样——为每个向量生成一个入口点——只是规模不同。
+**为什么不选备选方案**: 一是当前不需要——其他异常（如 #DE 除零、#UD 非法指令）的处理逻辑和 #BP 本质相同，配了也只是多几行代码；二是硬件中断（IRQ 0-15）需要先配 PIC，PIC 编程本身就是一个独立的主题（tag 011）；三是保持每个 milestone 的复杂度可控，让学习者能聚焦在核心概念上。
 
-**如果要扩展**: 当后续 tag 需要支持全部 256 个向量时，可以考虑用脚本生成，或者写一个更通用的宏接受向量号参数。xv6 的 vectors.pl 是一个很好的参考。
+### 决策：#BP 用陷阱门，#PF 用中断门
 
-### 决策：handle_pf 只打印不修复
+**问题**: 两种异常分别使用什么门类型。
 
-**问题**: #PF 处理函数是只打印信息还是尝试修复页表。
+**本项目的做法**: #BP 用陷阱门（0x8F，不清除 IF），#PF 用中断门（0x8E，清除 IF）。
 
-**本项目的做法**: 只打印 CR2 和错误码，然后 IRETQ 返回。
-
-**备选方案**: 在 handle_pf 中实现简单的 demand paging——分配一个新页映射到 CR2 地址。
-
-**为什么不选备选方案**: 一是当前还没有 VMM（虚拟内存管理器），实现 demand paging 需要页表操作的支持；二是 PMM 只提供物理页分配，不提供虚拟地址映射；三是在 mini kernel 阶段，handle_pf 的主要作用是调试——告诉你哪里访问了不该访问的地址，而不是自动修复。
+**理由**: #BP 是调试用的断点异常，处理过程中如果禁止其他中断，可能会错过时序敏感的事件（比如时钟中断），所以用陷阱门更合理。#PF 涉及页表操作，这是一个需要原子性的过程——如果处理到一半被另一个中断打断，可能导致页表状态不一致，所以用中断门保护。Intel 手册也是这么建议的。
 
 ---
 
 ## 扩展方向
 
-- 为所有 32 个 CPU 异常编写 ISR stub 和处理函数（难度 ⭐⭐）
-- 在 handle_pf 中添加 RIP 跳过逻辑，使其可以安全地从 #PF 恢复（难度 ⭐⭐）
-- 在 dump_interrupt_frame 中添加符号名解析（难度 ⭐⭐⭐）
-- 添加嵌套中断检测和栈溢出保护（难度 ⭐⭐⭐）
+- 配置全部 32 个 CPU 异常向量（难度：低）——体力活，每个向量只需要一个 ISR stub 和一个处理函数
+- 为 IDT 添加 #GP(13) 向量（难度：低）——#GP 是内核开发中最常见的异常之一，几乎所有的段/权限错误都会触发它
+- 使用 IST 机制为 #DF 配置独立栈（难度：较高）——需要先添加 TSS，然后在 IDT 条目中设置 ist 字段
+
+---
+
+## 文件清单
+
+| 文件 | 职责 | 行数（大约） |
+|------|------|-------------|
+| `kernel/mini/arch/x86_64/idt.hpp` | IDT 常量、IdtEntry、InterruptFrame、接口声明 | ~112 行 |
+| `kernel/mini/arch/x86_64/idt.cpp` | set_idt_entry + idt_init 实现 | ~115 行 |
+
+idt.hpp 是 tag 007 中最重要的头文件，因为 InterruptFrame 结构体在整个内核的中断处理中都会被使用。后续 tag 010（完整 IDT）和 tag 011（硬件中断）都会复用这个结构体。
+
+---
 
 ## 参考资料
 
-- Intel SDM: Vol.3A §6.12.1.3 (p.6-17) — Flag Usage by Handler
-- Intel SDM: Vol.3A §6.13 (pp.6-18~6-19) — Error Code Format
-- Intel SDM: Vol.3A §6.14.2 (p.6-21) — 64-Bit Mode Stack Frame
+- Intel SDM: Vol.3A 6.10 (Interrupt Descriptor Table) -- IDT 格式
+- Intel SDM: Vol.3A 6.14.1 (pp.6-20) -- 64-Bit Mode IDT Gate Descriptors (Figure 6-8)
+- Intel SDM: Vol.3A 2.4.3 (Figure 2-6) -- IDTR Register
+- Intel SDM: Vol.3A 6.12.1.3 (p.6-17) -- Interrupt Gate vs Trap Gate 对 IF 标志的影响
 - OSDev Wiki: [Interrupt Descriptor Table](https://wiki.osdev.org/Interrupt_Descriptor_Table)
-- xv6: [trapasm.S](https://github.com/mit-pdos/xv6-public/blob/master/trapasm.S) — alltraps entry point
+- xv6: [trap.c / mmu.h](https://github.com/mit-pdos/xv6-public/blob/master/trap.c) -- 32-bit IDT setup

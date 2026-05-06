@@ -12,7 +12,7 @@
 
 在 `user/libc/syscall.cpp` 中新增了三个 wrapper 函数，遵循已有的 syscall 调用约定——系统调用号放入 rax，参数按序放入 rdi/rsi/rdx/r10/r8/r9，执行 syscall 指令，返回 rax 的值。
 
-sys_open 的 wrapper 接收路径指针和 flags，sys_close 接收 fd，sys_getdents 接收 fd、缓冲区指针和缓冲区大小。三个 wrapper 的系统调用号分别对应 SYS_open=2、SYS_close=3、SYS_getdents=78，和 kernel 侧的 SyscallNr 枚举完全一致。
+sys_open 的 wrapper 接收路径指针和 flags，sys_close 接收 fd，sys_getdents 接收 fd、缓冲区指针和缓冲区大小。三个 wrapper 的系统调用号分别对应 SYS_open=2、SYS_close=3、SYS_getdents=78，和 kernel 侧的 SyscallNr 枚举完全一致。值得注意的是 sys_open 的路径解析在内核侧完成——用户态只需传入原始路径，内核的 resolve_user_path() 会自动处理 cwd 和路径规范化。
 
 CMakeLists.txt 中也需要把新的 shell 命令源文件加入用户态程序的编译列表。cmd_cat.cpp 和 cmd_ls.cpp 被添加到 shell 可执行文件的源文件中，shell.hpp 中声明了对应的处理函数，main.cpp 的命令分发表中注册了 "cat" 和 "ls" 两个新命令。
 

@@ -35,7 +35,11 @@ Intel SDM Vol. 3A 第 8.7 节明确指出："In 64-bit mode, the task switching 
 
 ## 环境说明
 
-本章涉及的核心文件是 `kernel/proc/process.hpp`（约 200 行声明）和 `kernel/proc/process.cpp`（约 146 行实现）。运行环境和前面几个 tag 一致——GCC cross-compiler（`x86_64-elf`）、QEMU、higher-half 内核（`KERNEL_VMA = 0xFFFFFFFF80000000`）。前置条件是 PMM、VMM 和 Heap 已经初始化完毕，因为 `TaskBuilder::build()` 需要它们来分配和映射内核栈。这个 tag 新增了 2264 行代码，涉及 21 个文件的变更，核心是四个新文件：`process.hpp`、`process.cpp`、`scheduler.hpp`、`scheduler.cpp`，以及一个汇编文件 `context_switch.S`。另外还有约 970 行的测试代码（QEMU 集成测试 + Host 单元测试）。
+本章涉及的核心文件是 `kernel/proc/process.hpp`（约 200 行声明）和 `kernel/proc/process.cpp`（约 146 行实现）。运行环境和前面几个 tag 一致——GCC cross-compiler（`x86_64-elf`）、QEMU、higher-half 内核（`KERNEL_VMA = 0xFFFFFFFF80000000`）。前置条件是 PMM、VMM 和 Heap 已经初始化完毕，因为 `TaskBuilder::build()` 需要它们来分配和映射内核栈。
+
+这个 tag 新增了 2264 行代码，涉及 21 个文件的变更，核心是四个新文件：`process.hpp`、`process.cpp`、`scheduler.hpp`、`scheduler.cpp`，以及一个汇编文件 `context_switch.S`。另外还有约 970 行的测试代码（QEMU 集成测试 + Host 单元测试）。这是 Cinux 到目前为止最大的一个 tag，也是第一个让内核从"单任务"跃升到"多任务"的里程碑。
+
+这一章是 tag 019 的基础——所有后续的调度器和上下文切换都建立在这些数据结构之上。如果你理解了 `CpuContext` 为什么只有 8 个字段、`Task` 的 9 个字段各司什么职、`TaskBuilder::build()` 的 7 个步骤分别干什么，那么你已经掌握了多线程调度的核心数据结构基础。
 
 ## CpuContext 结构体
 
@@ -127,6 +131,8 @@ task->ctx.rip = reinterpret_cast<uint64_t>(entry_);
 
 `ctx.rip` 指向线程入口函数，但 `ctx.rsp` 不是简单的栈顶。它指向 `stack_virt + stack_size - 8`，并且在那个位置预先写入了 `Scheduler::exit_current` 的地址。这是因为 `context_switch` 用 `jmp`（不是 `call`）跳到入口函数，不会在栈上压入返回地址。当线程函数执行到最后的 `ret` 时，CPU 从 RSP 指向的位置弹出一个 8 字节值作为返回地址——我们预先放的 `exit_current` 地址正好被弹出，线程进入干净的退出流程。这个设计很像 PintOS 的 `kernel_thread()` 封装，只不过 Cinux 把退出地址直接压在了栈上而不是用一个 wrapper 函数。至于这个设计在开发过程中曾经翻过什么车……第三篇踩坑实录会详细讲。
 
+这个栈上退出地址的设计是 Cinux 线程管理中最精巧的部分之一。理解它的关键是意识到 `context_switch` 用 `jmp` 而不是 `call` 跳到入口——这意味着 C 编译器生成的函数 prologue/epilogue 假设栈上有一个返回地址的约定被打破了。我们把 `exit_current` 的地址预先放在栈顶，相当于模拟了一个 `call exit_current` 的效果——线程函数 return 时 `ret` 弹出的正是这个地址。
+
 把上面的文字梳理一下，一个新线程的栈布局长这样：
 
 ```
@@ -145,15 +151,25 @@ task->ctx.rip = reinterpret_cast<uint64_t>(entry_);
 
 最后是 TCB 元数据的填充。`tid` 通过 `next_tid++` 分配，初始状态设为 `Ready`，等待调度器把它加入运行队列。`addr_space` 为 nullptr 表示这是一个纯内核线程，没有独立的用户地址空间。`sched_class` 为 nullptr 时由 `Scheduler::add_task()` 自动分配默认的 RoundRobin 策略。所有这些字段加在一起，就是一个完整的、随时可以运行的线程。
 
+值得注意的是 `next_tid` 从 1 而不是 0 开始——tid=0 被预留给 boot_task（启动上下文），所以用户创建的第一个任务 tid=1。在 kernel_main 中手动构造的 boot_task 会设 `tid = 0`。这个约定不是硬性要求，只是一个让调试更清晰的选择——看到 tid=0 就知道是 boot context。
+
+另外一个容易忽略的细节是栈的虚拟地址分配。`alloc_stack_vaddr` 从 `0xFFFF800000100000` 起始单调递增，每个线程栈占 4 页（16KB）。这个地址选在 canonical 地址空间的高半部分，跳过前 1MB 避免和 MMIO 区域冲突。连续分配多个线程的栈不会重叠，但这个简化实现在线程销毁后不会回收虚拟地址空间。
+
 ## 设计决策回顾
 
 到这里我们已经把多任务的基础数据结构全部过了一遍。回顾一下几个关键的设计选择，以及为什么这样选而不是那样选。
 
-`CpuContext` 为什么用命名字段 + `static_assert` 而不是 `uint64_t regs[8]` 加宏定义偏移量？因为命名字段本身就是文档——看到 `ctx.rsp` 你就知道这是栈指针，看到 `regs[6]` 你还得去查宏定义才知道这是第几个寄存器。`static_assert` 在编译期锁定偏移量，保证 C++ 声明和汇编实现永远一致。如果用数组加宏，新增字段时很容易忘了更新宏定义，而且编译器不会帮你检查。
+`CpuContext` 为什么用命名字段 + `static_assert` 而不是 `uint64_t regs[8]` 加宏定义偏移量？因为命名字段本身就是文档——看到 `ctx.rsp` 你就知道这是栈指针，看到 `regs[6]` 你还得去查宏定义才知道这是第几个寄存器。`static_assert` 在编译期锁定偏移量，保证 C++ 声明和汇编实现永远一致。如果用数组加宏，新增字段时很容易忘了更新宏定义，而且编译器不会帮你检查。这种"声明即文档、编译即校验"的做法和 Linux 的 `pt_regs` 设计理念一脉相承。
 
-`Task` 为什么保持精简而不是一次性把所有字段都加上？因为每个 tag 的变更范围应该可控。Linux 的 `task_struct` 经过了二十多年的演化才变成今天的样子。Cinux 选择"够用就好"——先实现调度所需的最小字段集合，文件描述符、进程树、工作目录等功能在后续的 tag 中逐步添加。这样读者更容易跟踪 `Task` 结构体的演化过程，每个 tag 的 diff 也更聚焦。
+`Task` 为什么保持精简而不是一次性把所有字段都加上？因为每个 tag 的变更范围应该可控。Linux 的 `task_struct` 经过了二十多年的演化才变成今天的样子——超过 9 KB，包含几百个字段。Cinux 选择"够用就好"——先实现调度所需的最小字段集合，文件描述符、进程树、工作目录等功能在后续的 tag 中逐步添加。这样读者更容易跟踪 `Task` 结构体的演化过程，每个 tag 的 diff 也更聚焦。
 
-栈为什么用魔数而不是 guard page？`STACK_MAGIC` 是一个轻量级的溢出检测手段——写在栈底，检查是否被覆盖就能判断栈溢出。guard page 更强（硬件辅助，访问就触发 #PF），但需要额外的虚拟地址空间和页表操作。当前的魔数方案已经能覆盖最常见的栈溢出场景，后续可以按需加入 guard page。
+栈为什么用魔数而不是 guard page？`STACK_MAGIC` 是一个轻量级的溢出检测手段——写在栈底，检查是否被覆盖就能判断栈溢出。guard page 更强（硬件辅助，访问就触发 #PF），但需要额外的虚拟地址空间和页表操作。当前的魔数方案已经能覆盖最常见的栈溢出场景，后续可以按需加入 guard page。值得注意的是，0xDEADC0DE 这个魔数的选择不是随意的——它是一个明显无效的地址，如果 RIP 跳到这里很容易在调试器中识别出来。这也是一种"fail loudly"的设计思想。
+
+为什么不用 RAII 管理 Task 的生命周期？Task 的生命周期比一个作用域更复杂——它被创建后加入调度队列，可能被多个 CPU（未来 SMP）引用，最终在线程退出时被销毁。这种生命周期用 unique_ptr 不行（所有权是共享/转移的），用 shared_ptr 需要引用计数开销。Linux 的 `task_struct` 也是手动管理生命周期的——alloc_task_struct 分配，free_task 释放，中间由调度器持有。
+
+`name` 为什么是 `const char*` 而不是某种字符串类？因为内核中没有通用的字符串类型——我们没有 `std::string`（没有 C++ 标准库）。`const char*` 指向静态字符串字面量是最简单、最安全的方案：不需要动态分配，不需要释放，生命周期和内核一样长。唯一的约束是调用者必须传字符串字面量，不能传栈上的局部 char 数组——否则 Task 的 name 指针会在函数返回后变成悬垂指针。
+
+`SchedulingClass` 为什么用虚基类而不是直接写 RoundRobin？为扩展做准备。Linux 的调度策略体系（CFS / RT / Deadline / Idle）通过类似的 sched_class 层次结构组织。先抽象接口，以后加新策略不需要改 Scheduler 的代码。目前 SchedulingClass 只有四个虚方法（enqueue、dequeue、pick_next、name），但已经足够覆盖大多数调度策略的核心操作了。
 
 ## 收尾
 
@@ -163,10 +179,22 @@ task->ctx.rip = reinterpret_cast<uint64_t>(entry_);
 
 但这些东西本身不会让线程跑起来——真正让两个线程交替执行的，是下一章要讲的 `context_switch.S` 汇编原语和 `RoundRobin` 调度器。而真正让开发过程跌宕起伏的，是第三篇要讲的那些让内核崩掉的 bug。
 
+## 关键要点总结
+
+1. **CpuContext 只有 64 字节**：6 个 callee-saved GPR + rsp + rip，不多不少。ABI 已经帮我们分担了 caller-saved 寄存器的保存工作。
+2. **static_assert 是不可省略的**：C++ 和汇编之间的偏移量约定没有运行时检查，编译期断言是唯一可靠的安全网。
+3. **栈顶的 exit_current 地址是精巧的约定**：它弥补了 `jmp` vs `call` 的语义差异，让线程函数能干净退出。
+4. **Task 保持精简**：只包含调度所需的最小字段集，后续功能逐步添加。
+5. **TaskBuilder 封装复杂性**：分配、映射、初始化、回滚——所有容易出错的细节都在 build() 里集中处理。
+
 ## 参考资料
 
 - Intel SDM Vol. 3A, Chapter 8 "Task Management", Section 8.7 "Task Management in 64-Bit Mode" (PDF pages 281-282)：64 位模式不支持硬件任务切换，必须由软件完成
-- System V AMD64 ABI: [https://refspecs.linuxbase.org/elf/x86_64-abi-0.99.pdf](https://refspecs.linuxbase.org/elf/x86_64-abi-0.99.pdf) — callee-saved 寄存器定义
+- System V AMD64 ABI: [https://gitlab.com/x86-psABIs/x86-64-ABI](https://gitlab.com/x86-psABIs/x86-64-ABI) — callee-saved 寄存器定义
 - xv6 `swtch.S` / `proc.h`: [https://github.com/mit-pdos/xv6-public](https://github.com/mit-pdos/xv6-public) — 32 位上下文切换和 TCB 设计对比
-- Linux `__switch_to_asm`: [https://kernel-internals.org/sched/context-switch/](https://kernel-internals.org/sched/context-switch/) — 64 位上下文切换的工业级实现
+- Linux `__switch_to_asm`: [https://blog.codingconfessions.com/p/linux-context-switching-internals](https://blog.codingconfessions.com/p/linux-context-switching-internals) — 64 位上下文切换的工业级实现
 - PintOS `switch.S`: [https://uchicago-cs.github.io/mpcs52030/switch.html](https://uchicago-cs.github.io/mpcs52030/switch.html) — 线程退出封装模式参考
+- OSDev Wiki "Context Switching": [https://wiki.osdev.org/Context_Switching](https://wiki.osdev.org/Context_Switching) — 软件上下文切换的通用方法
+- xv6 `proc.h` / `swtch.S`: [https://github.com/mit-pdos/xv6-public](https://github.com/mit-pdos/xv6-public) — 32 位上下文切换和 TCB 设计对比
+- Linux `__switch_to_asm`: [https://blog.codingconfessions.com/p/linux-context-switching-internals](https://blog.codingconfessions.com/p/linux-context-switching-internals) — 64 位上下文切换的工业级实现
+- Linux kernel context switch 演化史: [https://www.maizure.org/projects/evolution_x86_context_switch_linux/](https://www.maizure.org/projects/evolution_x86_context_switch_linux/) — 从 2.6 到现在的实现变化

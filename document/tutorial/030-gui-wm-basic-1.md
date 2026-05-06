@@ -108,5 +108,5 @@ mouse_y_ -= dy;  // PS/2 Y axis is inverted
 - Intel SDM: Vol.3A Section 6.4 — IDT Gate Types (interrupt gates clear IF)
 - OSDev Wiki: [PS/2 Mouse](https://wiki.osdev.org/PS/2_Mouse) — 3-byte packet format, initialization, 9-bit delta extraction
 - OSDev Wiki: [I8042 PS/2 Controller](https://wiki.osdev.org/I8042_PS/2_Controller) — controller commands, config byte layout
-- SerenityOS: [PS2MouseDevice](https://github.com/SerenityOS/serenity/blob/master/Kernel/Bus/PS2/MouseDevice.cpp) — production PS/2 mouse driver reference
-- Linux: [drivers/input/serio/i8042.c](https://github.com/torvalds/linux/blob/master/drivers/input/serio/i8042.c) — full 8042 controller driver
+- SerenityOS: [PS2MouseDevice](https://github.com/SerenityOS/serenity/blob/master/Kernel/Devices/Input/PS2/MouseDevice.cpp) — production PS/2 mouse driver reference
+- Linux: [i8042.c](https://elixir.bootlin.com/linux/latest/source/drivers/input/serio/i8042.c) — full 8042 controller driver source

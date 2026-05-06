@@ -2,7 +2,7 @@
 
 ## 概览
 
-本文是 tag `014_driver_keyboard` 两篇通读教程的第一篇，聚焦于 PS/2 键盘控制器的硬件初始化和中断绑定。在上一章 tag 013 中我们让屏幕拥有了显示文字的能力，现在该让内核"听"到用户的输入了——一个能接收按键事件的内核，才算真正具备了交互能力。
+本文是 tag `014_driver_keyboard` 三篇通读教程的第一篇，聚焦于 PS/2 键盘控制器的硬件初始化和中断绑定。在上一章 tag 013 中我们让屏幕拥有了显示文字的能力，现在该让内核"听"到用户的输入了——一个能接收按键事件的内核，才算真正具备了交互能力。
 
 我们从三个层面展开讲解：首先是 `keyboard.hpp` 中 `KeyEvent` 结构体和 `Keyboard` 类的完整接口设计，它定义了驱动和上层之间的契约；然后是 `keyboard.cpp` 中 `Keyboard::init()` 的完整实现，涵盖 8042 控制器的端口协议、命令序列、配置字节和自检流程；最后是 `interrupts.S` 中 IRQ1 中断桩的绑定和 `kernel_main` 中的初始化集成。整篇文章大约涉及 250 行代码，但它们打通了从硬件控制器到内核中断系统的完整链路。
 
@@ -230,7 +230,7 @@ void send_command(uint8_t cmd) {
 
 `wait_input_empty()` 是整个驱动中最底层的同步原语。它的逻辑是：不断读 0x64 端口的状态寄存器，检查 bit 1（INPUT_FULL），如果为 1 说明控制器还没处理完上一条命令，继续等。`__asm__ volatile("pause")` 是 x86 的超线程优化提示——告诉 CPU "我现在在自旋等待，可以把执行资源让给同一核心上的另一个超线程"，这个习惯在内核代码中值得保持。超时计数器设为 100000，在 QEMU 里永远不会触发（模拟的 8042 响应几乎是即时的），但在真机上如果控制器出了问题，至少不会永远卡死。
 
-`send_command()` 就是"等输入缓冲区空 → 写命令"的标准两步操作。这两个函数放在匿名命名空间里，表示它们是本编译单元私有的，不暴露给其他 .cpp 文件。
+`send_command()` 就是"等输入缓冲区空 -> 写命令"的标准两步操作。这两个函数放在匿名命名空间里，表示它们是本编译单元私有的，不暴露给其他 .cpp 文件。
 
 ### Keyboard::init() —— PS/2 控制器初始化序列
 
@@ -265,10 +265,10 @@ void Keyboard::init() {
 
 ```cpp
     // Step 4: Modify config: enable IRQ1 (bit 0), disable IRQ12 (bit 1 clear),
-    //         disable mouse translation (bit 6 clear)
+    //         enable scan code translation (bit 6 set)
     config |= 0x01;   // Enable keyboard IRQ (IRQ1)
-    config &= ~0x02;   // Disable mouse IRQ (IRQ12)
-    config |= 0x40;   // Enable scan code set 2 → set 1 translation
+    config &= ~0x02;  // Disable mouse IRQ (IRQ12)
+    config |= 0x40;   // Enable scan code set 2 -> set 1 translation
 
     send_command(Ps2Cmd::WRITE_CONFIG);
     wait_input_empty();
@@ -345,7 +345,7 @@ extern "C" void keyboard_irq1_handler(cinux::arch::InterruptFrame* frame) {
 
 为什么要这个 C 链接的桥接函数？因为 `ISR_NOERRCODE` 宏生成的汇编桩会直接 `call` 一个 C 符号名，而 C++ 的 name mangling 会把 `Keyboard::irq1_handler` 变成类似 `_ZN6cinux8drivers8Keyboard12irq1_handlerEPNS_4arch14InterruptFrameE` 这样的名字，汇编代码没法直接引用。`extern "C"` 保证了符号名就是 `keyboard_irq1_handler`，汇编桩可以无障碍地 call 它。桥接函数内部一行代码转发到 C++ 的命名空间成员函数，零开销。
 
-### kernel_main —— 初始化集成与键盘轮询
+### kernel_main —— 初始化集成
 
 最后我们来看 `kernel_main` 中如何把键盘驱动编织进启动序列。对比 tag 013 的版本，变化集中在初始化顺序的最后几步：
 
@@ -363,7 +363,7 @@ using cinux::drivers::KeyEvent;
     Keyboard::init();
 ```
 
-键盘初始化放在 console 初始化之后、中断使能之前。这个顺序是有讲究的：`Keyboard::init()` 会发送一系列 I/O 端口命令给 8042 控制器，这些操作不需要中断支持（它们是同步的轮询式操作），但必须在 PIC unmask 和 `sti` 之前完成。如果先 `sti` 再初始化控制器，中间如果有按键事件到达，irq handler 还没准备好，ring buffer 还没清零，后果不可预测。
+键盘初始化放在 console 初始化之后、中断使能之前。这个顺序是有讲究的：`Keyboard::init()` 会发送一系列 I/O 端口命令给 8042 控制器，这些操作不需要中断支持（它们是同步的轮询式操作），但必须在 PIC unmask 和 `sti` 之前完成。
 
 ```cpp
     // Step 11: Unmask IRQ0 (PIT timer) and IRQ1 (Keyboard), enable interrupts
@@ -376,37 +376,7 @@ using cinux::drivers::KeyEvent;
 
 相比 tag 013 只 unmask IRQ0，这里多了一行 `PIC::unmask(1)`。回顾 tag 011 的内容，8259 PIC 的 mask 寄存器每一位对应一个 IRQ 线——bit 0 对应 IRQ0，bit 1 对应 IRQ1。`PIC::unmask(1)` 清除 bit 1，允许 PIC 在 IRQ1 线上有信号时向 CPU 发送中断。
 
-```cpp
-    // Step 12: Keyboard poll loop -- echo keypresses to console + serial
-    KeyEvent ev;
-    while (1) {
-        __asm__ volatile("hlt");
-
-        // Drain all pending keyboard events
-        while (Keyboard::poll(ev)) {
-            if (ev.pressed && ev.ascii != 0) {
-                console.putc(ev.ascii);
-            }
-        }
-    }
-```
-
-这是内核的主循环，也是一个经典的事件驱动 idle loop 模式。`hlt` 指令让 CPU 进入低功耗停机状态，直到下一个中断唤醒它。唤醒后，内层的 `while (Keyboard::poll(ev))` 循环把 ring buffer 中积攒的所有键盘事件一次性排空，对每个可打印的按键事件调用 `console.putc()` 把字符显示到屏幕上。之所以要在一个 `hlt` 唤醒后排空所有事件，是因为按键事件可能在 CPU 醒来之前就积攒了好几个——比如一次按键会产生 make code 和 break code 两个中断，如果主循环每次只 poll 一个事件，第二个事件就要等到下一次 `hlt` 唤醒才能处理，延迟感会很明显。
-
 顺便一提，`pit.cpp` 里原来那个每秒打印一次 `[TICK] uptime` 的输出被删掉了。这不是偷懒——而是因为键盘回显和每秒一次的 tick 打印混在一起会非常混乱，你敲一个 `a`，屏幕上可能出现 `[TICK] uptime: 3s`a` 这种交错输出，体验很差。把噪音源去掉是正确的选择。
-
-### PIT 噪音消除
-
-```cpp
-// pit.cpp 中被删除的代码:
-// Print uptime once per second (every freq_hz_ ticks)
-if ((tick_count_ % freq_hz_) == 0) {
-    uint64_t seconds = tick_count_ / freq_hz_;
-    kprintf("[TICK] uptime: %us\n", static_cast<unsigned>(seconds));
-}
-```
-
-这段代码在 tag 011 中是用来验证 PIT 中断正常工作的调试输出，到了 tag 014 它的使命已经完成。删除之后，PIT 的 irq0 handler 变成一个纯粹的 tick 计数器加 EOI，不再产生任何 I/O 副作用，这对于键盘回显的显示体验至关重要。
 
 ## 设计决策分析
 
@@ -416,19 +386,11 @@ if ((tick_count_ % freq_hz_) == 0) {
 
 **为什么不 ACK 键盘命令？** 发送命令给键盘本身（不是控制器）时，键盘会回复 0xFA (ACK)。Cinux 没有向键盘发送任何命令——比如设置 LED 灯、切换扫描码集——所以不需要 ACK 处理。这省去了不少复杂性，但代价是无法控制键盘上的 LED。
 
-## 扩展方向
-
-- **CapsLock 支持**：当前只跟踪 Shift 的即时按下状态。CapsLock 是一个 toggle key，需要在收到 0x3A 的 make code 时翻转一个 `caps_lock_on` 标志，并在 ASCII 翻译时把它和 Shift 做 XOR。
-- **E0 扩展键处理**：方向键、Page Up/Down、右 Ctrl/Alt 等扩展键的扫描码以 0xE0 开头。当前驱动检测到 0xE0 就直接跳过，意味着这些键全部被忽略。完整实现需要用一个状态机追踪 E0 前缀。
-- **键盘 LED 控制**：通过向键盘发送命令 0xED + LED 位掩码可以控制 NumLock/CapsLock/ScrollLock 三个 LED。这需要实现 ACK 等待逻辑。
-- **真机适配**：在 self-test (0xAA) 之后重新写回配置字节，处理 self-test 可能重置配置的情况。还需要加上 USB legacy 支持，因为很多现代主板的 PS/2 端口实际上是 USB controller 模拟出来的。
-- **键盘命令队列**：如果未来需要支持 set scancode rate、enable/disable scanning 等键盘命令，需要实现一个命令队列来管理命令-ACK-响应的异步协议。
-
 ## 参考资料
 
-- [OSDev Wiki: I8042 PS/2 Controller](https://wiki.osdev.org/I8042_PS/2_Controller) — 8042 控制器命令列表、配置字节格式、10 步初始化序列
-- [OSDev Wiki: PS/2 Keyboard](https://wiki.osdev.org/PS/2_Keyboard) — 扫描码集定义、键盘命令、驱动模型
-- [OSDev Wiki: 8259 PIC](https://wiki.osdev.org/8259_PIC) — IRQ masking/unmasking、EOI 协议
-- Intel SDM Vol.2A — IN/OUT 指令说明，端口 I/O 保护模式要求 (CPL <= IOPL)
-- Intel SDM Vol.3A Section 6 — 中断/异常处理，IDT 门描述符，IRQ 到 IDT 向量的映射关系 (IRQn → vector 0x20+n)
-- xv6 `kbd.c` — MIT 教学内核的键盘驱动实现，bitmask 式 modifier 追踪
+- [OSDev Wiki: I8042 PS/2 Controller](https://wiki.osdev.org/I8042_PS/2_Controller) -- 8042 控制器命令列表、配置字节格式、10 步初始化序列
+- [OSDev Wiki: PS/2 Keyboard](https://wiki.osdev.org/PS/2_Keyboard) -- 扫描码集定义、键盘命令、驱动模型
+- [OSDev Wiki: 8259 PIC](https://wiki.osdev.org/8259_PIC) -- IRQ masking/unmasking、EOI 协议
+- Intel SDM Vol.2A -- IN/OUT 指令说明，端口 I/O 保护模式要求 (CPL <= IOPL)
+- Intel SDM Vol.3A Section 6 -- 中断/异常处理，IDT 门描述符，IRQ 到 IDT 向量的映射关系 (IRQn -> vector 0x20+n)
+- xv6 `kbd.c` -- MIT 教学内核的键盘驱动实现，bitmask 式 modifier 追踪

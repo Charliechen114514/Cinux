@@ -103,7 +103,7 @@ AHCI 类封装了整个驱动状态。公开接口只有 init（初始化）、r
 
 ### ahci.cpp 初始化方法
 
-**map_bar5** 将 BAR5 物理地址映射到虚拟地址 0xFFFF800000100000。映射 2 页（8KB，覆盖最多 8 个端口），标志为 Present + Writable + PCD。PCD（Page Cache Disable）标志至关重要——MMIO 寄存器不能被 CPU 缓存。
+**map_bar5** 将 BAR5 物理地址映射到内核 MMIO 区域的虚拟基地址（MMIO_VIRT_BASE = 0xFFFF800000100000，硬编码的高位 canonical 地址）。映射 2 页（8KB，覆盖最多 8 个端口），标志为 Present + Writable + PCD。PCD（Page Cache Disable）标志至关重要——MMIO 寄存器不能被 CPU 缓存。
 
 **reset_hba** 设置 GHC.HR 位，然后轮询等待它清零。轮询中插入 `pause` 指令。超时打印警告但不 panic。
 

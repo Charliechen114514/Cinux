@@ -12,7 +12,7 @@
 
 ### 实模式——CPU 上电后的默认状态
 
-按一下电源键，CPU 从物理地址 0xFFFF0 开始执行（那是 BIOS ROM 的地盘）。Intel SDM Vol.3A §9.1 告诉我们，此刻 CPU 处于**实模式**（Real-Address Mode）：16 位寄存器，没有内存保护，没有虚拟地址，段寄存器直接参与物理地址的计算。
+按一下电源键，现代 x86 CPU 上电后从物理地址 0xFFFFFFF0 取第一条指令（Intel SDM Vol.3A §10.1.1），该地址映射到 BIOS ROM 尾部。此刻 CPU 处于**实模式**（Real-Address Mode）：16 位寄存器，没有内存保护，没有虚拟地址，段寄存器直接参与物理地址的计算。
 
 实模式的地址计算公式是 `物理地址 = 段 × 16 + 偏移`，其中段和偏移都是 16 位值。这个公式的效果是：20 根地址线，寻址空间从 0x00000 到 0xFFFFF，刚好超过 1MB。比如 `0x07C0:0x0000` 和 `0x0000:0x7C00` 指向同一个物理地址 0x7C00——这就是 BIOS 加载 MBR 的位置。
 
@@ -108,7 +108,7 @@ qemu-system-x86_64 -drive format=raw,file=build/cinux.img
 
 **目标**：在 MBR 内实现一个打印 null 终止字符串的函数，能在屏幕上显示启动消息。
 
-**设计思路**：BIOS 提供了 `INT 0x10 AH=0x0E`（Teletype Output）这个中断服务，它会把 AL 中的字符打印到屏幕当前光标位置，自动处理换行回车。我们的字符串输出函数就是循环调用这个中断：用 `lodsb` 从 DS:SI 读一个字节到 AL（SI 自动加 1），检查是否为 0（字符串结束符），不是就调 INT 0x10 打印，是就返回。Intel SDM Vol.1 §3.3.4 提到实模式下 DS:SI 就是数据访问的标准方式，而 `lodsb` 恰好依赖这个组合。
+**设计思路**：BIOS 提供了 `INT 0x10 AH=0x0E`（Teletype Output）这个中断服务，它会把 AL 中的字符打印到屏幕当前光标位置，自动处理换行回车。我们的字符串输出函数就是循环调用这个中断：用 `lodsb` 从 DS:SI 读一个字节到 AL（SI 自动加 1），检查是否为 0（字符串结束符），不是就调 INT 0x10 打印，是就返回。Intel SDM Vol.3A §21.1.1 提到实模式下 DS:SI 就是数据访问的标准方式，而 `lodsb` 恰好依赖这个组合。
 
 **实现约束**：
 - 函数输入：SI 寄存器指向 null 终止字符串
@@ -212,3 +212,11 @@ gdb
 | INT 0x13 AH=0x42 | 扩展磁盘读取，DS:SI 指向 DAP |
 | MBR/Stage2 地址模型 | MBR 链接地址 0x7C00 + DS=0；Stage2 链接地址 0 + DS=CS |
 | 内存布局 | 0x7000 栈、0x7B00 DAP、0x7C00 MBR、0x8000 Stage2 |
+
+## 参考资料
+
+- Intel SDM: Vol.3A §10.1.1 — Processor State After Reset (CS=0xF000, EIP=0xFFF0, 复位后初始状态)
+- Intel SDM: Vol.3A §21.1.1 — Real-Address Mode (段:偏移寻址公式)
+- OSDev Wiki: [MBR (x86)](https://wiki.osdev.org/MBR_(x86)) — MBR 格式、BIOS 初始环境、签名规范
+- OSDev Wiki: [Disk access using the BIOS (INT 13h)](https://wiki.osdev.org/Disk_access_using_the_BIOS_(INT_13h)) — DAP 结构、扩展读盘 AH=0x42
+- OSDev Wiki: [A20 Line](https://wiki.osdev.org/A20_Line) — A20 地址线历史和开启方式

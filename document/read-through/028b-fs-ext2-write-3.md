@@ -26,7 +26,7 @@
 
 ### InodeOps 虚表扩展
 
-VFS 层通过 `InodeOps` 虚表和具体文件系统对接。和之前只读版本相比，新增了 `create`、`mkdir`、`unlink`、`stat` 四个虚函数：
+VFS 层通过 `InodeOps` 虚表和具体文件系统对接。和之前只读版本相比，新增了 `create`、`mkdir`、`unlink` 三个虚函数：
 
 ```cpp
 class InodeOps {
@@ -38,13 +38,12 @@ public:
     virtual Inode*  create(Inode* dir, const char* name, uint32_t namelen);
     virtual Inode*  mkdir(Inode* dir, const char* name, uint32_t namelen);
     virtual int64_t unlink(Inode* dir, const char* name, uint32_t namelen);
-    virtual int64_t stat(const Inode* inode, struct stat* st);
 };
 ```
 
 基类有默认实现（返回 -1 / nullptr），所以 ramdisk 等不支持写的文件系统不需要任何改动——`RamdiskFileOps` 和 `RamdiskDirOps` 不覆写这些函数，调用时直接返回错误。
 
-ext2 提供两个子类：`Ext2FileOps`（普通文件的 read/write/stat）和 `Ext2DirOps`（目录的 readdir/create/mkdir/unlink/stat）。系统调用的核心逻辑就是：找到父目录 Inode → `parent->ops->create/mkdir/unlink` → 走到 ext2 的具体实现。
+ext2 提供两个子类：`Ext2FileOps`（普通文件的 read/write）和 `Ext2DirOps`（目录的 readdir/create/mkdir/unlink）。系统调用的核心逻辑就是：找到父目录 Inode → `parent->ops->create/mkdir/unlink` → 走到 ext2 的具体实现。
 
 ### 通用路径拆分 split_pathname
 
@@ -163,7 +162,8 @@ int64_t sys_rmdir(uint64_t path_virt, uint64_t, uint64_t, uint64_t, uint64_t, ui
     }
 
     // Step 6: Call unlink
-    return parent->ops->unlink(parent, leaf_name, name_len);
+    int64_t result = parent->ops->unlink(parent, leaf_name, name_len);
+    return (result == 0) ? 0 : -1;
 }
 ```
 

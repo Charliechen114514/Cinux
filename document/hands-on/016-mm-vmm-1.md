@@ -6,7 +6,7 @@
 
 这一章要做的事情就是把页表从"黑箱"变成"工具箱"。我们需要定义一个精确匹配硬件格式的页表项（PTE）数据结构，把所有分页相关的常量集中管理起来，然后编写 TLB 刷新和 CR3 读写的基础设施。这些是下一章实现 VMM 的 map/unmap/translate 操作的绝对前提——不把砖头准备好，怎么砌墙？
 
-知识前置：你需要了解 x86-64 四级分页的基本原理（PML4 -> PDPT -> PD -> PT -> 物理页），我们在 tag 006 的 mini kernel 中已经设置过初始页表；还要理解上一章 PMM 的接口（`alloc_page` 返回物理页、`free_page` 释放物理页），因为 VMM 在映射时需要从 PMM 申请物理页来创建中间级页表。
+知识前置：你需要了解 x86-64 四级分页的基本原理（PML4 -> PDPT -> PD -> PT -> 物理页），我们在 tag 006 的 mini kernel 中已经设置过初始页表；还要理解上一章 PMM 的接口（`alloc_page` 返回物理页、`free_page` 释放物理页），因为 VMM 在映射时需要从 PMM 申请物理页来创建中间级页表。本章的代码改动涉及四个文件：新建 `paging_config.hpp`、修改 `paging.hpp` 和 `paging.cpp`、以及在 `vmm.cpp` 中引用这些常量。
 
 ## 概念精讲
 
@@ -27,7 +27,7 @@
 
 你可以把它想象成一个四层嵌套的目录系统：PML4 是根目录，它有 512 个抽屉（PDPT 表）；每个 PDPT 抽屉里又有 512 个子抽屉（PD 表）；每个 PD 子抽屉里有 512 个更小的抽屉（PT 表）；每个 PT 最底层抽屉里放着 512 张卡片，每张卡片指向一个 4KB 的物理页。要找一个虚拟地址对应的物理页，你得依次打开四层抽屉，每层根据虚拟地址中对应的那 9 位选择下一个抽屉，最后在第四层抽屉里找到物理页号。
 
-CR3 寄存器保存着 PML4 表的物理基地址——这是整个翻译链条的起点。每次 CR3 被加载（比如进程切换时），CPU 就从新的 PML4 开始翻译，这就是为什么每个进程可以拥有独立的地址空间。
+CR3 寄存器保存着 PML4 表的物理基地址——这是整个翻译链条的起点。每次 CR3 被加载（比如进程切换时），CPU 就从新的 PML4 开始翻译，这就是为什么每个进程可以拥有独立的地址空间。CR3 的低 12 位有特殊含义：bit 4 是 PCD（Page-level Cache Disable），bit 3 是 PWT（Page-level Write-Through），它们控制 PML4 表本身的缓存策略。如果你启用了 PCID（Process-Context Identifier，bit 0 的 CR4.PCIDE 需要置 1），那么 bit 11:0 就是 PCID 值，用于在 TLB 中区分不同进程的翻译缓存，避免每次进程切换都全量刷新 TLB。不过 tag 016 不涉及 PCID，我们只需要关心 CR3 的 bit 51:12 作为 PML4 物理基地址。
 
 > 参考：Intel SDM Vol.3A Section 4.5.4, pp.4-22 to 4-25
 > 参考：[OSDev Wiki - Paging (64-bit)](https://wiki.osdev.org/Paging)
@@ -58,7 +58,7 @@ Avail(52-62):  更多软件可用位。
 XD   (bit 63): Execute Disable——禁止执行位。
 ```
 
-其中最关键的字段是 bit 0（Present）和 bit 12-51（物理地址）。Present 位决定了这条映射是否有效——如果 CPU 尝试访问一个 Present=0 的 PTE 指向的地址，就会触发 Page Fault（#PF，异常号 14）。物理地址字段占 40 位，所以最多支持 52 位物理地址（2^52 = 4 PB），不过目前的 QEMU 默认配置远用不完。
+其中最关键的字段是 bit 0（Present）和 bit 12-51（物理地址）。Present 位决定了这条映射是否有效——如果 CPU 尝试访问一个 Present=0 的 PTE 指向的地址，就会触发 Page Fault（#PF，异常号 14）。物理地址字段占 40 位，所以最多支持 52 位物理地址（2^52 = 4 PB），不过目前的 QEMU 默认配置远用不完。值得注意的是，在支持 5 级分页（LA57）的 CPU 上，物理地址可以扩展到 bit 55:12（49 位），但 Cinux 目前只支持 4 级分页，所以 40 位足够了。
 
 注意 bit 5 和 bit 6 这两个"粘性位"——CPU 会在特定条件下自动设置它们，但永远不会自动清除。操作系统负责在需要的时候清零它们。这个特性在未来的页面置换算法中会很有用。
 
@@ -90,15 +90,15 @@ CR3（也叫 PDBR，Page Directory Base Register）保存着当前使用的 PML4
 
 **目标**: 把所有分页相关的常量集中到一个头文件中，供 paging.hpp、vmm.cpp 和 exception handler 共同使用。
 
-**设计思路**: 之前 tag 中的分页常量散落在各个文件里——PAGE_SIZE 可能在 pmm.hpp 里，PT_ENTRIES 在 paging.cpp 的匿名命名空间里，flag 值用裸数字 0x83 表示。这种碎片化的做法在项目还小的时候没什么问题，但当我们需要在 paging.hpp、vmm.cpp、exception handler 三个地方同时引用这些常量时，就必须把它们提取到一个公共头文件中。
+**设计思路**: 之前 tag 中的分页常量散落在各个文件里——PAGE_SIZE 可能在 pmm.hpp 里，PT_ENTRIES 在 paging.cpp 的匿名命名空间里，flag 值用裸数字 0x83 表示。这种碎片化的做法在项目还小的时候没什么问题，但当我们需要在 paging.hpp、vmm.cpp、exception handler 三个地方同时引用这些常量时，就必须把它们提取到一个公共头文件中。之所以单独建一个 `paging_config.hpp` 而不是把这些常量塞进 `paging.hpp`，是因为 `paging_config.hpp` 只包含常量，没有数据结构依赖，编译开销极小——测试代码或者 lightweight consumer 可以只 include 这一个文件，不需要拉入 `PageEntry` 等重量级定义。这种"常量头文件"的模式在大型 C++ 项目中很常见。
 
-新头文件需要定义四组常量。第一组是页面尺寸：PAGE_SIZE（4096）和 PAGE_SHIFT（12），这是整个分页系统的基础粒度。第二组是每级页表的位移量：PT_SHIFT（12）、PD_SHIFT（21）、PDPT_SHIFT（30）、PML4_SHIFT（39）——每一级的位移量比上一级多 9 位（因为每级索引 9 位）。第三组是标志位：用 `1ULL << N` 的形式定义 FLAG_PRESENT（bit 0）、FLAG_WRITABLE（bit 1）、FLAG_USER（bit 2）、FLAG_PWT（bit 3）、FLAG_PCD（bit 4）、FLAG_ACCESSED（bit 5）、FLAG_DIRTY（bit 6）、FLAG_HUGE（bit 7）、FLAG_GLOBAL（bit 8）、FLAG_NX（bit 63），以及地址掩码 ADDR_MASK（`0x000FFFFFFFFFF000ULL`，提取 PTE 中的物理地址字段）。第四组是索引提取函数：PML4_INDEX、PDPT_INDEX、PD_INDEX、PT_INDEX——它们都是 `constexpr` 函数，接受虚拟地址，右移对应级数后与 `0x1FF` 做 AND 运算，提取出 9 位索引。
+新头文件需要定义四组常量。第一组是页面尺寸：PAGE_SIZE（4096）和 PAGE_SHIFT（12），这是整个分页系统的基础粒度。第二组是每级页表的位移量：PT_SHIFT（12）、PD_SHIFT（21）、PDPT_SHIFT（30）、PML4_SHIFT（39）——每一级的位移量比上一级多 9 位（因为每级索引 9 位）。第三组是标志位：用 `1ULL << N` 的形式定义 FLAG_PRESENT（bit 0）、FLAG_WRITABLE（bit 1）、FLAG_USER（bit 2）、FLAG_PWT（bit 3）、FLAG_PCD（bit 4）、FLAG_ACCESSED（bit 5）、FLAG_DIRTY（bit 6）、FLAG_HUGE（bit 7）、FLAG_GLOBAL（bit 8）、FLAG_NX（bit 63），以及地址掩码 ADDR_MASK（`0x000FFFFFFFFFF000ULL`，提取 PTE 中的物理地址字段）和标志位掩码 FLAG_MASK（ADDR_MASK 的补集，提取所有非地址位）。第四组是索引提取函数：PML4_INDEX、PDPT_INDEX、PD_INDEX、PT_INDEX——它们都是 `constexpr` 函数，接受虚拟地址，右移对应级数后与 `0x1FF` 做 AND 运算，提取出 9 位索引。
 
 **实现约束**: 文件路径是 `kernel/arch/x86_64/paging_config.hpp`，命名空间 `cinux::arch`。所有常量用 `constexpr` 定义（不是宏）。索引提取函数也是 `constexpr`。头文件使用 `#pragma once` 作为 include guard。
 
 **踩坑预警**: ADDR_MASK 的值是 `0x000FFFFFFFFFF000ULL`——注意那个 `ULL` 后缀。如果你忘了加，在某些编译器配置下 `0x000FFFFFFFFFF000` 会被当成 32 位常量，高位被截断，结果变成了 `0xFFFFF000`，物理地址的提取就全错了。另外，标志位定义必须用 `1ULL << N` 而不是 `1 << N`，因为 FLAG_NX 在 bit 63，如果用 32 位的 1 左移 63 位，行为是未定义的（C++ 标准规定移位量大于等于位宽是 UB）。
 
-**验证**: 这个文件只包含常量定义，编译通过即可。你可以在 `paging.cpp` 中用这些常量替换掉之前的裸数字（比如把 `0x83` 替换为 `FLAG_PRESENT | FLAG_WRITABLE | FLAG_HUGE`），如果编译和运行都正常，说明常量定义正确。
+**验证**: 这个文件只包含常量定义，编译通过即可。你可以在 `paging.cpp` 中用这些常量替换掉之前的裸数字（比如把 `0x83` 替换为 `FLAG_PRESENT | FLAG_WRITABLE | FLAG_HUGE`），如果编译和运行都正常，说明常量定义正确。另外可以写几个 `static_assert` 来验证常量之间的关系，比如 `static_assert(1 << PT_SHIFT == PAGE_SIZE, "PT_SHIFT must be log2(PAGE_SIZE)")` 和 `static_assert(PD_SHIFT - PT_SHIFT == 9, "Each level adds 9 bits")`。还有一个有用的检查：`static_assert(FLAG_MASK == ~ADDR_MASK, "FLAG_MASK must be complement of ADDR_MASK")`——如果 ADDR_MASK 和 FLAG_MASK 不是互补关系，map 操作中 `(phys & ADDR_MASK) | (flags & ~ADDR_MASK)` 的分离就会出错。
 
 ### Step 2: 定义 PageEntry 联合体
 
@@ -116,7 +116,7 @@ CR3（也叫 PDBR，Page Directory Base Register）保存着当前使用的 PML4
 
 **踩坑预警**: 位域的布局依赖于编译器的实现。幸运的是，GCC 和 Clang 在 x86-64 平台上对 `uint64_t` 位域的处理是完全一致的——按声明顺序从低位到高位排列。但如果你移植到其他平台或使用 MSVC，位域布局可能不同。所以 `static_assert` 不只是装饰——它是你唯一的编译期防线。另一个要注意的是，位域不能取地址——你不能写 `&entry.present`，因为位域成员可能不占完整的字节。所有对位域的访问必须通过值操作（读或写），不能通过指针。
 
-**验证**: 在 paging.hpp 中定义好 PageEntry 后，可以通过编译检查来验证。同时 `static_assert` 会在编译期确认大小正确。你还可以在后续编写 host 测试时手动构造一些 PageEntry 值来验证位域布局——比如设 `raw = FLAG_PRESENT | FLAG_WRITABLE | 0x10300000`，然后检查 `phys_addr()` 是否返回 `0x10300000`、`is_present()` 是否返回 true。
+**验证**: 在 paging.hpp 中定义好 PageEntry 后，可以通过编译检查来验证。同时 `static_assert` 会在编译期确认大小正确。你还可以在后续编写 host 测试时手动构造一些 PageEntry 值来验证位域布局——比如设 `raw = FLAG_PRESENT | FLAG_WRITABLE | 0x10300000`，然后检查 `phys_addr()` 是否返回 `0x10300000`、`is_present()` 是否返回 true。也可以通过位域成员直接检查——设 `entry.present = 1; entry.writable = 0;`，然后读 `entry.raw` 确认值等于 1，说明 bit 0 对应 present、bit 1 对应 writable。三个辅助方法（`phys_addr`、`set_phys_addr`、`is_present`）之所以用 `raw & ADDR_MASK` 而不是直接访问位域 `addr`，是因为掩码操作在不同编译器上的行为更加确定——虽然 GCC 和 Clang 在 x86-64 上对 40 位位域的处理是正确的，但使用掩码更安全。
 
 ### Step 3: 实现 TLB 刷新和 CR3 读写辅助函数
 
@@ -132,7 +132,9 @@ CR3（也叫 PDBR，Page Directory Base Register）保存着当前使用的 PML4
 
 **踩坑预警**: `invlpg` 指令要求操作数是一个有效的虚拟地址，但实际上这个地址不需要当前被映射——`invlpg` 只是让 TLB 中关于这个地址的缓存失效，如果 TLB 里本来就没有这条缓存，它就是一个 no-op。所以调用 `flush_tlb` 的安全性不需要依赖目标地址是否已经映射。另外，`flush_tlb_all` 的 `"memory"` clobber 是必须的，如果你忘了加，编译器可能把 `flush_tlb_all()` 前后的内存操作重排序——在修改页表后调用 `flush_tlb_all()` 但 clobber 缺失的情况下，编译器可能把页表写入操作移到 TLB 刷新之后，导致 CPU 看到的还是旧的页表内容。
 
-**验证**: 最直接的验证方式是把 `paging.cpp` 中原有的 `reload_cr3()` 函数和 `__asm__ volatile("invlpg (%0)" : : "r"(cur))` 替换为 `flush_tlb_all()` 和 `flush_tlb(cur)` 调用。如果替换后 MMIO 映射仍然正常工作（framebuffer 能正常显示），说明 TLB 刷新函数的封装是正确的。
+**验证**: 最直接的验证方式是把 `paging.cpp` 中原有的 `reload_cr3()` 函数和 `__asm__ volatile("invlpg (%0)" : : "r"(cur))` 替换为 `flush_tlb_all()` 和 `flush_tlb(cur)` 调用。如果替换后 MMIO 映射仍然正常工作（framebuffer 能正常显示），说明 TLB 刷新函数的封装是正确的。你也可以在替换前后分别运行 `big_kernel_test`，对比串口输出是否一致——如果所有测试都 PASS，说明重构没有引入回归。
+
+注意 `flush_tlb_all()` 和 `write_cr3()` 都会触发全局 TLB 刷新。它们的区别在于 `flush_tlb_all()` 不改变 CR3 的值（读出再写回），而 `write_cr3` 会设置新的 CR3 值。在 `map_mmio` 中我们用 `flush_tlb_all()` 因为不需要切换页表根。
 
 ### Step 4: 重构 paging.cpp 使用新常量
 
@@ -148,6 +150,8 @@ CR3（也叫 PDBR，Page Directory Base Register）保存着当前使用的 PML4
 
 **验证**: 重构完成后重新编译并运行内核。在 QEMU 中观察 framebuffer 是否正常初始化——如果 `map_mmio` 函数因为 TLB 刷新失败而写入错误位置，framebuffer 会完全黑屏或者显示乱码。同时检查串口输出中 `[PMM]` 的统计信息是否正常——PMM 初始化依赖正确的页表映射来访问位图。
 
+如果你在重构过程中遇到编译错误，常见原因有：忘记 include `paging_config.hpp`（导致 FLAG_* 未定义）、匿名命名空间中还残留着旧的 `PT_ENTRIES` 或 `reload_cr3` 定义（导致重复定义错误）、或者 `flush_tlb_all()` 括号写漏了写成 `flush_tlb_all;`（编译器不报错但 TLB 不会刷新）。
+
 ## 构建与运行
 
 整个 tag 016 的构建和验证分两步。
@@ -156,13 +160,25 @@ CR3（也叫 PDBR，Page Directory Base Register）保存着当前使用的 PML4
 
 然后是 QEMU in-kernel 集成测试。编译 `big_kernel_test` 目标后，用 QEMU 启动。串口输出中你应该能看到 `[VMM] Initialised, kernel PML4 at phys ...` 的消息，后面跟着一系列 `PASS` 标记。特别注意 VMM 初始化输出的 PML4 物理地址——它应该是一个非零的、4KB 对齐的物理地址（通常是 0x10000 或 0x20000，取决于 bootloader 的设置）。
 
+在编译之前，还要确认 CMakeLists.txt 的修改正确。`kernel/CMakeLists.txt` 的 `big_kernel_common` 源文件列表中需要新增 `mm/vmm.cpp`（VMM 实现），`big_kernel_test` 源文件列表中需要新增 `test/test_vmm.cpp`（QEMU 集成测试）。`test/CMakeLists.txt` 中需要新增 `test_vmm` 可执行目标的编译规则，并把 `test_vmm` 加入 `test_host`、`test`、`test_verbose` 的依赖列表。如果链接时报 "undefined reference to VMM::init()" 之类的错误，检查是否遗漏了这些 CMake 修改。
+
 ## 调试技巧
 
 **PageEntry 位域布局错误**: 如果你怀疑位域布局不对（比如 `phys_addr()` 返回了错误的值），可以在 host 测试中打印 `sizeof(PageEntry)` 和各个位域成员的偏移量。正确情况下，`present` 在 bit 0，`writable` 在 bit 1，`addr` 从 bit 12 开始占 40 位，`nx` 在 bit 63。如果偏移量不对，检查是否遗漏了某个位域成员。
 
+**ADDR_MASK 写错**: 这是一个极易出错的值。`ADDR_MASK = 0x000FFFFFFFFFF000ULL`——注意 `ULL` 后缀。如果忘了加 `ULL`，某些编译器配置下这个常量会被截断成 32 位，物理地址提取全部错误。你可以用 `static_assert` 来验证：`static_assert(ADDR_MASK == 0x000FFFFFFFFFF000ULL, "ADDR_MASK wrong")`。同样，标志位必须用 `1ULL << N` 定义，`1 << 63` 是未定义行为（移位量超过位宽）。
+
 **TLB 刷新遗漏**: 如果你在映射了一个新页后发现写入的数据"消失"了（写了之后读回来是垃圾），最可能的原因是忘了调用 `flush_tlb`。CPU 还在使用 TLB 中缓存的旧映射（可能是"不存在"），所以你的写入实际到了一个完全错误的位置。在 QEMU monitor 中可以用 `info tlb` 命令检查当前 TLB 的内容，确认你的映射是否被正确缓存。
 
+**编译错误排查**: 如果 `paging.cpp` 重构后出现 "use of undeclared identifier 'FLAG_PRESENT'" 之类的编译错误，说明 `paging_config.hpp` 没有被正确 include。检查 include 路径是否正确——应该是 `#include "kernel/arch/x86_64/paging_config.hpp"`。如果报 "redefinition of 'PT_ENTRIES'"，说明 `paging.cpp` 的匿名命名空间中还保留着旧的 `PT_ENTRIES` 定义，需要删除。
+
 **QEMU 调试**: 用 `qemu-system-x86_64 -d int` 可以在 QEMU 中记录所有中断和异常，包括 page fault。如果看到意料之外的 #PF，检查 CR2 的值（触发 fault 的虚拟地址）和 error code 的各个位。在 GDB 中，你可以用 `monitor info tlb` 查看 TLB 状态，用 `x/1gx {PML4的虚拟地址}` 手动遍历页表结构。
+
+**ADDR_MASK 验证**: 你可以写一个简单的编译期检查来验证 ADDR_MASK 的正确性：`static_assert((ADDR_MASK & 0xFFF) == 0, "low 12 bits must be 0")` 和 `static_assert((ADDR_MASK >> 52) == 0, "bits 63:52 must be 0")`。如果这两个 static_assert 都通过了，ADDR_MASK 就是正确的。类似地，你可以检查 FLAG_MASK：`static_assert((FLAG_MASK & ADDR_MASK) == 0, "flag and addr masks must not overlap")`。
+
+**位域布局可移植性**: `PageEntry` 的位域布局依赖于 GCC/Clang 在 x86-64 小端序上的行为——从低位到高位排列。如果你需要移植到其他平台（比如 ARM 或使用 MSVC），位域布局可能不同。`static_assert(sizeof(PageEntry) == 8)` 是你的编译期防线——如果布局不对，编译直接报错。另一种更可移植的做法是像 Linux 一样完全用 raw 值 + 掩码操作，但 Cinux 只面向 x86-64，所以位域的可读性优势优先。
+
+**kernel_main 中的 VMM 初始化位置**: 在 `kernel/main.cpp` 中，VMM 初始化调用位于 PMM 初始化之后、Framebuffer 初始化之前。这个顺序是严格要求的——VMM 的 map 在分配中间页表时需要 PMM 已就绪，而 Framebuffer 的 MMIO 映射虽然目前是独立函数（不经过 VMM），但未来会统一到 VMM 中。在 Step 注释中，VMM init 对应的步骤编号紧跟在 PMM 之后。
 
 ## 本章小结
 
@@ -173,6 +189,9 @@ CR3（也叫 PDBR，Page Directory Base Register）保存着当前使用的 PML4
 | PageEntry 联合体 | 64 位 raw + 位域结构体 + phys_addr/set_phys_addr/is_present 辅助方法 |
 | 标志位 | P(bit0), RW(bit1), US(bit2), A(bit5), D(bit6), PS/Huge(bit7), G(bit8), XD(bit63) |
 | ADDR_MASK | 0x000FFFFFFFFFF000ULL，提取 PTE 中的物理地址字段 |
-| TLB 刷新 | invlpg（单页）+ 重载 CR3（全局），修改 PTE 后必须刷新 |
-| CR3 | 保存 PML4 物理基地址，read/write_cr3 封装内联汇编 |
+| TLB 刷新 | invlpg（单页）+ 重载 CR3（全局），修改 PTE 后必须刷新，"memory" clobber 防止重排 |
+| CR3 | 保存 PML4 物理基地址，read/write_cr3 封装内联汇编，低 12 位有 PCD/PWT/PCID 含义 |
 | paging_config.hpp | 集中定义 PAGE_SIZE/SHIFT, PT_ENTRIES, 各级 SHIFT, FLAG_*, ADDR_MASK, INDEX 宏 |
+| paging.cpp 重构 | 0x83 -> FLAG_PRESENT|FLAG_WRITABLE|FLAG_HUGE，reload_cr3 -> flush_tlb_all |
+| FLAG_MASK | 0xFFF0000000000FFFULL，ADDR_MASK 的补集，分离标志位和地址位 |
+| static_assert | 编译期验证 PageEntry 大小为 8 字节，确保位域布局正确 |

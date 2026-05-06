@@ -18,11 +18,11 @@
 
 Cinux 的 Inode 有一个特别的字段叫 fs_private——这是一个 void 指针，留给后端文件系统挂自己的私有数据。比如 Ramdisk 可以用它指向内部的 RamdiskEntry（包含文件名和数据指针），而 ext2 可以用它指向磁盘上的块地址列表。这种"公共部分 + 私有指针"的模式在 Linux 里也广泛使用，Linux 的 inode 有一个 i_private 字段做完全一样的事情。
 
-### InodeOps — 为什么用函数指针而非虚函数
+### InodeOps — 函数指针表实现多态操作
 
-你可能会问：既然用了 C++，为什么不直接在 Inode 上加虚函数？说实话，这是一个有意为之的设计选择。函数指针表的方式更接近 Linux 内核的 inode_operations，而且有几个实实在在的好处：第一，每个 Inode 只需要存一个指针指向静态的 ops 表，不需要 vtable 指针加上 RTTI 的额外开销；第二，对于 Ramdisk 这种后端来说，所有普通文件的 read/write 实现完全一样（读归档数据、写返回错误），一张静态 ops 表就能服务所有文件 inode，零额外内存分配；第三，函数指针表可以在编译期静态定义，不需要运行时的虚函数分派机制。
+InodeOps 在 Cinux 里是一个纯 C 风格的函数指针结构体（struct），不是虚基类。每个字段都是一个函数指针，指向具体的实现函数。不支持的操作就把对应指针设为 nullptr。这种方式在 Linux 内核中也广泛使用——file_operations、inode_operations 都是函数指针表。
 
-InodeOps 里定义了三个操作：read（从文件读取数据）、write（向文件写入数据）、readdir（读取目录项）。每个函数指针都可以是 nullptr——比如普通文件的 ops 不需要 readdir（你不能对一个普通文件读目录项），而目录的 ops 不需要 read（你不能像读文件一样读一个目录的数据）。调用方在调用前需要检查指针是否为空。
+InodeOps 函数指针表里定义了多个操作：read（从文件读取数据）、write（向文件写入数据）、readdir（读取目录项）、create（创建文件）、mkdir（创建目录）、unlink（删除文件）、stat（获取文件信息）。每个函数指针都可以为 nullptr——比如普通文件的 ops 不需要设置 readdir（保持 nullptr 即可），而目录的 ops 不需要设置 read（保持 nullptr）。调用方在调用前需要检查函数指针是否为 nullptr。
 
 ### File 与 FDTable — 进程视角的打开文件
 
@@ -32,13 +32,13 @@ FDTable 就是进程的文件描述符表，本质上是一个固定大小的指
 
 ## 动手实现
 
-### Step 1: 定义 InodeType 枚举和 InodeOps 函数指针表
+### Step 1: 定义 InodeType 枚举和 InodeOps 函数指针结构体
 
 **目标**: 创建头文件 `kernel/fs/inode.hpp`，定义 Inode 相关的所有类型。
 
-**设计思路**: InodeType 枚举只需要三个值——Unknown(0)、Regular(1) 和 Directory(2)。InodeOps 是一个结构体，包含三个函数指针字段（read/write/readdir），类型分别是读回调、写回调和目录项读取回调。注意 read 的第一个参数是 const Inode*（读不修改 inode），而 write 的第一个参数是 Inode*（写可能修改 size 等元数据）。readdir 的语义比较特殊：返回 1 表示读到一项、0 表示目录已读完、-1 表示错误。
+**设计思路**: InodeType 枚举只需要三个值——Unknown(0)、Regular(1) 和 Directory(2)。InodeOps 是一个函数指针结构体（struct），每个字段都是函数指针，如 `int64_t (*read)(const Inode*, uint64_t, void*, uint64_t)`。不支持的操作设为 nullptr。注意 read 的第一个参数是 const Inode*（读不修改 inode），而 write 的第一个参数是 Inode*（写可能修改 size 等元数据）。readdir 的语义比较特殊：返回 1 表示读到一项、0 表示目录已读完、-1 表示错误。
 
-**实现约束**: 在定义 InodeOps 之前，需要先做前置声明 `struct Inode;`，因为函数签名的参数里用到了 Inode*。InodeOps 的所有函数指针都可以为 nullptr，调用方必须检查。
+**实现约束**: 在定义 InodeOps 之前，需要先做前置声明 `struct Inode;`，因为函数指针的参数里用到了 Inode*。InodeOps 的函数指针可以为 nullptr，调用方需要在调用前检查对应指针是否为空。
 
 **踩坑预警**: readdir 的 index 参数是 0-based 的索引，不是字节偏移量。调用方（通常是 sys_getdents）需要自己维护这个索引——我们的做法是复用 File 结构体的 offset 字段当索引用，每次 readdir 成功后 offset++。
 
@@ -48,11 +48,11 @@ FDTable 就是进程的文件描述符表，本质上是一个固定大小的指
 
 **目标**: 在同一个 `kernel/fs/inode.hpp` 中，紧接 InodeOps 之后定义 Inode 结构体。
 
-**设计思路**: Inode 有五个字段：ino（uint64_t，文件系统特定的编号）、size（uint64_t，文件字节大小）、type（InodeType 枚举）、ops（InodeOps 指针，可为 nullptr）、fs_private（void 指针，后端私有数据）。
+**设计思路**: Inode 有五个核心字段：ino（uint64_t，文件系统特定的编号）、size（uint64_t，文件字节大小）、type（InodeType 枚举）、ops（InodeOps 指针，可为 nullptr）、fs_private（void 指针，后端私有数据）。此外还有 mode/uid/gid/nlink/atime/ctime/mtime/blocks 等为 stat 系统调用预留的字段。所有字段都有默认初始化值。
 
 **实现约束**: Inode 的生命周期由后端文件系统管理——Ramdisk 的 Inode 是嵌入在 RamdiskEntry 里的预分配对象，不需要动态分配。调用方不应该 free/delete 一个 Inode，它归后端所有。
 
-**验证**: `static_assert(sizeof(Inode) > 0)` 应该通过。Inode 的大小应该在 40-48 字节左右（ino 8 + size 8 + type 1 + padding 7 + ops 8 + fs_private 8）。
+**验证**: `static_assert(sizeof(Inode) > 0)` 应该通过。Inode 的大小约为 96 字节左右（ino 8 + size 8 + type 1 + padding 7 + ops 8 + fs_private 8 + mode 4 + uid 4 + gid 4 + nlink 4 + atime 8 + ctime 8 + mtime 8 + blocks 8）。
 
 ### Step 3: 定义 FileSystem 抽象基类
 
@@ -68,9 +68,9 @@ FDTable 就是进程的文件描述符表，本质上是一个固定大小的指
 
 **目标**: 创建 `kernel/fs/file.hpp`（声明）和 `kernel/fs/file.cpp`（实现）。
 
-**设计思路**: OpenFlags 枚举值——RDONLY=0, WRONLY=1, RDWR=2——和 Linux 的 O_RDONLY/O_WRONLY/O_RDWR 完全一致，方便用户态直接传值。File 结构体三个字段：inode 指针、offset（uint64_t，读写偏移量，初始化为 0）、flags（OpenFlags）。FDTable 类有构造函数（初始化所有槽位为 nullptr）、alloc（从 fd=3 开始线性扫描）、close（边界检查 + delete + 置空）、get（边界检查 + 返回指针）。
+**设计思路**: OpenFlags 枚举值——RDONLY=0, WRONLY=1, RDWR=2——和 Linux 的 O_RDONLY/O_WRONLY/O_RDWR 完全一致，方便用户态直接传值。File 结构体有显式构造函数和三个核心字段：inode 指针、offset（uint64_t，读写偏移量，初始化为 0）、flags（OpenFlags），以及一个 offset_lock_ 自旋锁保护并发访问。FDTable 类有构造函数（初始化所有槽位为 nullptr）、alloc（从 fd=3 开始线性扫描，受 lock_ 保护）、close（边界检查 + delete + 置空，受 lock_ 保护）、get（边界检查 + 返回指针，受 lock_ 保护）、set（强制设置指定 fd 的 File 指针，用于 pipe 和 dup2）。
 
-**实现约束**: FD_TABLE_SIZE 设为 256（与 Linux 默认的 RLIMIT_NOFILE 一致），FD_NONE = -1 作为失败返回值。alloc 的第一个可分配 fd 是 3（跳过 0/1/2）。close 必须做边界检查（fd < 0 或 fd >= 256 都返回 -1）和双重关闭检查（slot 为 nullptr 时返回 -1）。
+**实现约束**: FD_TABLE_SIZE 设为 256（与 Linux 默认的 RLIMIT_NOFILE 一致），FD_NONE = -1 作为失败返回值。alloc 的第一个可分配 fd 是 3（跳过 0/1/2）。close 必须做边界检查（fd < 0 或 fd >= 256 都返回 -1）和双重关闭检查（slot 为 nullptr 时返回 -1）。所有公共操作都通过 lock_ 自旋锁保护。
 
 **踩坑预警**: alloc 里用 `new File{...}` 分配对象——这需要内核堆已经初始化。在我们的启动顺序里没问题，但如果你写独立的 host 测试，确保链接了正确的内存分配器。另外，FDTable 目前没有加锁——在单核内核里没问题，但以后多进程/多线程时需要在 alloc 和 close 里加自旋锁保护。
 
@@ -118,9 +118,9 @@ ctest -R fd_table --output-on-failure
 
 | 概念 | 要点 |
 |------|------|
-| Inode | 文件系统对象的统一表示，ino/size/type/ops/fs_private 五字段 |
-| InodeOps | 函数指针表 (read/write/readdir)，可为 nullptr，替代虚函数 |
+| Inode | 文件系统对象的统一表示，ino/size/type/ops/fs_private 五个核心字段 + stat 预留字段 |
+| InodeOps | 函数指针结构体 (read/write/readdir/create/mkdir/unlink/stat)，不支持的操作设为 nullptr |
 | FileSystem | 抽象基类，mount() 返回 bool + lookup() 返回 Inode* |
 | OpenFlags | RDONLY(0)/WRONLY(1)/RDWR(2)，与 Linux O_* 值对应 |
-| File | 打开文件描述：绑定 Inode + offset + flags |
-| FDTable | 256 槽位的文件描述符表，fd 0-2 保留，alloc 从 3 开始 |
+| File | 打开文件描述：绑定 Inode + offset + flags + offset_lock_ |
+| FDTable | 256 槽位的文件描述符表，fd 0-2 保留，alloc 从 3 开始，受自旋锁保护 |

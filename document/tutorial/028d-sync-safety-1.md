@@ -39,7 +39,7 @@ void Spinlock::release() {
 }
 ```
 
-`__atomic_test_and_set` 是 GCC 提供的原子操作内建函数，在 x86 上会被编译为 `LOCK BTS`（Bit Test and Set）指令或者等价的 `XCHG` 指令——根据 Intel SDM Vol.3A Section 8.1 的说明，`XCHG` 指令隐含 LOCK 语义，不需要显式的 LOCK 前缀。这个函数原子地将 `locked_` 设为 true，并返回之前的旧值。如果旧值是 false，说明我们成功抢到了锁，循环结束；如果旧值是 true，说明别人还持有着锁，我们继续自旋。
+`__atomic_test_and_set` 是 GCC 提供的原子操作内建函数，在 x86 上会被编译为 `LOCK BTS`（Bit Test and Set）指令或者等价的 `XCHG` 指令——根据 Intel SDM Vol.3A Section 9.1 的说明，`XCHG` 指令隐含 LOCK 语义，不需要显式的 LOCK 前缀。这个函数原子地将 `locked_` 设为 true，并返回之前的旧值。如果旧值是 false，说明我们成功抢到了锁，循环结束；如果旧值是 true，说明别人还持有着锁，我们继续自旋。
 
 `__ATOMIC_ACQUIRE` 是内存序参数，它的含义是"在这个操作之后的读操作不能被重排到这个操作之前"。为什么要这个保证？想象一下：获取锁之后我们要读临界区的数据，如果编译器把读操作重排到了获取锁之前，我们读到的可能是过时的数据——因为还没获得锁，其他线程可能正在修改数据。
 
@@ -114,7 +114,7 @@ Linux 内核在 x86_64 上使用 ticket lock 而非简单 test-and-set。ticket 
 ## 参考资料
 
 - Intel SDM: Vol.2A Section 4.3 — PAUSE (Spin Wait Hint)，PAUSE 指令提示处理器处于自旋等待循环
-- Intel SDM: Vol.3A Section 8.1 — Locked Atomic Operations，LOCK 前缀与原子操作语义
+- Intel SDM: Vol.3A Section 9.1 — Locked Atomic Operations，LOCK 前缀与原子操作语义
 - OSDev Wiki: [Synchronization Primitives](https://wiki.osdev.org/Synchronization_Primitives) — 自旋锁、Mutex、Semaphore 分类
 - xv6-riscv: [spinlock.c](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/spinlock.c) — push_off/pop_off 中断嵌套机制
 - Linux: [spinlock.h](https://github.com/torvalds/linux/blob/master/include/linux/spinlock.h) — spinlock_irqsave 宏实现

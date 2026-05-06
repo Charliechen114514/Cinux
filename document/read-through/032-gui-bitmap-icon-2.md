@@ -71,7 +71,7 @@ constexpr uint32_t GREY_DARK   = 0x00404040;
 接下来是 `detail` 命名空间中的构建工具。`hex_nibble` 把一个 hex 字符转换成 0-15 的数值：
 
 ```cpp
-constexpr uint32_t hex_nibble(char c) {
+consteval uint32_t hex_nibble(char c) {
     if (c >= '0' && c <= '9')
         return static_cast<uint32_t>(c - '0');
     if (c >= 'a' && c <= 'f')
@@ -82,13 +82,13 @@ constexpr uint32_t hex_nibble(char c) {
 }
 ```
 
-函数很小，但处理了三种字符范围：数字 0-9、小写 a-f、大写 A-F。非法字符返回 0——这意味着如果图案字符串中有拼写错误（比如写了一个 'g'），它会被静默地映射为调色板的第一种颜色（通常是透明黑色）。这个行为在调试时可能会造成困惑，但作为 constexpr 函数它无法抛出异常或打印警告。
+函数很小，但处理了三种字符范围：数字 0-9、小写 a-f、大写 A-F。非法字符返回 0——这意味着如果图案字符串中有拼写错误（比如写了一个 'g'），它会被静默地映射为调色板的第一种颜色（通常是透明黑色）。这个行为在调试时可能会造成困惑，但作为 consteval 函数它无法抛出异常或打印警告。
 
 核心的 `build_icon` 模板：
 
 ```cpp
 template <uint32_t Rows>
-constexpr std::array<uint32_t, 1024> build_icon(const uint32_t (&palette)[16],
+consteval std::array<uint32_t, 1024> build_icon(const uint32_t (&palette)[16],
                                                 const char* const (&rows)[Rows]) {
     static_assert(Rows == 32, "Icon must have exactly 32 rows");
 

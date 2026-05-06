@@ -5,7 +5,7 @@
 
 ## 前言
 
-上一章我们让 MBR 成功加载了 Stage2 并跳转过去，QEMU 屏幕上能看到 `Cinux Booting...` 和 `Disk OK`。但 Stage2 此刻还是一片空白——这篇我们要让它做三件关键的事情：开启 A20 地址线突破 1MB 限制，通过 VESA BIOS Extensions 设置 1024×768×32bpp 的图形模式，最后把帧缓冲的物理地址和分辨率信息保存到固定位置，留给后续的内核初始化使用。同时还要搞定构建系统——CMakeLists.txt 从单目标变成双目标，build_image.sh 负责把 MBR 和 Stage2 组装成磁盘镜像。
+上一章我们让 MBR 成功加载了 Stage2 并跳转过去，QEMU 屏幕上能看到 `Cinux Booting...`。但 Stage2 此刻还是一片空白——这篇我们要让它做三件关键的事情：开启 A20 地址线突破 1MB 限制，通过 VESA BIOS Extensions 设置 1024×768×32bpp 的图形模式，最后把帧缓冲的物理地址和分辨率信息保存到固定位置，留给后续的内核初始化使用。同时还要搞定构建系统——CMakeLists.txt 从单目标变成双目标，build_image.sh 负责把 MBR 和 Stage2 组装成磁盘镜像。
 
 完成之后，QEMU 会从 80×25 文本模式切换到 1024×768 的图形模式——屏幕会变黑，别慌，这是正常的。用 GDB 可以验证帧缓冲信息已经正确保存在 0x6400。
 
@@ -265,9 +265,9 @@ PhysBasePtr = 0xFD000000 就对了。想验证帧缓冲本身能写，可以用 
 
 ## 参考资料
 
-- Intel SDM: Vol.3A §9.1 — Processor State After Reset, A20 gate behavior
-- Intel SDM: Vol.1 §3.3.4 — Real-Address Mode segment:offset addressing
+- Intel SDM: Vol.3A §10.1.1 — Processor State After Reset, A20 gate behavior
+- Intel SDM: Vol.3A §21.1.1 — Real-Address Mode segment:offset addressing
 - OSDev Wiki: [A20 Line](https://wiki.osdev.org/A20_Line) — A20 历史、开启方式、测试方法
-- OSDev Wiki: [VESA BIOS Extensions](https://wiki.osdev.org/VESA_BIOS_Extensions) — VbeInfoBlock、ModeInfoBlock 字段定义
+- OSDev Wiki: [VESA Video Modes](https://wiki.osdev.org/VESA_Video_Modes) — VbeInfoBlock、ModeInfoBlock 字段定义
 - ToaruOS: `boot/boot.S` — 使用 unreal mode 的复杂 bootloader 实现
-- Linux: [x86 boot protocol](https://www.kernel.org/doc/html/latest/x86/boot.html) — 视频模式设置和 boot_params 结构
+- Linux: [x86 boot protocol](https://docs.kernel.org/arch/x86/boot.html) — 视频模式设置和 boot_params 结构

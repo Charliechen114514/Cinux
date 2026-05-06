@@ -233,7 +233,7 @@ Scheduler::run_first(&boot_task);
 ## 参考资料
 
 - Intel SDM Vol. 3A, Section 4.5.2：CR3 与地址空间切换
-- System V AMD64 ABI: [https://refspecs.linuxbase.org/elf/x86_64-abi-0.99.pdf](https://refspecs.linuxbase.org/elf/x86_64-abi-0.99.pdf)
+- System V AMD64 ABI: [https://gitlab.com/x86-psABIs/x86-64-ABI](https://gitlab.com/x86-psABIs/x86-64-ABI)
 - OSDev Wiki "Context Switching": [https://wiki.osdev.org/Context_Switching](https://wiki.osdev.org/Context_Switching) — 软件上下文切换的通用方法
 - OSDev Wiki "Scheduling Algorithms": [https://wiki.osdev.org/Scheduling_Algorithms](https://wiki.osdev.org/Scheduling_Algorithms) — Round Robin 及其变体
 - Linux `__switch_to_asm` (arch/x86/entry/entry_64.S)：同样的 callee-saved 模式

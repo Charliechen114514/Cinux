@@ -16,7 +16,7 @@
 
 **TIER 0——核心分配器**（数据竞争必然崩溃）：PMM、Heap、Scheduler 运行队列。这些是内核最底层的共享资源，所有内核线程都在用，而且它们内部的数据结构（位图、空闲链表、环形数组）在并发操作下会立刻损坏。必须用最强的保护——Scheduler 用 IrqGuard（因为它的运行队列在中断上下文中被操作），PMM 和 Heap 用普通 Guard（它们的操作不会在中断处理程序中直接执行，但在递归调用时需要注意锁的拆分）。
 
-**TIER 1——高频共享计数器**（竞争导致数据不一致）：PIT 的 tick 计数器、Scheduler 的时间片计数器、TaskBuilder 的 TID 和栈地址分配器。这些变量被频繁读写，但单次不一致不会导致系统崩溃。使用 `std::atomic` 的 `memory_order_relaxed` 就足够了——我们只需要保证读写的原子性，不需要强排序。
+**TIER 1——高频共享计数器**（竞争导致数据不一致）：PIT 的 tick 计数器、Scheduler 的时间片计数器、TaskBuilder 的 TID 和栈地址分配器。这些变量被频繁读写，但单次不一致不会导致系统崩溃。使用 `std::atomic` 的 `MemoryOrder::Relaxed` 就足够了——我们只需要保证读写的原子性，不需要强排序。
 
 **TIER 2——中等风险组件**（并发访问频率较低）：File 的 offset、FDTable、VMM 的 map/unmap、全局 mount 表。这些在正常的内核操作中不太可能被并发访问，但在多线程环境下仍然需要保护。使用普通 Spinlock Guard 即可。
 
@@ -86,10 +86,10 @@
 
 **设计思路**: 有些变量不需要锁的保护，只需要保证读写的原子性。比如 PIT 的 tick 计数器——每次中断加 1，各种地方读取它来做超时判断。用自旋锁保护它代价太大（每个 tick 中断都要获取锁），而 `std::atomic` 的 `fetch_add` 在 x86 上会被编译成一条 `lock xadd` 指令，开销极小。
 
-同理，`Scheduler` 的 `tick_count_` 和 `current_slice_`，以及 `TaskBuilder` 的 `next_tid` 和 `next_stack_vaddr`——它们只需要原子递增，不需要与其他操作组成原子事务。对于这些变量，`memory_order_relaxed` 就够了——我们不在乎操作之间的顺序，只在乎操作本身的原子性。
+同理，`Scheduler` 的 `tick_count_` 和 `current_slice_`，以及 `TaskBuilder` 的 `next_tid` 和 `next_stack_vaddr`——它们只需要原子递增，不需要与其他操作组成原子事务。对于这些变量，`MemoryOrder::Relaxed` 就够了——我们不在乎操作之间的顺序，只在乎操作本身的原子性。
 
 **实现约束**:
-- PIT 的 `tick_count_` 改为 `std::atomic<uint64_t>`，递增用 `fetch_add(1, relaxed)`，读取用 `load(relaxed)`
+- PIT 的 `tick_count_` 改为 `std::atomic<uint64_t>`，递增用 `fetch_add(1, Relaxed)`，读取用 `load(Relaxed)`
 - Scheduler 的 `tick_count_`/`current_slice_` 改为 `std::atomic<int>`，操作同理
 - TaskBuilder 的 `next_tid` 用 `fetch_add(1, relaxed)` 替代 `++`
 - TaskBuilder 的 `next_stack_vaddr` 用 `fetch_add` 替代读-加-写序列
@@ -154,7 +154,7 @@ gdb build/big_kernel_test
 | PMM 位图 | Spinlock Guard + _locked 拆分 | 位图查找+设置必须原子 |
 | Heap 空闲链表 | Spinlock Guard + alloc_locked 拆分 | 链表遍历+修改必须原子 |
 | Scheduler 运行队列 | Spinlock IrqGuard | 中断上下文也会操作 |
-| PIT/Scheduler/TaskBuilder 计数器 | std::atomic relaxed | 只需原子递增 |
+| PIT/Scheduler/TaskBuilder 计数器 | std::atomic Relaxed | 只需原子递增 |
 | FDTable | Spinlock Guard | 防止 double-alloc/use-after-free |
 | File offset | Spinlock Guard | 读写 offset+更新必须原子 |
 | VMM map/unmap | Spinlock Guard | 页表修改需要互斥 |

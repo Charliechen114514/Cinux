@@ -147,6 +147,24 @@ load_stage2:
 
 `.org 510` 让当前位置跳到偏移 510，中间如果有空隙用 0 填充。`.word 0xAA55` 在小端序下写入 `55 AA`——这正是 BIOS 检查的 MBR 签名。没有这两个字节，BIOS 拒绝执行。
 
+值得注意的是，`.org` 指令在这个场景下的行为和普通程序里不太一样。在 MBR 的链接脚本里起始地址是 0x7C00，但 `.org 510` 里的参数是相对于 `.text` 段起始位置（即 0x7C00）的偏移。GNU AS 的 `.org` 实际上是调整"位置计数器"到指定值——如果当前位置已经超过了 510，就会报错；如果还没到，就用 0 填充到那个位置。这就是为什么我们在写 MBR 代码时需要精打细算——一旦代码超过 510 字节，`.org 510` 会直接导致汇编失败。
+
+## 错误处理——读盘失败时的优雅死亡
+
+```asm
+disk_error:
+    movw $msg_disk_error, %si
+    call print_string_mbr
+die:
+    cli
+    hlt
+    jmp die
+```
+
+这段代码虽然简单，但包含了一个重要的设计选择：死循环 `hlt; jmp die`。`hlt` 指令让 CPU 进入低功耗状态，但任何中断都能唤醒它。所以必须紧跟一个 `jmp die` 跳回来重新 `hlt`——否则被唤醒后 CPU 会继续往下执行未初始化的内存区域。`cli` 在 `hlt` 之前关闭中断，确保不会被意外唤醒。实际上 `cli; hlt` 组合就是一个"永远停在这里"的保证，后续整个 Cinux 项目中所有的 panic 和错误处理都复用了这个模式。
+
+读盘失败后的输出只有一条错误消息——这在实模式下已经是能做到的极限了。没有调试器、没有串口、没有日志系统，只能靠屏幕上的文字来传达信息。
+
 ## 设计决策
 
 ### 决策：MBR 自带 print_string 而非链接共享函数
@@ -179,7 +197,7 @@ load_stage2:
 
 ## 参考资料
 
-- Intel SDM: Vol.3A §9.1 — Processor State After Reset (CS=0xF000, EIP=0xFFF0, first instruction at 0xFFFF0)
-- Intel SDM: Vol.1 §3.3.4 — Real-Address Mode (segment:offset addressing formula)
+- Intel SDM: Vol.3A §10.1.1 — Processor State After Reset (CS=0xF000, EIP=0xFFF0, first instruction at 0xFFFFFFF0)
+- Intel SDM: Vol.3A §21.1.1 — Real-Address Mode (segment:offset addressing formula)
 - OSDev Wiki: [MBR (x86)](https://wiki.osdev.org/MBR_(x86)) — MBR format, BIOS initial environment
 - OSDev Wiki: [Disk access using the BIOS (INT 13h)](https://wiki.osdev.org/Disk_access_using_the_BIOS_(INT_13h)) — DAP structure, extended read
