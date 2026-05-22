@@ -4,6 +4,8 @@
 # @brief Cinux kernel module CMake configuration
 #
 # Manages both the mini kernel (bootstrap) and the big kernel.
+# Big kernel sources are organised into subdirectory CMakeLists.txt
+# files that add sources via target_sources().
 #
 
 # ============================================================
@@ -35,73 +37,9 @@ set(BIG_KERNEL_LINK_OPTIONS
     -no-pie
 )
 
-# Object library: shared sources between production and test kernels
-add_library(big_kernel_common OBJECT
-    arch/x86_64/boot.S
-    arch/x86_64/crt_stub.cpp
-    arch/x86_64/gdt.cpp
-    arch/x86_64/idt.cpp
-    arch/x86_64/interrupts.S
-    arch/x86_64/exception_handlers.cpp
-    arch/x86_64/irq_handlers.cpp
-    arch/x86_64/pic.cpp
-    arch/x86_64/paging.cpp
-    drivers/pit/pit.cpp
-    drivers/serial/serial.cpp
-    drivers/keyboard/keyboard.cpp
-    drivers/video/framebuffer.cpp
-    drivers/video/font.cpp
-    drivers/video/font_data.S
-    drivers/video/console.cpp
-    drivers/pci/pci.cpp
-    drivers/ahci/ahci.cpp
-    fs/inode.cpp
-    fs/ramdisk.cpp
-    fs/ext2.cpp
-    fs/file.cpp
-    fs/vfs_mount.cpp
-    fs/path.cpp
-    lib/kprintf.cpp
-    lib/string.cpp
-    mm/pmm.cpp
-    mm/vmm.cpp
-    mm/heap.cpp
-    mm/address_space.cpp
-    proc/process.cpp
-    proc/elf_types.cpp
-    proc/scheduler.cpp
-    proc/sync.cpp
-    proc/init.cpp
-    proc/pid.cpp
-    arch/x86_64/context_switch.S
-    arch/x86_64/usermode.S
-    arch/x86_64/usermode.cpp
-    arch/x86_64/syscall.S
-    arch/x86_64/syscall.cpp
-    syscall/sys_read.cpp
-    syscall/sys_write.cpp
-    syscall/sys_open.cpp
-    syscall/sys_close.cpp
-    syscall/sys_exit.cpp
-    syscall/sys_yield.cpp
-    syscall/sys_getdents.cpp
-    syscall/sys_creat.cpp
-    syscall/sys_mkdir.cpp
-    syscall/sys_unlink.cpp
-    syscall/sys_rmdir.cpp
-    syscall/path_util.cpp
-    syscall/sys_chdir.cpp
-    syscall/sys_getcwd.cpp
-    syscall/sys_stat.cpp
-    ipc/pipe.cpp
-    ipc/pipe_ops.cpp
-    syscall/sys_pipe.cpp
-    syscall/sys_getpid.cpp
-    syscall/sys_getppid.cpp
-    syscall/sys_fork.cpp
-    syscall/sys_execve.cpp
-    syscall/sys_waitpid.cpp
-)
+# Object library: shared sources between production and test kernels.
+# Subdirectory CMakeLists.txt files populate this via target_sources().
+add_library(big_kernel_common OBJECT)
 
 target_compile_options(big_kernel_common PUBLIC ${BIG_KERNEL_COMPILE_OPTIONS})
 
@@ -110,13 +48,19 @@ target_include_directories(big_kernel_common PUBLIC
     ${CMAKE_SOURCE_DIR}
 )
 
-# GUI mode: add compile definition and extra sources
+# Sub-modules (each adds its sources to big_kernel_common)
+add_subdirectory(arch)
+add_subdirectory(drivers)
+add_subdirectory(fs)
+add_subdirectory(lib)
+add_subdirectory(mm)
+add_subdirectory(proc)
+add_subdirectory(syscall)
+add_subdirectory(ipc)
+
+# GUI mode: add compile definition and GUI-specific sources
 if(CINUX_GUI)
     target_compile_definitions(big_kernel_common PUBLIC CINUX_GUI)
-    target_sources(big_kernel_common PRIVATE
-        drivers/canvas.cpp
-        drivers/mouse.cpp
-    )
     add_subdirectory(gui)
 endif()
 

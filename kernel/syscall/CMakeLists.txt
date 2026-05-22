@@ -1,0 +1,23 @@
+target_sources(big_kernel_common PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_read.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_write.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_open.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_close.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_exit.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_yield.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_getdents.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_creat.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_mkdir.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_unlink.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_rmdir.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/path_util.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_chdir.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_getcwd.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_stat.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_pipe.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_getpid.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_getppid.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_fork.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_execve.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/sys_waitpid.cpp
+)

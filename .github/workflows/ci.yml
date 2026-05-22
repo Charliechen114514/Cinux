@@ -65,6 +65,18 @@ jobs:
         working-directory: build
         run: make test_host
 
+  line-limits:
+    needs: format
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Check line-count limits
+        run: python3 scripts/check_line_limits.py --hpp 500
+
   kernel-tests:
     needs: format
     runs-on: ubuntu-latest

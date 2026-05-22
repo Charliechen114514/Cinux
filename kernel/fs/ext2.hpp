@@ -18,11 +18,10 @@
 
 #pragma once
 
-#include <stddef.h>
 #include <stdint.h>
 
+#include "fs/ext2_common.hpp"
 #include "fs/ext2_types.hpp"
-#include "fs/inode.hpp"
 #include "fs/vfs_filesystem.hpp"
 
 namespace cinux::drivers::ahci {
@@ -30,57 +29,6 @@ class AHCI;
 }
 
 namespace cinux::fs {
-
-// ============================================================
-// Maximum number of block group descriptors
-// ============================================================
-
-/// Maximum block groups supported (covers up to ~8 GB with 4K blocks)
-static constexpr uint32_t EXT2_MAX_GROUPS = 128;
-
-// ============================================================
-// Ext2 InodeOps subclasses (forward-declared, defined in ext2.cpp)
-// ============================================================
-
-class Ext2;
-
-/**
- * @brief InodeOps for ext2 regular files
- *
- * Overrides read() and write(); all other operations use the
- * InodeOps defaults (return -1 / nullptr).
- */
-class Ext2FileOps : public InodeOps {
-public:
-    explicit Ext2FileOps(Ext2& ext2);
-
-    int64_t read(const Inode* inode, uint64_t offset, void* buf, uint64_t count) override;
-    int64_t write(Inode* inode, uint64_t offset, const void* buf, uint64_t count) override;
-    int64_t stat(const Inode* inode, struct stat* st) override;
-
-private:
-    Ext2& ext2_;
-};
-
-/**
- * @brief InodeOps for ext2 directories
- *
- * Overrides readdir(), create(), mkdir(), and unlink();
- * read()/write() use the InodeOps defaults.
- */
-class Ext2DirOps : public InodeOps {
-public:
-    explicit Ext2DirOps(Ext2& ext2);
-
-    int64_t readdir(const Inode* inode, uint64_t index, char* name, uint64_t name_max) override;
-    Inode*  create(Inode* dir, const char* name, uint32_t namelen) override;
-    Inode*  mkdir(Inode* dir, const char* name, uint32_t namelen) override;
-    int64_t unlink(Inode* dir, const char* name, uint32_t namelen) override;
-    int64_t stat(const Inode* inode, struct stat* st) override;
-
-private:
-    Ext2& ext2_;
-};
 
 // ============================================================
 // Ext2 Filesystem Driver Class
