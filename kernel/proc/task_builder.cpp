@@ -7,8 +7,6 @@
  * context, and returns a ready-to-run Task.
  */
 
-#include "kernel/proc/process.hpp"
-
 #include <stddef.h>
 #include <stdint.h>
 
@@ -19,6 +17,7 @@
 #include "kernel/lib/kprintf.hpp"
 #include "kernel/mm/pmm.hpp"
 #include "kernel/mm/vmm.hpp"
+#include "kernel/proc/process.hpp"
 #include "kernel/proc/process_internal.hpp"
 #include "kernel/proc/scheduler.hpp"
 #include "proc/per_cpu.hpp"

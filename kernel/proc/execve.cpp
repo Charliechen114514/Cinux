@@ -8,8 +8,6 @@
  * converts ELF validation errors to ExecveResult codes.
  */
 
-#include "kernel/proc/process.hpp"
-
 #include <stddef.h>
 #include <stdint.h>
 
@@ -22,6 +20,7 @@
 #include "kernel/lib/kprintf.hpp"
 #include "kernel/mm/pmm.hpp"
 #include "kernel/proc/elf_types.hpp"
+#include "kernel/proc/process.hpp"
 #include "kernel/proc/scheduler.hpp"
 
 namespace cinux::proc {

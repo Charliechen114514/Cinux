@@ -8,8 +8,6 @@
  * either process writes to them.
  */
 
-#include "kernel/proc/process.hpp"
-
 #include <stddef.h>
 #include <stdint.h>
 
@@ -26,6 +24,7 @@
 #include "kernel/mm/pmm.hpp"
 #include "kernel/mm/vmm.hpp"
 #include "kernel/proc/pid.hpp"
+#include "kernel/proc/process.hpp"
 #include "kernel/proc/process_internal.hpp"
 #include "kernel/proc/scheduler.hpp"
 #include "proc/per_cpu.hpp"
