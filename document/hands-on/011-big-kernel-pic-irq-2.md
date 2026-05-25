@@ -1,3 +1,7 @@
+---
+title: 011-big-kernel-pic-irq-2 · PIC 与 IRQ
+---
+
 # 011 PIC 重映射 + PIT 定时器 + IRQ 中断（二）：PIT 驱动 —— 给内核装上心跳
 
 > 前篇：[011-1 PIC 驱动](011-big-kernel-pic-irq-1.md) | 次篇：[011-3 IRQ 注册与集成](011-big-kernel-pic-irq-3.md)

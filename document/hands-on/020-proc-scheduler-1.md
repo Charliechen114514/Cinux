@@ -1,3 +1,7 @@
+---
+title: 020-proc-scheduler-1 · 进程调度
+---
+
 # 020-1 Spinlock 与 PerCPU 数据结构
 
 ## 导语
@@ -24,8 +28,10 @@
 
 这里有一个值得思考的问题：为什么不用 C++11 的 `std::atomic<bool>`？答案是内核环境——我们根本没有 C++ 标准库，更不可能依赖 libstdc++ 的原子实现。直接使用 GCC 内建函数是内核开发中最常见的做法，Linux 内核的 `atomic_t` 也是基于类似的编译器内建操作实现的。`__atomic_test_and_set` 最终会被编译成 x86 的 `xchg` 或者 `lock bts` 指令，而 `__atomic_clear` 会被编译成普通的 `mov` 指令（x86 的 TSO 内存模型保证了 store 的原子可见性）。这些底层细节我们在代码层面不需要关心，但理解它们有助于在排查内存可见性问题时做出正确的判断。
 
-> 参考：Intel SDM Vol.3A Section 8.1 — Locked Atomic Operations
-> 参考：Intel SDM Vol.2B — PAUSE instruction reference
+参考：
+
+- Intel SDM Vol.3A Section 8.1 — Locked Atomic Operations
+- Intel SDM Vol.2B — PAUSE instruction reference
 
 ### RAII Guard——异常安全的锁管理模式
 
@@ -57,8 +63,10 @@ TSS 中除了 RSP0-RSP2，还有 IST1-IST7（Interrupt Stack Table）字段。IS
 
 我们在 GDT 类中新增一个 `tss_set_rsp0()` 静态方法，直接写入全局 GDT 结构体中的 TSS RSP0 字段。这个方法在 schedule()、exit_current() 和 run_first() 三个地方被调用——正好是所有会执行 context_switch 的路径。
 
-> 参考：Intel SDM Vol.3A Section 2.1.3 — Task-State Segments
-> 参考：Intel SDM Vol.3A Section 8.7 — Task Management in 64-Bit Mode
+参考：
+
+- Intel SDM Vol.3A Section 2.1.3 — Task-State Segments
+- Intel SDM Vol.3A Section 8.7 — Task Management in 64-Bit Mode
 
 ## 动手实现
 

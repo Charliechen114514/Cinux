@@ -1,3 +1,7 @@
+---
+title: 018-mm-address-space-3 · 地址空间
+---
+
 # 018-3 CR3 切换、委托操作与隔离验证
 
 ## 导语
@@ -28,20 +32,24 @@ Intel SDM Vol.3A Section 4.10.2 说明，当 CR4.PCIDE = 0 时（Cinux 没有开
 PCID 允许 CPU 为不同的地址空间维护独立的 TLB 缓存（Intel SDM Vol.3A Section 4.10.1），避免每次切换都全部刷新。当 CR4.PCIDE=1 时，CR3 的低 12 位可以编码一个 12 位的进程标识符，TLB 条目会打上这个标识符的标签。Linux 从 3.17 版本开始支持 PCID，显著降低了进程切换的开销。
 Cinux 目前不需要关心这个优化——我们的系统还很原始，不会有频繁的进程切换，PCID 留作未来的性能优化项目。
 
-> 参考：Intel SDM Vol.3A Section 4.5.2, pp.4-20 to 4-21（CR3 与 PML4 的关系）
-> 参考：Intel SDM Vol.3A Section 4.10.2（TLB 刷新行为）
-> 参考：Intel SDM Vol.3A Section 4.10.1, Table 4-13（PCID 机制）
-> 参考：OSDev Wiki — [TLB](https://wiki.osdev.org/TLB)
+参考：
+
+- Intel SDM Vol.3A Section 4.5.2, pp.4-20 to 4-21（CR3 与 PML4 的关系）
+- Intel SDM Vol.3A Section 4.10.2（TLB 刷新行为）
+- Intel SDM Vol.3A Section 4.10.1, Table 4-13（PCID 机制）
+- OSDev Wiki — [TLB](https://wiki.osdev.org/TLB)
 
 有一点需要特别强调：activate() 的安全性完全依赖于构造函数的正确性。
 因为我们构造 AddressSpace 时复制了内核 PML4 的条目 256-511，所以 activate 之后内核映射（higher-half 直接映射、MMIO 映射等）依然有效——CPU 可以继续取指令、访问内核数据、读写串口。
 但如果你在构造函数里忘了复制内核条目，或者复制的是全零的模板（因为 init_kernel 没被调用），activate 之后内核立刻就失去所有映射——CPU 连下一条指令都取不到，直接三重故障重启。
 所以 activate() 是一把双刃剑：用对了，地址空间切换丝滑无比；用错了，一秒钟炸回 QEMU 命令行。
 
-> 参考：Intel SDM Vol.3A Section 4.5.2, pp.4-20 to 4-21（CR3 与 PML4 的关系）
-> 参考：Intel SDM Vol.3A Section 4.10.2（TLB 刷新行为）
-> 参考：Intel SDM Vol.3A Section 4.10.1, Table 4-13（PCID 机制）
-> 参考：OSDev Wiki — [TLB](https://wiki.osdev.org/TLB)
+参考：
+
+- Intel SDM Vol.3A Section 4.5.2, pp.4-20 to 4-21（CR3 与 PML4 的关系）
+- Intel SDM Vol.3A Section 4.10.2（TLB 刷新行为）
+- Intel SDM Vol.3A Section 4.10.1, Table 4-13（PCID 机制）
+- OSDev Wiki — [TLB](https://wiki.osdev.org/TLB)
 
 ### 委托模式：AddressSpace 作为薄包装
 

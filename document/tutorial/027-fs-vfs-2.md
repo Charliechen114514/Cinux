@@ -1,3 +1,7 @@
+---
+title: 027-fs-vfs-2 · VFS 虚拟文件系统
+---
+
 # 027-2 Tutorial: 挂载点表与路径解析 — VFS 的路由器
 
 > 标签：VFS、mount、路径解析、最长前缀匹配、freestanding

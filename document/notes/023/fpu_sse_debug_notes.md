@@ -1,3 +1,7 @@
+---
+title: FPU/SSE 排查
+---
+
 # 023_syscall FPU/SSE 与用户态编译排查笔记
 
 ## 问题 1：用户态程序 #GP — 编译器生成 SSE 指令

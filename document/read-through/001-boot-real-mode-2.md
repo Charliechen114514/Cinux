@@ -1,3 +1,7 @@
+---
+title: 001-boot-real-mode-2 · 实模式引导
+---
+
 # 001 Read-through (2/3) —— Stage2 与共享函数库：A20 与 VESA 初始化
 
 ## 概览

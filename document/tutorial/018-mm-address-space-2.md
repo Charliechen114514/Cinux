@@ -1,3 +1,7 @@
+---
+title: 018-mm-address-space-2 · 地址空间
+---
+
 # PML4 分割与内核映射共享：从设计到代码
 
 > 标签：AddressSpace, PML4, init_kernel, 构造函数, 析构函数, 移动语义, RAII

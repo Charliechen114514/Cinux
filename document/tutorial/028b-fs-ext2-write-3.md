@@ -1,3 +1,7 @@
+---
+title: 028b-fs-ext2-write-3 · Ext2 写入
+---
+
 # 028b-3 Tutorial: 从系统调用到 Shell——完整写入链路
 
 > 标签：系统调用、Shell、sys_creat、sys_mkdir、sys_unlink、GP fault、栈对齐、端到端验证

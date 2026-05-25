@@ -1,3 +1,7 @@
+---
+title: 008-load-large-kernel-2 · 大内核加载
+---
+
 # 008-2 Hands-on: ATA PIO 扇区读取与磁盘验证
 
 ## 导语

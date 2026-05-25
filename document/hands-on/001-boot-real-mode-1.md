@@ -1,3 +1,7 @@
+---
+title: 001-boot-real-mode-1 · 实模式引导
+---
+
 # 001_boot_real_mode（上） —— 让 BIOS 把接力棒交到我们手里
 
 ## 导语

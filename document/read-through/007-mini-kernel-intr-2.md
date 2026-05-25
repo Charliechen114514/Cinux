@@ -1,3 +1,7 @@
+---
+title: 007-mini-kernel-intr-2 · 中断处理
+---
+
 # 007-2 Read-through: IDT 实现
 
 ## 本章概览

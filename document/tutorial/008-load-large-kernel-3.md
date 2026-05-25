@@ -1,3 +1,7 @@
+---
+title: 008-load-large-kernel-3 · 大内核加载
+---
+
 # 008-3 解析 ELF，加载大内核：从磁盘到跳转的最后一步
 
 > 标签：ELF64, PT_LOAD, BSS, higher-half, 内核加载, 程序头表

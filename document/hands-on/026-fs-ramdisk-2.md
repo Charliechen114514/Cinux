@@ -1,3 +1,7 @@
+---
+title: 026-fs-ramdisk-2 · Ramdisk 文件系统
+---
+
 # 026-fs-ramdisk-2: 构建系统集成——二进制嵌入与链接
 
 ## 导语

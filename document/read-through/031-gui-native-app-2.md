@@ -1,3 +1,7 @@
+---
+title: 031-gui-native-app-2 · 原生应用
+---
+
 # 031-2: Terminal 组件 — 字符缓冲区、ANSI 解析与 Canvas 渲染
 
 ## 概览

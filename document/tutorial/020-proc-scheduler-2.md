@@ -1,3 +1,7 @@
+---
+title: 020-proc-scheduler-2 · 进程调度
+---
+
 # 时间片轮转：从 tick 到 context_switch
 
 > 标签：tick, schedule, idle 任务, block/unblock, RoundRobin, 抢占式调度

@@ -1,3 +1,7 @@
+---
+title: 013-driver-vga-fb-2 · VGA 帧缓冲
+---
+
 # 013-2 字模引擎：把文字画到像素上——PSF2 位图字体解析与渲染
 
 > 标签：PSF2, 位图字体, .incbin, 字形渲染, glyph bitmap

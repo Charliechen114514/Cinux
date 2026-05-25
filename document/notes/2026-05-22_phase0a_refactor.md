@@ -1,3 +1,7 @@
+---
+title: Phase 0-A 重构日志
+---
+
 # Phase 0-A 重构开发日志 (2026-05-22)
 
 > 分支：`optimize/optimize_tutorials_for_release`

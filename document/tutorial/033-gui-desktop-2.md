@@ -1,3 +1,7 @@
+---
+title: 033-gui-desktop-2 · 桌面环境
+---
+
 # 033-gui-desktop-2: 延迟启动的艺术——从 Shell 管道到终端窗口
 
 > 标签：GUI, application launcher, delayed creation, pipe IPC, virtual dispatch

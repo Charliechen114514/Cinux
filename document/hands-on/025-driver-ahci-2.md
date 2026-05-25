@@ -1,3 +1,7 @@
+---
+title: 025-driver-ahci-2 · AHCI 驱动
+---
+
 # 025-2 动手篇：AHCI HBA 初始化与端口配置
 
 ## 导语

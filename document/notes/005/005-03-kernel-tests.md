@@ -1,3 +1,7 @@
+---
+title: 内核测试基础设施
+---
+
 # 005-03: 内核测试基础设施
 
 ## 概述
@@ -15,7 +19,7 @@ kernel/mini/test/
 
 ## 编译配置
 
-**配置文件**：[`kernel/mini/test/CMakeLists.txt`](../../kernel/mini/test/CMakeLists.txt)
+**配置文件**：[`kernel/mini/test/CMakeLists.txt`](https://github.com/CinuxOS/Cinux/blob/main/kernel/mini/test/CMakeLists.txt)
 
 ### 源文件组合
 ```cmake
@@ -56,7 +60,7 @@ target_link_options(mini_kernel_test PRIVATE ${MINI_KERNEL_COMMON_LINK_OPTIONS})
 
 ## 测试入口点
 
-**文件**：[`kernel/mini/test/main_test.cpp`](../../kernel/mini/test/main_test.cpp)
+**文件**：[`kernel/mini/test/main_test.cpp`](https://github.com/CinuxOS/Cinux/blob/main/kernel/mini/test/main_test.cpp)
 
 ### mini_kernel_main() 函数
 
@@ -91,7 +95,7 @@ outl %eax, $0xf4
 
 ## C++ 运行时测试
 
-**文件**：[`kernel/mini/test/test_cpp_basic.cpp`](../../kernel/mini/test/test_cpp_basic.cpp)
+**文件**：[`kernel/mini/test/test_cpp_basic.cpp`](https://github.com/CinuxOS/Cinux/blob/main/kernel/mini/test/test_cpp_basic.cpp)
 
 ### 测试框架适配
 
@@ -169,7 +173,7 @@ class Multi : public Base1, public Base2 {
 
 ### C++ 运行时 Stub
 
-**文件**：[`kernel/mini/arch/x86_64/crt_stub.cpp`](../../kernel/mini/arch/x86_64/crt_stub.cpp)
+**文件**：[`kernel/mini/arch/x86_64/crt_stub.cpp`](https://github.com/CinuxOS/Cinux/blob/main/kernel/mini/arch/x86_64/crt_stub.cpp)
 
 ```cpp
 // 纯虚函数调用处理
@@ -194,7 +198,7 @@ extern "C" void _init_global_ctors() {
 
 ### 串口驱动
 
-**文件**：[`kernel/mini/driver/serial.cpp`](../../kernel/mini/driver/serial.cpp)
+**文件**：[`kernel/mini/driver/serial.cpp`](https://github.com/CinuxOS/Cinux/blob/main/kernel/mini/driver/serial.cpp)
 
 - NS16550A/8250 UART 兼容
 - COM1: 0x3F8 (QEMU 默认)

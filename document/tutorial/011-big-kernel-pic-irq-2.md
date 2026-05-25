@@ -1,3 +1,7 @@
+---
+title: 011-big-kernel-pic-irq-2 · PIC 与 IRQ
+---
+
 # 从零在 x64 内核里驱动 PIC 和 PIT（二）：PIT 定时器与 IRQ 注册
 
 > 标签：x86-64, PIT, 8254, IRQ, 定时器, 内核开发, C++, QEMU

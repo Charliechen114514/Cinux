@@ -1,3 +1,7 @@
+---
+title: 021-proc-sync-3 · 同步原语
+---
+
 # 021-3 Semaphore 与 Producer-Consumer 实战
 
 > 前置：[021-2 Mutex 阻塞式互斥锁](021-proc-sync-2.md)

@@ -1,3 +1,7 @@
+---
+title: 033-gui-desktop-1 · 桌面环境
+---
+
 # 033-gui-desktop-1: 从零搭建桌面环境——图标管理与点击响应
 
 > 标签：GUI, desktop environment, icon management, hit testing, window manager

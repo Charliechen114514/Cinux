@@ -1,3 +1,7 @@
+---
+title: 028e-activate-init-thread-3 · Init 线程
+---
+
 # memory_layout.hpp 与地址冲突修复
 
 > 标签：memory layout, MMIO, virtual address collision, page table, debugging

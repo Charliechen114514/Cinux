@@ -1,3 +1,7 @@
+---
+title: QEMU GDB 调试
+---
+
 # 005-09: QEMU GDB 调试
 
 ## 概述
@@ -29,7 +33,7 @@ qemu-system-x86_64 \
 
 ### CMake 配置
 
-来源：[`cmake/qemu.cmake`](../../cmake/qemu.cmake:33-36)
+来源：[`cmake/qemu.cmake`](https://github.com/CinuxOS/Cinux/blob/main/cmake/qemu.cmake#L33-L36)
 
 ```cmake
 set(QEMU_DEBUG_FLAGS

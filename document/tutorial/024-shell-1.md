@@ -1,7 +1,11 @@
+---
+title: 024-shell-1 · Shell
+---
+
 # 从 Syscall 到 Shell（上）：GDT 重构与 SYSRETQ 的坑
 
 > 标签：x86_64, GDT, SYSCALL, SYSRETQ, STAR MSR, Ring 3
-> 前置：[023 系统调用从 Ring 3 发起](...)
+> 前置：[023 系统调用从 Ring 3 发起](023-syscall-3)
 
 ## 前言
 

@@ -1,3 +1,7 @@
+---
+title: 024-shell-1 · Shell
+---
+
 # 024-shell-1 Read-through: GDT 重构与 SYSCALL 路径修复
 
 ## 概览

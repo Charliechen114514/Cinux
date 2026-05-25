@@ -1,3 +1,7 @@
+---
+title: 031-gui-native-app-2 · 原生应用
+---
+
 # 031-2: Terminal 文本终端组件 — 在 GUI 窗口中渲染文字
 
 ## 导语

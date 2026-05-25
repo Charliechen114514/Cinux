@@ -1,3 +1,7 @@
+---
+title: Host 端单元测试
+---
+
 # 005-02: Host 端单元测试
 
 ## 概述
@@ -18,7 +22,7 @@ test/
 
 ## CMake 配置
 
-配置文件：[`test/CMakeLists.txt`](../../test/CMakeLists.txt)
+配置文件：[`test/CMakeLists.txt`](https://github.com/CinuxOS/Cinux/blob/main/test/CMakeLists.txt)
 
 ### 关键配置项
 
@@ -61,7 +65,7 @@ add_test(NAME kprintf_format COMMAND test_kprintf_format)
 
 ### 1. 冒烟测试 (test_smoke.cpp)
 
-**文件**：[`test/unit/test_smoke.cpp`](../../test/unit/test_smoke.cpp)
+**文件**：[`test/unit/test_smoke.cpp`](https://github.com/CinuxOS/Cinux/blob/main/test/unit/test_smoke.cpp)
 
 **目的**：验证测试框架本身工作正常
 
@@ -81,7 +85,7 @@ ctest -R smoke
 
 ### 2. kprintf 格式化测试 (test_kprintf_format.cpp)
 
-**文件**：[`test/unit/test_kprintf_format.cpp`](../../test/unit/test_kprintf_format.cpp)
+**文件**：[`test/unit/test_kprintf_format.cpp`](https://github.com/CinuxOS/Cinux/blob/main/test/unit/test_kprintf_format.cpp)
 
 **目的**：测试内核格式化函数的正确性
 

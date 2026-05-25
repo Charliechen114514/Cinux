@@ -1,3 +1,7 @@
+---
+title: 008-load-large-kernel-3 · 大内核加载
+---
+
 # 008-3 Read-through: ELF64 解析器与大内核加载器
 
 ## 概览

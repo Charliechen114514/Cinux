@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-b-3 · 内核加载 (B)
+---
+
 # 004 通读版 · 完整加载小内核（下）—— 构建系统改造与设计决策
 
 > 前置：[004B（中）分块磁盘读取完整逻辑](004-boot-load-mini-kernel-b-2.md)

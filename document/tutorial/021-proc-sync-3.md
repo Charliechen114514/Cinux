@@ -1,3 +1,7 @@
+---
+title: 021-proc-sync-3 · 同步原语
+---
+
 # 021-3 实战踩坑：Producer-Consumer 验证与 MOV 编码陷阱
 
 > 前置：[021-2 Mutex 与 Semaphore](021-proc-sync-2.md)

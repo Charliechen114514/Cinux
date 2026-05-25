@@ -1,3 +1,7 @@
+---
+title: 009-large-kernel-entry-1 · 大内核入口
+---
+
 # 009-1 Tutorial: Higher-Half 大内核启动 — 从链接脚本到 C++ 入口
 
 > 标签：x86-64, higher-half kernel, linker script, boot.S, VMA/LMA, ELF, CRT stub

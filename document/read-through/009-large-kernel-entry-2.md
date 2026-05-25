@@ -1,3 +1,7 @@
+---
+title: 009-large-kernel-entry-2 · 大内核入口
+---
+
 # 009-2 Read-through: I/O 端口原语 + UART 串口驱动 + kprintf 格式化引擎
 
 ## 概览

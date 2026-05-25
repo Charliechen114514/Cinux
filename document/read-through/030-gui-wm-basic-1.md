@@ -1,3 +1,7 @@
+---
+title: 030-gui-wm-basic-1 · 窗口管理器
+---
+
 # 030-1 Read-through: PS/2 Mouse Driver + Event Queue
 
 ## 概览

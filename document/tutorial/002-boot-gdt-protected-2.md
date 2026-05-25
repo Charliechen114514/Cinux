@@ -1,3 +1,7 @@
+---
+title: 002-boot-gdt-protected-2 · GDT 与保护模式
+---
+
 # 跨越鸿沟：实模式到保护模式切换全流程
 
 > 标签：x86, 保护模式, CR0, far jump, GDT, bootloader

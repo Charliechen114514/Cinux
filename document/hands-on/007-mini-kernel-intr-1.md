@@ -1,3 +1,7 @@
+---
+title: 007-mini-kernel-intr-1 · 中断处理
+---
+
 # 007-1 Hands-on: GDT — 内核的段寄存器配置表
 
 > 标签：GDT, 段描述符, LGDT, 段选择子, Access Byte, lretq

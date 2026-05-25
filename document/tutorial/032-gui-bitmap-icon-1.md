@@ -1,3 +1,7 @@
+---
+title: 032-gui-bitmap-icon-1 · 位图与图标
+---
+
 # 032-1 从零开始给内核加位图渲染
 
 > 标签：Cinux, GUI, 位图渲染, 透明度, Canvas, framebuffer

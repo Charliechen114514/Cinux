@@ -1,3 +1,7 @@
+---
+title: 串口调试
+---
+
 # 005-10: 串口调试详解
 
 ## 概述
@@ -43,7 +47,7 @@
 
 ### 头文件
 
-文件：[`kernel/mini/driver/serial.h`](../../kernel/mini/driver/serial.h)
+文件：[`kernel/mini/driver/serial.h`](https://github.com/CinuxOS/Cinux/blob/main/kernel/mini/driver/serial.h)
 
 ```cpp
 class Serial {
@@ -68,7 +72,7 @@ Serial& get_initial_serial();
 
 ### 初始化代码
 
-文件：[`kernel/mini/driver/serial.cpp`](../../kernel/mini/driver/serial.cpp:20-33)
+文件：[`kernel/mini/driver/serial.cpp`](https://github.com/CinuxOS/Cinux/blob/main/kernel/mini/driver/serial.cpp#L20-L33)
 
 ```cpp
 void Serial::init() {
@@ -123,7 +127,7 @@ void Serial::puts(const char* s) {
 
 ### 命令行参数
 
-来源：[`cmake/qemu.cmake`](../../cmake/qemu.cmake:8-14)
+来源：[`cmake/qemu.cmake`](https://github.com/CinuxOS/Cinux/blob/main/cmake/qemu.cmake#L8-L14)
 
 ```cmake
 set(QEMU_COMMON_FLAGS

@@ -1,3 +1,7 @@
+---
+title: 009-large-kernel-entry-1 · 大内核入口
+---
+
 # 009-1 Read-through: Higher-Half 大内核启动 — 链接脚本 + boot.S + crt_stub + kernel_main
 
 ## 概览

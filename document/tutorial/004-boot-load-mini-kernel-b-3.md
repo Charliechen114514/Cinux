@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-b-3 · 内核加载 (B)
+---
+
 # Bootloader 开发日记 004B（下）：保护模式的优雅"无操作"与构建系统改造
 
 > 标签：x86, Protected Mode, flat binary, objcopy, linker script, build system

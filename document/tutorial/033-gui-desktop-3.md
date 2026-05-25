@@ -1,3 +1,7 @@
+---
+title: 033-gui-desktop-3 · 桌面环境
+---
+
 # 033-gui-desktop-3: 把所有部件连起来——GUI 初始化与测试验证
 
 > 标签：GUI, kernel init, compositing, testing, CMake

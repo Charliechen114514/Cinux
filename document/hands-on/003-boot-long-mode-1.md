@@ -1,3 +1,7 @@
+---
+title: 003-boot-long-mode-1 · Long Mode
+---
+
 # 003-1 Long Mode 概念与页表设计
 
 > 本章完成后的可见效果：QEMU 不崩溃，debugcon 输出 `L`（确认进入 64-bit long mode）

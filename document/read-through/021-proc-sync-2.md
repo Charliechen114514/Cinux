@@ -1,3 +1,7 @@
+---
+title: 021-proc-sync-2 · 同步原语
+---
+
 # 021-2 Semaphore 完整代码精讲
 
 > 前置：[021-1 Spinlock + Mutex 代码精讲](021-proc-sync-1.md)

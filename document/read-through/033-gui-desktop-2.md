@@ -1,3 +1,7 @@
+---
+title: 033-gui-desktop-2 · 桌面环境
+---
+
 # 033-gui-desktop-2: GUI 初始化与应用启动器代码精讲
 
 ## 概览

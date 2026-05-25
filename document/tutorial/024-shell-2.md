@@ -1,7 +1,11 @@
+---
+title: 024-shell-2 · Shell
+---
+
 # 从 Syscall 到 Shell（中）：sys_read 与用户态 REPL
 
 > 标签：sys_read, shell, REPL, tokenize, libc
-> 前置：[024-shell-1 GDT 重构与 SYSRETQ 修复](...)
+> 前置：[024-shell-1 GDT 重构与 SYSRETQ 修复](024-shell-1)
 
 ## 前言
 

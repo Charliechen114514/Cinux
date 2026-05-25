@@ -1,3 +1,7 @@
+---
+title: 009-large-kernel-entry-3 · 大内核入口
+---
+
 # 009-3 Tutorial: 踩到一个大坑 — ELF 加载器自毁 Bug 修复与压力测试
 
 > 标签：ELF loader, in-place loading, memmove, CRC32, stress test, integration test, isa-debug-exit

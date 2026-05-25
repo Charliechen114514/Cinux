@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-a-1 · 内核加载 (A)
+---
+
 # 004 通读版 · 从磁盘加载小内核（上篇）—— E820 内存探测与 ELF header 预读
 
 ## 章节概览

@@ -1,3 +1,7 @@
+---
+title: 023-syscall-1 · 系统调用
+---
+
 # 从 Ring 3 打通内核 -- SYSCALL 指令与 MSR 配置
 
 > 标签：x86-64, syscall, MSR, SWAPGS, Ring 0/Ring 3

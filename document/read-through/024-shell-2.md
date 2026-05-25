@@ -1,3 +1,7 @@
+---
+title: 024-shell-2 · Shell
+---
+
 # 024-shell-2 Read-through: sys_read 与 Console ANSI 支持
 
 ## 概览

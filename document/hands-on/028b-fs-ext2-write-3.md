@@ -1,3 +1,7 @@
+---
+title: 028b-fs-ext2-write-3 · Ext2 写入
+---
+
 # 028b-3 Hands-on: 系统调用与 Shell 命令集成
 
 ## 导语

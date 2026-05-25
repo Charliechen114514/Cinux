@@ -1,3 +1,7 @@
+---
+title: 028c-fs-cwd-stat-2 · CWD 与 Stat
+---
+
 # 028c-2 Tutorial: chdir / getcwd / stat —— 从用户路径到文件元数据
 
 ## 前言

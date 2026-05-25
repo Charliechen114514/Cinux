@@ -1,3 +1,7 @@
+---
+title: 029-gui-canvas-3 · GUI Canvas
+---
+
 # PSF2 字体渲染、定时刷新与 3MB 内存分配引发的全局修复
 
 > 标签：PSF2, draw_text, PIT callback, heap safety, direct map, E820

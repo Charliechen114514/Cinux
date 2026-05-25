@@ -1,3 +1,7 @@
+---
+title: 003-boot-long-mode-2 · Long Mode
+---
+
 # 从保护模式到 Long Mode：状态机、EFER 陷阱与 64 位远跳转
 
 > 标签：x86_64, EFER, CR0/CR3/CR4, 远跳转, 64 位 GDT, 状态机切换

@@ -1,3 +1,7 @@
+---
+title: 009-large-kernel-entry-3 · 大内核入口
+---
+
 # 009-3 Read-through: ELF 加载器 Bug 修复 + 集成测试 + 压力测试
 
 ## 概览

@@ -1,3 +1,7 @@
+---
+title: 028e-activate-init-thread-1 · Init 线程
+---
+
 # 从 kernel_main 到 init 线程——内核启动架构重构
 
 > 标签：init thread, scheduler bootstrap, kernel thread, PID 0/1

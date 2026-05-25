@@ -1,3 +1,7 @@
+---
+title: 014-driver-keyboard-1 · 键盘驱动
+---
+
 # 014-1 控制器握手：让键盘"上线"——PS/2 8042 初始化与 IRQ1 绑定
 
 > 标签：PS/2, 8042, keyboard controller, I/O 端口, IRQ1, scan code translation

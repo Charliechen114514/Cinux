@@ -1,3 +1,7 @@
+---
+title: 001-boot-real-mode-1 · 实模式引导
+---
+
 # 从 BIOS 到 MBR：x86 实模式下那 512 字节的求生之旅
 
 > 标签：x86, 实模式, MBR, bootloader, GNU AS, AT&T 语法

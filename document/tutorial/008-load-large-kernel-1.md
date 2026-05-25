@@ -1,3 +1,7 @@
+---
+title: 008-load-large-kernel-1 · 大内核加载
+---
+
 # 008-1 从磁盘读数据：ATA PIO 驱动与 Freestanding 内存工具
 
 > 标签：ATA PIO, LBA, I/O 端口, freestanding, 磁盘驱动, x86_64

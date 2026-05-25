@@ -1,3 +1,7 @@
+---
+title: 005-mini-kernel-entry-2 · 内核入口
+---
+
 # 005-2 动手篇：kprintf 格式化输出库
 
 > 本章完成后的可见效果：内核通过串口输出包含数值的格式化字符串，如 `[MINI] Bootstrap kernel running @ 0x20000`，其中地址和数值通过 %p、%d 等格式符动态生成

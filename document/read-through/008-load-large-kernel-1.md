@@ -1,3 +1,7 @@
+---
+title: 008-load-large-kernel-1 · 大内核加载
+---
+
 # 008-1 Read-through: Freestanding 工具函数与 ATA PIO 驱动框架
 
 ## 概览

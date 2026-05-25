@@ -1,3 +1,7 @@
+---
+title: ELF 头自毁
+---
+
 # 009-01: ELF Loader 加载段时自毁 ELF 头 — 内核崩溃排查
 
 ## 一、问题现象
@@ -24,7 +28,7 @@
 
 ### 分析 load_elf() 执行流程
 
-[elf_loader.cpp](../../kernel/mini/elf_loader.cpp) 中 `load_elf()` 函数的循环逻辑：
+[elf_loader.cpp](https://github.com/CinuxOS/Cinux/blob/main/kernel/mini/elf_loader.cpp) 中 `load_elf()` 函数的循环逻辑：
 
 ```
 kprintf("PT_LOAD[%u]: ...")   ← ✅ 已输出

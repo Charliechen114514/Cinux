@@ -1,3 +1,7 @@
+---
+title: 025-driver-ahci-3 · AHCI 驱动
+---
+
 # 第一次 DMA 读写：从零构造 FIS 并验证 MBR
 
 > 标签：AHCI, DMA, FIS, PRDT, ATA, MBR

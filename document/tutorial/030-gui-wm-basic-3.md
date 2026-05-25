@@ -1,3 +1,7 @@
+---
+title: 030-gui-wm-basic-3 · 窗口管理器
+---
+
 # 鼠标交互与 GUI 启动集成
 
 > 标签：鼠标拖拽, hit testing, PIT 事件循环, GUI 初始化, ISR 栈对齐

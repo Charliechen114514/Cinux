@@ -1,3 +1,7 @@
+---
+title: 032-gui-bitmap-icon-2 · 位图与图标
+---
+
 # 032-2 Read-through: 图标数据与 DesktopIcon
 
 ## 概览

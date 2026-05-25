@@ -1,3 +1,7 @@
+---
+title: 011-big-kernel-pic-irq-1 · PIC 与 IRQ
+---
+
 # 从零在 x64 内核里驱动 PIC 和 PIT（一）：理解 PIC 与驱动封装
 
 > 标签：x86-64, PIC, 8259A, IRQ, 中断控制器, 内核开发, C++, QEMU

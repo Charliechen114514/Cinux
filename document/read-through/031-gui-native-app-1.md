@@ -1,3 +1,7 @@
+---
+title: 031-gui-native-app-1 · 原生应用
+---
+
 # 031-1: Pipe IPC — 环形缓冲区、VFS 适配与 pipe 系统调用
 
 ## 概览

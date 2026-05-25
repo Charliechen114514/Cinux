@@ -1,3 +1,7 @@
+---
+title: VESA Framebuffer 调试
+---
+
 下面给你整理一篇**“Bootloader + GDB 验证 VESA framebuffer”小博客**，可以直接放到你的技术博客里（偏实战向 + 踩坑总结风格）：
 
 ---

@@ -1,3 +1,7 @@
+---
+title: 011-big-kernel-pic-irq-1 · PIC 与 IRQ
+---
+
 # 011 PIC 重映射 + PIT 定时器 + IRQ 中断（一）：PIC 驱动 —— 让内核拥有时间感
 
 ## 章节导语

@@ -1,3 +1,7 @@
+---
+title: 029-gui-canvas-1 · GUI Canvas
+---
+
 # 从零构建内核 2D 画布 — 双缓冲与像素操作
 
 > 标签：canvas, double buffering, framebuffer, pitch, 2D graphics

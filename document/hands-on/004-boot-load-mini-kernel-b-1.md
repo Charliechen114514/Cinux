@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-b-1 · 内核加载 (B)
+---
+
 # 004 加载小内核（BootInfo 结构定义篇） -- 定义 bootloader 和内核的"交接契约"
 
 > 本章完成后的可见效果：头文件编译通过，`static_assert` 在 32 位和 64 位编译下均通过

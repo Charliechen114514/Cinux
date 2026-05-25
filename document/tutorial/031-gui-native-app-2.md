@@ -1,3 +1,7 @@
+---
+title: 031-gui-native-app-2 · 原生应用
+---
+
 # 打造 GUI 文本终端 — Cinux Terminal 组件全解析
 
 > 标签：terminal, GUI, ANSI, VT100, 字符渲染, PSF 字体

@@ -1,3 +1,7 @@
+---
+title: 020-proc-scheduler-1 · 进程调度
+---
+
 # 020-1 通读：Spinlock 原子锁、PerCPU 数据与 GDT TSS 更新——抢占调度的基础设施
 
 

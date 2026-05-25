@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-b-3 · 内核加载 (B)
+---
+
 # 004 加载小内核（构建系统与验证篇） -- flat binary 生成与完整构建验证
 
 > 本章完成后的可见效果：QEMU debugcon 日志中出现 `OPL` 字符序列（O=disk read OK, P=Protected Mode, L=Long Mode）

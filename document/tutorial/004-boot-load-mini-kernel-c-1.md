@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-c-1 · 内核加载 (C)
+---
+
 # 从 Bootloader 到内核的交接：BootInfo 握手协议与高半核跳转
 
 > 标签：bootloader, BootInfo, higher-half kernel, 页表映射, System V ABI, 参数传递

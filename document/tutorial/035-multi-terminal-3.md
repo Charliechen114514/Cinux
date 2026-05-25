@@ -1,3 +1,7 @@
+---
+title: 035-multi-terminal-3 · 多终端
+---
+
 # 多终端桌面与 init 重构
 
 > 标签：multi-terminal, GUI, fork+exec, pipe, zombie, stack guard

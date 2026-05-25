@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-a-1 · 内核加载 (A)
+---
+
 # 004 加载小内核（准备篇） -- Real Mode 的最后两件事
 
 > 本章完成后的可见效果：QEMU debugcon 输出 `OPLJ` 字符序列（O=磁盘读取完成, P=保护模式, L=Long Mode, J=准备跳转小内核）

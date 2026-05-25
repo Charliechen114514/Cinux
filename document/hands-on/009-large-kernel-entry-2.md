@@ -1,3 +1,7 @@
+---
+title: 009-large-kernel-entry-2 · 大内核入口
+---
+
 # 009-2 大内核基础设施 — I/O 端口原语 + 串口驱动 + kprintf
 
 ## 章节导语

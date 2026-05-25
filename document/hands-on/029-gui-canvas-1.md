@@ -1,3 +1,7 @@
+---
+title: 029-gui-canvas-1 · GUI Canvas
+---
+
 # Framebuffer 接口与 Canvas 双缓冲架构设计
 
 > 标签：framebuffer, canvas, double buffering, pitch, 2D graphics

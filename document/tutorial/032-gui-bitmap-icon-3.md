@@ -1,3 +1,7 @@
+---
+title: 032-gui-bitmap-icon-3 · 位图与图标
+---
+
 # 032-3 桌面图标系统——从数据结构到点击响应
 
 > 标签：Cinux, GUI, DesktopIcon, 命中测试, 窗口管理器, 测试

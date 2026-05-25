@@ -1,3 +1,7 @@
+---
+title: 028b-fs-ext2-write-2 · Ext2 写入
+---
+
 # 028b-2 Hands-on: ext2 文件写入与目录操作
 
 ## 导语

@@ -1,3 +1,7 @@
+---
+title: 012-driver-serial-2 · 串口驱动
+---
+
 # kprintf 格式化引擎重构与左对齐修饰符
 
 ## 概览

@@ -1,3 +1,7 @@
+---
+title: 030-gui-wm-basic-2 · 窗口管理器
+---
+
 # 030-2 Read-through: Window + WindowManager
 
 ## 概览

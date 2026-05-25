@@ -1,3 +1,7 @@
+---
+title: 010-big-kernel-gdt-idt-1 · GDT/IDT 重构
+---
+
 # 010-1 教程：大内核 GDT 初始化——为什么 long mode 还需要段描述符？
 
 > 标签：x86_64, GDT, 段描述符, 长模式, TSS, lgdt, C++ scoped enum

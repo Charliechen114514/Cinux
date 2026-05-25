@@ -1,3 +1,7 @@
+---
+title: 011-big-kernel-pic-irq-3 · PIC 与 IRQ
+---
+
 # 从零在 x64 内核里驱动 PIC 和 PIT（三）：集成、点火与验证
 
 > 标签：x86-64, 内核开发, QEMU, 中断, 定时器, C++

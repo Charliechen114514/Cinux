@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-c-3 · 内核加载 (C)
+---
+
 # 内核的第一次呼吸（下）：构建系统深度剖析与跨 OS 对比
 
 > 标签：build system, CMake, mcmodel, linker script, objcopy, debugcon, OS comparison

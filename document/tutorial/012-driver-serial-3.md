@@ -1,3 +1,7 @@
+---
+title: 012-driver-serial-3 · 串口驱动
+---
+
 # 64 位模式下 SSE 不可用的陷阱：一次 -O2 构建崩溃的完整排查
 
 > 标签：SSE, CR4, OSFXSR, boot.S, Triple Fault, -O2, 编译器优化, debugcon, 内核调试, x86-64

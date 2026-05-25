@@ -1,3 +1,7 @@
+---
+title: 025-driver-ahci-1 · AHCI 驱动
+---
+
 # 025-1 动手篇：PCI 总线枚举与 AHCI 设备发现
 
 ## 导语

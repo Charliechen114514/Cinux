@@ -1,3 +1,7 @@
+---
+title: 019-proc-context-2 · 进程上下文
+---
+
 # 019-2 上下文切换与调度器
 
 ## 导语
@@ -22,9 +26,11 @@
 
 和 xv6 的对比也很有意思。xv6 的 `swtch.S` 把返回地址隐式地保存在栈上（call 压入的），而 Cinux 用 `lea .restore(%rip)` 显式计算并存入结构体字段。xv6 的方式更简洁，但 Cinux 的方式更利于调试——你可以直接打印 ctx.rip 看到一个有意义的恢复地址，而不是一个栈地址。
 
-> 参考：Intel SDM Vol.3A Section 8.7 — 64-bit mode 不支持硬件任务切换，必须用软件实现
-> 参考：OSDev Wiki — Context Switching (https://wiki.osdev.org/Context_Switching)
-> 参考：Linux kernel context switch 演化史 — https://www.maizure.org/projects/evolution_x86_context_switch_linux/
+参考：
+
+- Intel SDM Vol.3A Section 8.7 — 64-bit mode 不支持硬件任务切换，必须用软件实现
+- OSDev Wiki — Context Switching (https://wiki.osdev.org/Context_Switching)
+- Linux kernel context switch 演化史 — https://www.maizure.org/projects/evolution_x86_context_switch_linux/
 
 ### RoundRobin 的循环队列设计
 

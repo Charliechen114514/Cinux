@@ -1,3 +1,7 @@
+---
+title: 034-process-fork-exec-2 · Fork 与 Exec
+---
+
 # fork 的艺术——COW 页表与双返回
 
 > 标签：fork, Copy-On-Write, page table, context switch, x86-64

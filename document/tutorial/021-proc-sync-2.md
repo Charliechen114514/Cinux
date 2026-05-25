@@ -1,3 +1,7 @@
+---
+title: 021-proc-sync-2 · 同步原语
+---
+
 # 021-2 Mutex 与 Semaphore：从设计到实现
 
 > 前置：[021-1 从自旋到阻塞](021-proc-sync-1.md)

@@ -1,3 +1,7 @@
+---
+title: 020-proc-scheduler-3 · 进程调度
+---
+
 # 020-3 定时器集成与 IF 标志修复
 
 ## 导语
@@ -46,9 +50,11 @@ IRQ0 到来 → ISR stub（CPU 自动清除 IF）→ pit_irq0_handler → Schedu
 
 为什么这条 sti 是安全的？对于新任务，sti 正确地开启了中断，后续的定时器中断能正常到达。对于被抢占过的老任务，它恢复执行后最终会通过 IRETQ 恢复原始 RFLAGS，sti 只是多此一举但不会造成错误。至于嵌套中断的风险——从 `.restore` 到 IRETQ 的退栈路径只有几条指令（微秒级），100Hz 的定时器间隔是 10ms，在这个窗口中命中下一个 IRQ0 的概率可以忽略不计。
 
-> 参考：Intel SDM Vol.3A Section 2.3 — RFLAGS.IF flag (bit 9)
-> 参考：Intel SDM Vol.3A Section 6.12.1.3 — Interrupt Gate IF clearing
-> 参考：Intel SDM Vol.3A Section 6.8.1 — Masking Maskable Hardware Interrupts
+参考：
+
+- Intel SDM Vol.3A Section 2.3 — RFLAGS.IF flag (bit 9)
+- Intel SDM Vol.3A Section 6.12.1.3 — Interrupt Gate IF clearing
+- Intel SDM Vol.3A Section 6.8.1 — Masking Maskable Hardware Interrupts
 
 ### 时间片过长的教训
 

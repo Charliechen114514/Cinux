@@ -1,3 +1,7 @@
+---
+title: 035-multi-terminal-2 · 多终端
+---
+
 # 从 ext2 执行 Shell——execve 完整链路
 
 ## 导语

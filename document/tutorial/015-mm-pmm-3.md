@@ -1,3 +1,7 @@
+---
+title: 015-mm-pmm-3 · 物理内存管理
+---
+
 # 015-3 分配、释放与测试：位图分配器的运行时
 
 > 标签：PMM, alloc_page, free_page, alloc_pages, 双轨测试

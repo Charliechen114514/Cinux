@@ -1,3 +1,7 @@
+---
+title: 007-mini-kernel-intr-1 · 中断处理
+---
+
 # 007-1 Read-through: GDT 实现
 
 ## 本章概览

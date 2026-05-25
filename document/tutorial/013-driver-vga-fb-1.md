@@ -1,3 +1,7 @@
+---
+title: 013-driver-vga-fb-1 · VGA 帧缓冲
+---
+
 # 013-1 底座：把屏幕点亮——线性帧缓冲区与 MMIO 页表映射
 
 > 标签：framebuffer, VBE, MMIO, 页表映射, 2MB 大页, identity mapping

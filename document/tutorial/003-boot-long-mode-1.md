@@ -1,3 +1,7 @@
+---
+title: 003-boot-long-mode-1 · Long Mode
+---
+
 # 为什么 Long Mode 必须要分页：从四级页表到 Higher-Half Kernel 映射
 
 > 标签：x86_64, 长模式, 四级页表, 2MB 大页, 恒等映射, identity mapping, 高半内核

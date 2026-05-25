@@ -1,3 +1,7 @@
+---
+title: 007-mini-kernel-intr-1 · 中断处理
+---
+
 # 007-1 Tutorial: GDT 与 IDT — 让内核学会"接电话"的基础设施
 
 > 标签：GDT, IDT, 段描述符, 中断描述符表, x86_64, LGDT, LIDT

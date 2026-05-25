@@ -1,3 +1,7 @@
+---
+title: 015-mm-pmm-2 · 物理内存管理
+---
+
 # 015-2 PMM 初始化与位图放置
 
 ## 导语
@@ -40,8 +44,10 @@ Cinux 的内核运行在虚拟地址 `0xFFFFFFFF80000000` 以上的空间，但 
 
 内核映像的物理起始地址是 `info.kernel_phys_base`——这是 BootInfo 中记录的值，告诉我们 bootloader 把内核 ELF 加载到了物理内存的哪个位置（通常是 0x1000000 即 16MB）。所以"内核映像 + 栈 + 位图"占用的物理内存范围是从 `kernel_phys_base` 到 `(位图虚拟地址 - KERNEL_VMA)`。
 
-> 参考：[OSDev Wiki - Higher Half Kernel](https://wiki.osdev.org/Higher_Half_Kernel)
-> 参考：Intel SDM Vol.3A Section 2.5 (Control Registers) -- CR3 保存的是物理地址，PMM 提供的物理页面将用于构建页表
+参考：
+
+- [OSDev Wiki - Higher Half Kernel](https://wiki.osdev.org/Higher_Half_Kernel)
+- Intel SDM Vol.3A Section 2.5 (Control Registers) -- CR3 保存的是物理地址，PMM 提供的物理页面将用于构建页表
 
 ### Linker Symbol 访问模式
 

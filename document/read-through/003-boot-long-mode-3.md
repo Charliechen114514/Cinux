@@ -1,3 +1,7 @@
+---
+title: 003-boot-long-mode-3 · Long Mode
+---
+
 # 003-3 Higher-Half Kernel 映射：PML4[511] 与 PDPT[510] 完整代码讲解
 
 > 标签：x86_64, 长模式, 高半内核, Higher-Half, PML4[511], PDPT[510]

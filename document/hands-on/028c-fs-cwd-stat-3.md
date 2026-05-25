@@ -1,3 +1,7 @@
+---
+title: 028c-fs-cwd-stat-3 · CWD 与 Stat
+---
+
 # 028c-3 Hands-on: Shell 命令集成与验证
 
 ## 导语

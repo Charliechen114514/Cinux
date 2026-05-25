@@ -1,3 +1,7 @@
+---
+title: 013-driver-vga-fb-3 · VGA 帧缓冲
+---
+
 # 013-3 通读：文本控制台与 kprintf 双输出架构
 
 ## 概览

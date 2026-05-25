@@ -1,3 +1,7 @@
+---
+title: 028d-sync-safety-2 · 同步安全
+---
+
 # 全面加锁实战——三层分级策略与 RAII 守卫设计
 
 > 标签：自旋锁、线程安全、PMM、Heap、Scheduler、原子操作

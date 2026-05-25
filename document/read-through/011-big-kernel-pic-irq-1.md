@@ -1,3 +1,7 @@
+---
+title: 011-big-kernel-pic-irq-1 · PIC 与 IRQ
+---
+
 # 011 Big Kernel PIC 重映射 + PIT 定时器 + IRQ 中断（一）— 通读版
 
 **本章 git tag**：`011_big_kernel_pic_irq`，上一章 tag：`010_big_kernel_gdt_idt`

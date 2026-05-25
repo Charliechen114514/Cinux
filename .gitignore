@@ -97,13 +97,13 @@ coverage/
 *.gcov
 
 # ============================================================
-# 文档构建（后续 MkDocs）
+# VitePress 文档站点
 # ============================================================
-
-# TODO: 忽略文档站点构建产物
-#   模式: document/site/, document/_build/
-document/site/
+node_modules/
+site/.vitepress/dist/
+site/.vitepress/cache/
 document/_build/
 
 # Python虚拟环境
 .venv/
+

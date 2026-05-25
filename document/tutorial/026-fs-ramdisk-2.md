@@ -1,3 +1,7 @@
+---
+title: 026-fs-ramdisk-2 · Ramdisk 文件系统
+---
+
 # 把文件塞进内核——二进制嵌入的艺术
 
 > 标签：objcopy, ELF, 链接器脚本, CMake, 二进制嵌入, initrd

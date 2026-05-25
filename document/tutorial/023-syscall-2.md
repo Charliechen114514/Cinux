@@ -1,3 +1,7 @@
+---
+title: 023-syscall-2 · 系统调用
+---
+
 # 分发、验证、终止 -- syscall handler 的工程实践
 
 > 标签：syscall dispatch, sys_write, sys_exit, sys_yield, user address validation

@@ -1,3 +1,7 @@
+---
+title: 020-proc-scheduler-1 · 进程调度
+---
+
 # 从协作到抢占：内核多任务的进化
 
 > 标签：抢占式调度, Spinlock, PerCPU, 时间片轮转, idle 任务

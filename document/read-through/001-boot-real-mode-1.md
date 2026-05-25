@@ -1,3 +1,7 @@
+---
+title: 001-boot-real-mode-1 · 实模式引导
+---
+
 # 001 Read-through (1/3) —— MBR：512 字节里的引导艺术
 
 ## 概览

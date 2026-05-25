@@ -1,3 +1,7 @@
+---
+title: 015-mm-pmm-2 · 物理内存管理
+---
+
 # 015-2 位图管理器初始化：保守标记与地址转换
 
 > 标签：PMM init, 保守标记, higher-half, linker symbol

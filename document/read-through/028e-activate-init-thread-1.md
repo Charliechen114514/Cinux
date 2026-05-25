@@ -1,3 +1,7 @@
+---
+title: 028e-activate-init-thread-1 · Init 线程
+---
+
 # kernel_main 重构与调度器启动
 
 > 标签：kernel_main, scheduler, TaskBuilder, boot task, init thread

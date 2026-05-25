@@ -1,3 +1,7 @@
+---
+title: 024-shell-1 · Shell
+---
+
 # 024-shell-1: GDT 重构与 SYSRETQ SS.RPL 修复
 
 ## 导语

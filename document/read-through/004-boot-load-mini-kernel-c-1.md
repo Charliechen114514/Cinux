@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-c-1 · 内核加载 (C)
+---
+
 # 004 通读版 · BootInfo 填充与高半核跳转
 
 ## 概览

@@ -1,3 +1,7 @@
+---
+title: 026-fs-ramdisk-1 · Ramdisk 文件系统
+---
+
 # 从零理解 USTAR——给内核一个文件系统
 
 > 标签：ramdisk, initrd, ustar, tar, 文件系统, 八进制编码

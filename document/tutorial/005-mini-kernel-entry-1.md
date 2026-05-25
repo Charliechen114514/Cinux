@@ -1,3 +1,7 @@
+---
+title: 005-mini-kernel-entry-1 · 内核入口
+---
+
 # 让内核开口说话：串口驱动的原理与实现
 
 > 标签：UART, 串口驱动, I/O 端口, PMIO, inline assembly, NS16550A

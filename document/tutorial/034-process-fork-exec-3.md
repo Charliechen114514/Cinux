@@ -1,3 +1,7 @@
+---
+title: 034-process-fork-exec-3 · Fork 与 Exec
+---
+
 # execve 与进程生命周期管理
 
 > 标签：execve, ELF loading, waitpid, zombie, process lifecycle

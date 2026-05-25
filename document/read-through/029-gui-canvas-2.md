@@ -1,3 +1,7 @@
+---
+title: 029-gui-canvas-2 · GUI Canvas
+---
+
 # 图元绘制：Bresenham 直线、矩形描边、位图与 Blit
 
 > 标签：Bresenham, draw_line, draw_rect_outline, draw_bitmap, blit

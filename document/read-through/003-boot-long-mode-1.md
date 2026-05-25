@@ -1,3 +1,7 @@
+---
+title: 003-boot-long-mode-1 · Long Mode
+---
+
 # 003-1 页表构建：setup_page_tables() 完整代码讲解
 
 > 标签：x86_64, 长模式, 四级页表, 2MB 大页, 恒等映射

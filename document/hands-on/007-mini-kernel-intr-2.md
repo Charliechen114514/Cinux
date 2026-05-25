@@ -1,3 +1,7 @@
+---
+title: 007-mini-kernel-intr-2 · 中断处理
+---
+
 # 007-2 Hands-on: IDT — 中断向量表
 
 > 标签：IDT, 中断描述符, LIDT, Interrupt Gate, Trap Gate, InterruptFrame

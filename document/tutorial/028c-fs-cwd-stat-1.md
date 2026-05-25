@@ -1,3 +1,7 @@
+---
+title: 028c-fs-cwd-stat-1 · CWD 与 Stat
+---
+
 # 028c-1 Tutorial: 从绝对路径到相对路径——进程工作目录与路径规范化
 
 ## 前言

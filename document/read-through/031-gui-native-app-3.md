@@ -1,3 +1,7 @@
+---
+title: 031-gui-native-app-3 · 原生应用
+---
+
 # 031-3: 系统集成 — sys_read/write 重构与 GUI Shell 启动
 
 ## 概览

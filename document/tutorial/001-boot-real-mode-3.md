@@ -1,3 +1,7 @@
+---
+title: 001-boot-real-mode-3 · 实模式引导
+---
+
 # 实模式引导的设计对比与架构决策：为什么我们要自己写 Bootloader
 
 > 标签：x86, bootloader, MBR, 实模式, 架构设计, OS 对比

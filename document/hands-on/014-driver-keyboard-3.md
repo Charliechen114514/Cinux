@@ -1,3 +1,7 @@
+---
+title: 014-driver-keyboard-3 · 键盘驱动
+---
+
 # 014-3 事件驱动：IRQ1 处理、环形缓冲区与键盘回显
 
 ## 导语
@@ -30,8 +34,10 @@ kernel_main 的主循环采用经典的"中断驱动 + 轮询消费"模式：CPU
 
 之所以要在一个 `hlt` 唤醒后排空所有事件，是因为按键事件可能在 CPU 醒来之前就积攒了好几个——一次按键会产生 make code 和 break code 两个中断，如果主循环每次只 poll 一个事件，第二个事件就要等到下一次 `hlt` 唤醒才能处理，延迟感会很明显。
 
-> 参考：[OSDev Wiki - PS/2 Keyboard](https://wiki.osdev.org/PS/2_Keyboard)
-> 参考：[OSDev Wiki - 8259 PIC](https://wiki.osdev.org/8259_PIC)
+参考：
+
+- [OSDev Wiki - PS/2 Keyboard](https://wiki.osdev.org/PS/2_Keyboard)
+- [OSDev Wiki - 8259 PIC](https://wiki.osdev.org/8259_PIC)
 
 ## 动手实现
 

@@ -1,3 +1,7 @@
+---
+title: 028e-activate-init-thread-1 · Init 线程
+---
+
 # 为什么要引入 init 线程？——从 kernel_main 的膨胀说起
 
 > 标签：init thread, kernel_main, scheduler bootstrap, PID 0/1, Linux comparison

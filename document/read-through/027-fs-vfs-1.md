@@ -1,3 +1,7 @@
+---
+title: 027-fs-vfs-1 · VFS 虚拟文件系统
+---
+
 # 027-1 Read-through: VFS 核心数据结构 — Inode、File 与 FileSystem
 
 ## 概览

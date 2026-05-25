@@ -1,3 +1,7 @@
+---
+title: 011-big-kernel-pic-irq-3 · PIC 与 IRQ
+---
+
 # 011 PIC 重映射 + PIT 定时器 + IRQ 中断（三）：IRQ 注册与集成 —— 点火！
 
 > 前篇：[011-2 PIT 驱动](011-big-kernel-pic-irq-2.md) | 篇首：[011-1 PIC 驱动](011-big-kernel-pic-irq-1.md)

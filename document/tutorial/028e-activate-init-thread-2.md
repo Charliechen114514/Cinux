@@ -1,3 +1,7 @@
+---
+title: 028e-activate-init-thread-2 · Init 线程
+---
+
 # 实现 kernel_init_thread——ext2 挂载与 shell 启动
 
 > 标签：init thread, ext2 mount, VFS, launch_first_user, shell_task, AHCI singleton

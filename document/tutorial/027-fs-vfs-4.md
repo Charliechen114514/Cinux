@@ -1,3 +1,7 @@
+---
+title: 027-fs-vfs-4 · VFS 虚拟文件系统
+---
+
 # 027-4 Tutorial: Ramdisk 适配、用户态集成与测试策略 — 让 shell 里 cat 出文件内容
 
 > 标签：Ramdisk、shell、cat、ls、测试、FDTable、VFS 集成

@@ -1,3 +1,7 @@
+---
+title: 028e-activate-init-thread-2 · Init 线程
+---
+
 # init 线程实现与用户态启动
 
 > 标签：init thread, ext2 mount, VFS, launch_first_user, placement new, singleton

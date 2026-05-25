@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-b-2 · 内核加载 (B)
+---
+
 # Bootloader 开发日记 004B（中）：从 4KB 到 416KB——分块磁盘读取与栈冲突惊魂记
 
 > 标签：x86, INT 13h, 分块读取, 段地址计算, 栈冲突, Real Mode

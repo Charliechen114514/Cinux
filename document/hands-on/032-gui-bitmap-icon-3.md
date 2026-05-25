@@ -1,3 +1,7 @@
+---
+title: 032-gui-bitmap-icon-3 · 位图与图标
+---
+
 # 032-3 DesktopIcon 集成与测试验证
 
 ## 导语

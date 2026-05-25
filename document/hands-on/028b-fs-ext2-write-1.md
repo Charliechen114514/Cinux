@@ -1,3 +1,7 @@
+---
+title: 028b-fs-ext2-write-1 · Ext2 写入
+---
+
 # 028b-1 Hands-on: ext2 块与 inode 分配器
 
 ## 导语

@@ -1,3 +1,7 @@
+---
+title: 010-big-kernel-gdt-idt-2 · GDT/IDT 重构
+---
+
 # 010-2 Read-through: 大内核 IDT + ISR 汇编跳板——中断描述符表与中断栈帧
 
 ## 概览

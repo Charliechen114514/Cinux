@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-c-2 · 内核加载 (C)
+---
+
 # 内核的第一次呼吸：BSS 清除陷阱、符号冲突侦探与 C++ 运行时
 
 > 标签：kernel entry, boot.S, BSS clearing, C++ runtime, crt_stub, linker script, 全局构造函数

@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-b-2 · 内核加载 (B)
+---
+
 # 004 通读版 · 完整加载小内核（中）—— 分块磁盘读取的完整逻辑
 
 > 前置：[004B（上）BootInfo 结构与分块读取开始](004-boot-load-mini-kernel-b-1.md)

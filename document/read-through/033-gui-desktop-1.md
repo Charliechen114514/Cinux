@@ -1,3 +1,7 @@
+---
+title: 033-gui-desktop-1 · 桌面环境
+---
+
 # 033-gui-desktop-1: WindowManager 桌面图标管理代码精讲
 
 ## 概览

@@ -1,3 +1,7 @@
+---
+title: 028d-sync-safety-3 · 同步安全
+---
+
 # 028d-3 Read-through: 并发测试完整实现
 
 ## 概览

@@ -1,3 +1,7 @@
+---
+title: 025-driver-ahci-1 · AHCI 驱动
+---
+
 # 从 PCI 到 AHCI：发现你的 SATA 控制器
 
 > 标签：PCI, AHCI, 配置空间, BAR, 设备枚举

@@ -1,3 +1,7 @@
+---
+title: 032-gui-bitmap-icon-1 · 位图与图标
+---
+
 # 032-1 Read-through: Canvas::draw_bitmap 实现
 
 ## 概览

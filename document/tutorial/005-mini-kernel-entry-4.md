@@ -1,3 +1,7 @@
+---
+title: 005-mini-kernel-entry-4 · 内核入口
+---
+
 # 让内核自己说"我没问题"：双模式测试框架的搭建
 
 > 标签：测试框架, TEST 宏, CTest, isa-debug-exit, 双模式测试, Host 测试, 内核测试, C++ 运行时验证

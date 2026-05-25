@@ -1,3 +1,7 @@
+---
+title: Syscall GS MSR 丢失
+---
+
 # 035 syscall GS MSR 状态丢失排查报告
 
 ## 现象

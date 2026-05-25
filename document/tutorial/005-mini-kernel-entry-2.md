@@ -1,3 +1,7 @@
+---
+title: 005-mini-kernel-entry-2 · 内核入口
+---
+
 # 从数字到文字的魔法：手搓内核格式化输出
 
 > 标签：kprintf, va_list, 可变参数, 格式化算法, 模板函数, INT64_MIN

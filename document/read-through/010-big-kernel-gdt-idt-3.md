@@ -1,3 +1,7 @@
+---
+title: 010-big-kernel-gdt-idt-3 · GDT/IDT 重构
+---
+
 # 010-3 Read-through: 异常处理函数、集成与测试——寄存器 dump 与 int $3 验证
 
 ## 概览

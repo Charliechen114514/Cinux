@@ -1,3 +1,7 @@
+---
+title: 021-proc-sync-2 · 同步原语
+---
+
 # 021-2 Mutex：阻塞式互斥锁设计
 
 > 前置：[021-1 Spinlock 与等待队列](021-proc-sync-1.md)

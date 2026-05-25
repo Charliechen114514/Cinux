@@ -1,3 +1,7 @@
+---
+title: 015-mm-pmm-3 · 物理内存管理
+---
+
 # 015-3 页分配、连续分配与测试
 
 ## 导语
@@ -38,8 +42,10 @@ Cinux 的 PMM 测试分两条轨道。第一条是 host 端单元测试（`test/
 
 第二条是 QEMU in-kernel 集成测试（`kernel/test/test_pmm.cpp`），在真实的内核环境中运行。它使用真实的 BootInfo 数据（来自 QEMU 的 E820 报告）初始化 PMM，然后测试实际的分配/释放循环——单页分配后检查物理地址是否 4KB 对齐、16 页批量分配后检查 free_pages 计数是否正确恢复、连续 4 页分配后检查物理地址是否连续等。这条轨道验证的是"真正的内核能正确使用 PMM"——不存在 host mock 可能引入的偏差。
 
-> 参考：[OSDev Wiki - Page Frame Allocation](https://wiki.osdev.org/Page_Frame_Allocation) -- bitmap vs linked list vs buddy allocator 的比较
-> 参考：Linux bootmem (LWN): [The Linux Bootmem Framework](https://lwn.net/Articles/761215/) -- Linux 的 bootmem 位图分配器与 Cinux 的 PMM 原理相同
+参考：
+
+- [OSDev Wiki - Page Frame Allocation](https://wiki.osdev.org/Page_Frame_Allocation) -- bitmap vs linked list vs buddy allocator 的比较
+- Linux bootmem (LWN): [The Linux Bootmem Framework](https://lwn.net/Articles/761215/) -- Linux 的 bootmem 位图分配器与 Cinux 的 PMM 原理相同
 
 ## 动手实现
 

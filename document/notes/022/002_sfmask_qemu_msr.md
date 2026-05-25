@@ -1,3 +1,7 @@
+---
+title: IA32_FMASK MSR 问题
+---
+
 # 022 · IA32_FMASK (SFMASK) MSR 写入在 QEMU 中不持久化
 
 ## 现象

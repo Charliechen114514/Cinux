@@ -1,3 +1,7 @@
+---
+title: 001-boot-real-mode-2 · 实模式引导
+---
+
 # 从 MBR 到图形模式：Stage2 引导与 VESA 初始化
 
 > 标签：x86, 实模式, Stage2, A20, VESA, VBE, 线性帧缓冲, CMake

@@ -1,3 +1,7 @@
+---
+title: 015-mm-pmm-1 · 物理内存管理
+---
+
 # 015-1 E820 内存映射解析与位图基础
 
 ## 导语
@@ -44,8 +48,10 @@ Intel 的 4 级分页机制（long mode）使用 4KB 作为最小的页大小，
 
 为什么没有选更"高级"的方案呢？比如 xv6 用的链表（free list），每个空闲页的前几个字节存 `next` 指针，零额外内存开销，分配释放都是 O(1)。听起来很完美，但它有一个致命的缺点——无法回答"页 X 是否已分配？"。如果你想检查某个物理页是不是被 double-free 了，你必须遍历整个链表。而位图方案天生就能 O(1) 地查询任意页的状态。再比如 Linux 和 SerenityOS 用的 buddy 分配器，支持 O(log N) 的连续分配，但实现复杂度远高于位图——SerenityOS 的 `PhysicalZone` 有上千行代码，而我们的整个 PMM 只有 267 行。对于一个教学 OS 来说，简洁性比高效性更有价值。
 
-> 参考：[OSDev Wiki - Page Frame Allocation](https://wiki.osdev.org/Page_Frame_Allocation)
-> 参考：Intel SDM Vol.3A Section 4.5 (4KB Paging)
+参考：
+
+- [OSDev Wiki - Page Frame Allocation](https://wiki.osdev.org/Page_Frame_Allocation)
+- Intel SDM Vol.3A Section 4.5 (4KB Paging)
 
 ## 动手实现
 

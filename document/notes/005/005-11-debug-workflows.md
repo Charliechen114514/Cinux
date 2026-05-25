@@ -1,3 +1,7 @@
+---
+title: 调试工作流
+---
+
 # 005-11: 调试工作流总结
 
 ## 概述
@@ -302,8 +306,8 @@ kdebugf("Debug: %s\n", msg);
 
 | 文件 | 用途 |
 |------|------|
-| [`.vscode/launch.json`](../../.vscode/launch.json) | VSCode 调试配置 |
-| [`.vscode/tasks.json`](../../.vscode/tasks.json) | 构建任务 |
-| [`cmake/qemu.cmake`](../../cmake/qemu.cmake) | QEMU 参数 |
-| [`kernel/mini/lib/kprintf.cpp`](../../kernel/mini/lib/kprintf.cpp) | 调试输出 |
-| [`kernel/mini/driver/serial.cpp`](../../kernel/mini/driver/serial.cpp) | 串口驱动 |
+| [`.vscode/launch.json`](https://github.com/CinuxOS/Cinux/blob/main/.vscode/launch.json) | VSCode 调试配置 |
+| [`.vscode/tasks.json`](https://github.com/CinuxOS/Cinux/blob/main/.vscode/tasks.json) | 构建任务 |
+| [`cmake/qemu.cmake`](https://github.com/CinuxOS/Cinux/blob/main/cmake/qemu.cmake) | QEMU 参数 |
+| [`kernel/mini/lib/kprintf.cpp`](https://github.com/CinuxOS/Cinux/blob/main/kernel/mini/lib/kprintf.cpp) | 调试输出 |
+| [`kernel/mini/driver/serial.cpp`](https://github.com/CinuxOS/Cinux/blob/main/kernel/mini/driver/serial.cpp) | 串口驱动 |

@@ -1,3 +1,7 @@
+---
+title: 020-proc-scheduler-3 · 进程调度
+---
+
 # 020-3 通读：context_switch sti 修复、PIT tick 集成与 6 线程抢占演示
 
 ## 概览

@@ -1,3 +1,7 @@
+---
+title: 028e-activate-init-thread-2 · Init 线程
+---
+
 # init.cpp 与 usermode.cpp——init 线程核心实现
 
 > 标签：init thread, ext2 mount, VFS, launch_first_user, placement new, AHCI singleton

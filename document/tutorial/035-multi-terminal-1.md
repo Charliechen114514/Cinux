@@ -1,3 +1,7 @@
+---
+title: 035-multi-terminal-1 · 多终端
+---
+
 # COW 页错误处理——fork 的物理引擎
 
 > 标签：page fault, Copy-On-Write, swapgs, MSR, x86-64

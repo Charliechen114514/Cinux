@@ -1,3 +1,7 @@
+---
+title: 007-mini-kernel-intr-3 · 中断处理
+---
+
 # 007-3 Tutorial: 异常处理函数与 int $3 点火测试
 
 > 标签：Page Fault, CR2, 断点异常, extern "C", kprintf, int $3

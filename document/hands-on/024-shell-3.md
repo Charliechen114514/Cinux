@@ -1,3 +1,7 @@
+---
+title: 024-shell-3 · Shell
+---
+
 # 024-shell-3: 用户态 Shell REPL 与 ANSI Console 支持
 
 ## 导语

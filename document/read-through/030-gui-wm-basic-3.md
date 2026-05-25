@@ -1,3 +1,7 @@
+---
+title: 030-gui-wm-basic-3 · 窗口管理器
+---
+
 # 030-3 Read-through: GUI Integration + ISR Alignment Fix
 
 ## 概览

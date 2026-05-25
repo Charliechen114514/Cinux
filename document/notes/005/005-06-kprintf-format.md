@@ -1,3 +1,7 @@
+---
+title: kprintf 格式化
+---
+
 # 005-06: kprintf 格式化实现
 
 ## 概述
@@ -33,7 +37,7 @@
 
 ### 1. vkprintf_impl 模板函数
 
-文件：[`kernel/mini/lib/kprintf.cpp`](../../kernel/mini/lib/kprintf.cpp)
+文件：[`kernel/mini/lib/kprintf.cpp`](https://github.com/CinuxOS/Cinux/blob/main/kernel/mini/lib/kprintf.cpp)
 
 ```cpp
 template <typename OutputFn>
@@ -165,12 +169,12 @@ kdebugf()
 
 | 文件 | 描述 |
 |------|------|
-| [`kernel/mini/lib/kprintf.h`](../../kernel/mini/lib/kprintf.h) | 函数声明 |
-| [`kernel/mini/lib/kprintf.cpp`](../../kernel/mini/lib/kprintf.cpp) | 核心实现 |
-| [`kernel/mini/lib/private/format.h`](../../kernel/mini/lib/private/format.h) | 格式化函数声明 |
-| [`kernel/mini/lib/private/format.cpp`](../../kernel/mini/lib/private/format.cpp) | 格式化函数实现 |
-| [`kernel/mini/driver/serial.h`](../../kernel/mini/driver/serial.h) | 串口驱动 |
-| [`kernel/mini/driver/io.h`](../../kernel/mini/driver/io.h) | I/O 端口操作 |
+| [`kernel/mini/lib/kprintf.h`](https://github.com/CinuxOS/Cinux/blob/main/kernel/mini/lib/kprintf.h) | 函数声明 |
+| [`kernel/mini/lib/kprintf.cpp`](https://github.com/CinuxOS/Cinux/blob/main/kernel/mini/lib/kprintf.cpp) | 核心实现 |
+| [`kernel/mini/lib/private/format.h`](https://github.com/CinuxOS/Cinux/blob/main/kernel/mini/lib/private/format.h) | 格式化函数声明 |
+| [`kernel/mini/lib/private/format.cpp`](https://github.com/CinuxOS/Cinux/blob/main/kernel/mini/lib/private/format.cpp) | 格式化函数实现 |
+| [`kernel/mini/driver/serial.h`](https://github.com/CinuxOS/Cinux/blob/main/kernel/mini/driver/serial.h) | 串口驱动 |
+| [`kernel/mini/driver/io.h`](https://github.com/CinuxOS/Cinux/blob/main/kernel/mini/driver/io.h) | I/O 端口操作 |
 
 ## 使用示例
 

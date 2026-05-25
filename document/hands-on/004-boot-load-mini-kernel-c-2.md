@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-c-2 · 内核加载 (C)
+---
+
 # 004-C 动手篇（下）：内核入口与 C++ 运行时
 
 > 本章完成后的可见效果：debugcon 日志输出 `OPLJ123G4===CPPGC1V123B===END`，全部 C++ 特性测试通过

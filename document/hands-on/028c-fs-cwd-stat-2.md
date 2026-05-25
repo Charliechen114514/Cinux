@@ -1,3 +1,7 @@
+---
+title: 028c-fs-cwd-stat-2 · CWD 与 Stat
+---
+
 # 028c-2 Hands-on: sys_chdir / sys_getcwd 与 stat 实现
 
 ## 导语

@@ -1,3 +1,7 @@
+---
+title: 033-gui-desktop-3 · 桌面环境
+---
+
 # 033-gui-desktop-3: init.cpp 集成与桌面测试
 
 ## 导语

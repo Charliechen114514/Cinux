@@ -1,3 +1,7 @@
+---
+title: 003-boot-long-mode-3 · Long Mode
+---
+
 # Higher-Half Kernel：为什么 0xFFFFFFFF80000000 能找到物理地址 0x0
 
 > 标签：x86_64, 高半内核, Higher-Half, 双映射, PML4[511], PDPT[510]

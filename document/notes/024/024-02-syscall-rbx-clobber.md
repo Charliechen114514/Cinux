@@ -1,3 +1,7 @@
+---
+title: SYSCALL RBX 覆写
+---
+
 # 024-02: SYSCALL 入口未恢复 RBX 导致 Shell 命令全部失效
 
 ## 一、问题现象

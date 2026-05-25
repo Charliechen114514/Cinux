@@ -1,3 +1,7 @@
+---
+title: 020-proc-scheduler-3 · 进程调度
+---
+
 # 抢占调度的两个暗坑
 
 > 标签：调试, 时间片, IF 标志, context_switch, sti, 中断门

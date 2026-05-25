@@ -1,3 +1,7 @@
+---
+title: 008-load-large-kernel-2 · 大内核加载
+---
+
 # 008-2 ATA 初始化与扇区读取：让 mini kernel 真正能从磁盘拿数据
 
 > 标签：ATA PIO, 软件复位, LBA28/LBA48, 扇区读取, x86_64

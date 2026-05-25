@@ -1,3 +1,7 @@
+---
+title: 002-boot-gdt-protected-2 · GDT 与保护模式
+---
+
 # 002-2 · Linker Script 修正与 GDT 定义
 
 ## 导语

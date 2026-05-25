@@ -1,3 +1,7 @@
+---
+title: 028c-fs-cwd-stat-3 · CWD 与 Stat
+---
+
 # 028c-3 Tutorial: 从内核到 Shell——路径解析统一与命令集成
 
 ## 前言

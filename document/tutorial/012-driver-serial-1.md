@@ -1,7 +1,11 @@
+---
+title: 012-driver-serial-1 · 串口驱动
+---
+
 # 从硬件到软件：x86_64 串口驱动的设计与实现
 
 > 标签：x86-64, UART, 16550, 串口驱动, 端口映射 I/O, PMIO, polling, 8N1, 内核开发, QEMU
-> 前置：[011 — 大内核 PIC 与 PIT：让内核第一次听到硬件的心跳](011-big-kernel-pic-pit.md)
+> 前置：[011 — 大内核 PIC 与 PIT：让内核第一次听到硬件的心跳](011-big-kernel-pic-irq-1)
 
 ---
 

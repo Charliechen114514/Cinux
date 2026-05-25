@@ -1,3 +1,7 @@
+---
+title: 028c-fs-cwd-stat-1 · CWD 与 Stat
+---
+
 # 028c-1 Hands-on: 路径解析与进程工作目录
 
 ## 导语

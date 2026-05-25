@@ -1,3 +1,7 @@
+---
+title: 029-gui-canvas-3 · GUI Canvas
+---
+
 # PSF2 字体渲染、PIT 定时刷新与内存安全修复
 
 > 标签：PSF2 font, draw_text, PIT callback, heap safety, direct map

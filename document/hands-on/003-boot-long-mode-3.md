@@ -1,3 +1,7 @@
+---
+title: 003-boot-long-mode-3 · Long Mode
+---
+
 # 003-3 模式切换：从保护模式到 Long Mode 的五步状态机
 
 > 标签：x86_64, EFER, CR0/CR3/CR4, 远跳转, 64 位 GDT, 状态机切换

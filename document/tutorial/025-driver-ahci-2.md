@@ -1,3 +1,7 @@
+---
+title: 025-driver-ahci-2 · AHCI 驱动
+---
+
 # 让 HBA 跑起来：AHCI 端口初始化实战
 
 > 标签：AHCI, MMIO, HBA, DMA, 命令列表, FIS

@@ -1,3 +1,7 @@
+---
+title: 017-mm-heap-2 · 堆管理
+---
+
 # 初始化与分配：first-fit 算法详解
 
 > 标签：Heap::init, Heap::alloc, first-fit, 块分裂, 对齐, front padding

@@ -1,3 +1,7 @@
+---
+title: 017-mm-heap-1 · 堆管理
+---
+
 # 017-1 BlockHeader 数据结构与堆初始化
 
 ## 导语
@@ -44,8 +48,10 @@ Cinux 把堆放在虚拟地址 0xFFFF800000000000——这是一个 higher-half 
 
 如果你好奇这个地址在页表中的位置：PML4 索引是 256（`(0xFFFF800000000000 >> 39) & 0x1FF`），恰好是 canonical 高半区的第一个 PML4 表项。从 PML4[256] 开始一直到 PML4[511]（内核代码段所在位置），中间有 256 个 PML4 表项可用，对应 256 * 512 GB = 128 TB 的虚拟地址空间。堆从 PML4[256] 的起始处开始，可以向上连续增长非常大的范围，不必担心和更高地址的内核数据结构冲突。
 
-> 参考：[OSDev Wiki - Memory Allocation](https://wiki.osdev.org/Memory_Allocation)
-> 参考：[dreamportdev Osdev Notes - Heap Allocation](https://github.com/dreamportdev/Osdev-Notes/blob/master/04_Memory_Management/05_Heap_Allocation.md)
+参考：
+
+- [OSDev Wiki - Memory Allocation](https://wiki.osdev.org/Memory_Allocation)
+- [dreamportdev Osdev Notes - Heap Allocation](https://github.com/dreamportdev/Osdev-Notes/blob/master/04_Memory_Management/05_Heap_Allocation.md)
 
 ## 动手实现
 

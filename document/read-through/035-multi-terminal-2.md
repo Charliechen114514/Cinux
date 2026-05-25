@@ -1,3 +1,7 @@
+---
+title: 035-multi-terminal-2 · 多终端
+---
+
 # execve 从 ext2 加载 Shell
 
 ## 概览

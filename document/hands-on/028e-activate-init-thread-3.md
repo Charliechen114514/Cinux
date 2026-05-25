@@ -1,3 +1,7 @@
+---
+title: 028e-activate-init-thread-3 · Init 线程
+---
+
 # MMIO 地址冲突排查与内存布局规范
 
 > 标签：memory layout, MMIO, virtual address collision, debug, page table

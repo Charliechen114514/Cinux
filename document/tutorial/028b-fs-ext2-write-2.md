@@ -1,3 +1,7 @@
+---
+title: 028b-fs-ext2-write-2 · Ext2 写入
+---
+
 # 028b-2 Tutorial: ext2 目录操作——创建与删除
 
 > 标签：ext2、目录操作、create、mkdir、unlink、目录项、文件写入

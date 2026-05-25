@@ -1,3 +1,7 @@
+---
+title: 011-big-kernel-pic-irq-2 · PIC 与 IRQ
+---
+
 # 011 Big Kernel PIC + PIT + IRQ（二）：PIT 驱动 + IRQ 注册 — 通读版
 
 > 前篇：[011-1 PIC 驱动](011-big-kernel-pic-irq-1.md) | 次篇：[011-3 kernel_main 与设计决策](011-big-kernel-pic-irq-3.md)

@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-a-1 · 内核加载 (A)
+---
+
 # Bootloader 开发日记 004A：E820 内存探测、INT 13h 磁盘读取，以及踩不完的段地址坑
 
 > 标签：bootloader, E820, INT 13h, 磁盘读取, x86 汇编, flat binary

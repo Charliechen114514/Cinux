@@ -1,3 +1,7 @@
+---
+title: 009-large-kernel-entry-2 · 大内核入口
+---
+
 # 009-2 Tutorial: 大内核的嘴巴 — I/O 端口、串口驱动与 kprintf
 
 > 标签：x86 I/O port, UART 16550, serial driver, kprintf, printf, kernel output

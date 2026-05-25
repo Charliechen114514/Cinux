@@ -1,3 +1,7 @@
+---
+title: 014-driver-keyboard-3 · 键盘驱动
+---
+
 # 014-3 事件消费与验证：环形缓冲区、键盘回显与双轨测试
 
 > 标签：ring buffer, poll loop, console, unit test, QEMU integration test, 0xD2 inject

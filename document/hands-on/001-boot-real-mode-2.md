@@ -1,3 +1,7 @@
+---
+title: 001-boot-real-mode-2 · 实模式引导
+---
+
 # 001_boot_real_mode（下） —— 从文本模式到图形模式
 
 ## 导语

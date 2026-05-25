@@ -1,3 +1,7 @@
+---
+title: 028d-sync-safety-2 · 同步安全
+---
+
 # 028d-2 Read-through: PMM/Heap/Scheduler 加锁实现
 
 ## 概览

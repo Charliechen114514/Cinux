@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-c-1 · 内核加载 (C)
+---
+
 # 004-C 动手篇（上）：BootInfo 填充与高半核跳转
 
 > 本章完成后的可见效果：debugcon 日志中在 `OPL` 之后出现 `J` 字符，紧接着出现 `123G4===CPPGC1V123B===END`，表示 Bootloader 成功填充 BootInfo 并跳转到 Mini Kernel 的 C++ 入口
@@ -186,7 +190,7 @@ BootInfo 放在固定物理地址 0x7000 而不是动态协商。固定地址在
 | 概念 | 要点 |
 |------|------|
 | BootInfo 结构 | 824 字节 packed 结构，固定存放于物理 0x7000，Bootloader 和内核共用定义 |
-| BootInfo 字段顺序 | entry_point(8B) + phys_base(8B) + size(8B) + fb_addr(8B) + fb_width(4B) + fb_height(4B) + fb_pitch(4B) + fb_bpp(4B) + mmap_count(4B) + _pad(4B) + mmap[32](768B) |
+| BootInfo 字段顺序 | entry_point(8B) + phys_base(8B) + size(8B) + fb_addr(8B) + fb_width(4B) + fb_height(4B) + fb_pitch(4B) + fb_bpp(4B) + mmap_count(4B) + _pad(4B) + mmap\[32\](768B) |
 | C/C++ 兼容 static_assert | `#if defined(__cplusplus)` 分支选择 `static_assert` 和 `_Static_assert` |
 | 高半核地址 | 0xFFFFFFFF80020000 = 0xFFFFFFFF80000000 + 0x20000，PML4[511] -> PDPT[510] -> PD[0] |
 | 双重映射 | 同一 PD[0] 条目（0~2MB）同时服务身份映射和高半核映射，零额外物理页开销 |

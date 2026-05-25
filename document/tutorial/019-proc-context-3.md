@@ -1,3 +1,7 @@
+---
+title: 019-proc-context-3 · 进程上下文
+---
+
 # 踩坑实录：两个让内核崩掉的 Bug
 
 > 标签：调试, Higher-Half, 线程退出, 栈溢出, 上下文切换, triple fault

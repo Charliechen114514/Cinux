@@ -1,3 +1,7 @@
+---
+title: 027-fs-vfs-3 · VFS 虚拟文件系统
+---
+
 # 027-3 Tutorial: 系统调用全链路 — 从 open 到 read 到 close 的完整旅程
 
 > 标签：syscall、VFS、open、read、write、close、getdents、canonical address

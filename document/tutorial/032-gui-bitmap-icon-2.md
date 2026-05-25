@@ -1,3 +1,7 @@
+---
+title: 032-gui-bitmap-icon-2 · 位图与图标
+---
+
 # 032-2 编译期图标——用 consteval 打造嵌入式像素数据
 
 > 标签：Cinux, GUI, consteval, 编译期计算, 图标, 调色板

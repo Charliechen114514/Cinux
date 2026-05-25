@@ -1,3 +1,7 @@
+---
+title: 003-boot-long-mode-2 · Long Mode
+---
+
 # 003-2 模式切换：enter_long_mode() + long_mode_entry 完整代码讲解
 
 > 标签：x86_64, 长模式切换, EFER, CR0/CR3/CR4, 远跳转, 64 位入口

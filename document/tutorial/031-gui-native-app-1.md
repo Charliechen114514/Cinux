@@ -1,3 +1,7 @@
+---
+title: 031-gui-native-app-1 · 原生应用
+---
+
 # 从零实现内核管道 IPC — Cinux Pipe 机制全解析
 
 > 标签：pipe, IPC, ring buffer, syscall, VFS, 内核开发

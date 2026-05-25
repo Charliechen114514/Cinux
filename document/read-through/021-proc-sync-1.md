@@ -1,3 +1,7 @@
+---
+title: 021-proc-sync-1 · 同步原语
+---
+
 # 021-1 Spinlock + Mutex 完整代码精讲
 
 > 前置：[020 抢占式调度](020-proc-scheduler-3.md)

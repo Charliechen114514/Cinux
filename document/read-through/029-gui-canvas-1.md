@@ -1,3 +1,7 @@
+---
+title: 029-gui-canvas-1 · GUI Canvas
+---
+
 # Framebuffer 接口扩展与 Canvas 初始化
 
 > 标签：framebuffer, canvas, double buffering, pitch, init

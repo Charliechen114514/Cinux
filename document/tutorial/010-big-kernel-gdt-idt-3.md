@@ -1,3 +1,7 @@
+---
+title: 010-big-kernel-gdt-idt-3 · GDT/IDT 重构
+---
+
 # 010-3 教程：异常处理函数与集成验证——让内核学会"遗言"
 
 > 标签：x86_64, 异常处理, 寄存器 dump, CR2, int $3, IRETQ, 致命异常, QEMU 测试

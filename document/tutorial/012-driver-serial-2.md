@@ -1,3 +1,7 @@
+---
+title: 012-driver-serial-2 · 串口驱动
+---
+
 # 内核格式化输出引擎：从重复代码到共享模板
 
 > 标签：kprintf, 格式化引擎, DRY 原则, C++ 模板, OutputFn, 单元测试, MockOutput, 左对齐, 零填充, 内核开发

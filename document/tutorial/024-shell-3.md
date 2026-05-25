@@ -1,7 +1,11 @@
+---
+title: 024-shell-3 · Shell
+---
+
 # 从 Syscall 到 Shell（下）：ANSI Console、测试与踩坑总结
 
 > 标签：ANSI, VT100, Console, unit test, QEMU, debug
-> 前置：[024-shell-2 sys_read 与用户态 REPL](...)
+> 前置：[024-shell-2 sys_read 与用户态 REPL](024-shell-2)
 
 ## 前言
 

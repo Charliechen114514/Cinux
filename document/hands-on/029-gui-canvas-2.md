@@ -1,3 +1,7 @@
+---
+title: 029-gui-canvas-2 · GUI Canvas
+---
+
 # 基础图元绘制：矩形填充、描边、Bresenham 直线与位图
 
 > 标签：Bresenham, draw_rect, draw_line, draw_bitmap, blit, 2D primitives

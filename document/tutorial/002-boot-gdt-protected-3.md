@@ -1,3 +1,7 @@
+---
+title: 002-boot-gdt-protected-3 · GDT 与保护模式
+---
+
 # 调试实战与设计对比：保护模式切换的坑和别人的做法
 
 > 标签：x86, 调试, triple fault, GDT, 保护模式, 设计对比

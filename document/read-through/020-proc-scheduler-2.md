@@ -1,3 +1,7 @@
+---
+title: 020-proc-scheduler-2 · 进程调度
+---
+
 # 020-2 通读：scheduler.cpp 抢占式调度核心——tick/schedule/block/unblock 完整实现
 
 ## 概览

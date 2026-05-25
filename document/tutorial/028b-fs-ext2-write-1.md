@@ -1,3 +1,7 @@
+---
+title: 028b-fs-ext2-write-1 · Ext2 写入
+---
+
 # 028b-1 Tutorial: ext2 写入——从读取到创建文件
 
 > 标签：ext2、块分配器、inode 分配器、bitmap、元数据回写、磁盘文件系统

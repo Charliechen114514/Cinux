@@ -1,3 +1,7 @@
+---
+title: 022-ring3-usermode-3 · 用户态 (Ring 3)
+---
+
 # 用户地址空间与特权隔离验证
 
 > 标签：AddressSpace、FLAG_USER、页表权限、用户栈、identity mapping、QEMU 陷阱

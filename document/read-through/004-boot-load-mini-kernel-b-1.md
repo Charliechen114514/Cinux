@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-b-1 · 内核加载 (B)
+---
+
 # 004 通读版 · Real Mode 完整加载小内核
 
 到 tag 004A 为止，我们的 bootloader 已经能在 Real Mode 下完成 E820 内存探测和 ELF header 的初次读取（4KB），但离"把完整小内核加载到内存"这个目标还有一段距离。004A 留下的状态是：物理地址 0x10000 处放着 4KB 的 ELF header，Stage2 还不知道内核到底有多大、需要读多少扇区、加载到哪里。现在我们要把这件事彻底做完。

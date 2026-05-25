@@ -1,8 +1,12 @@
+---
+title: 自研测试框架
+---
+
 # 005-01: 自研测试框架详解
 
 ## 概述
 
-Cinux 项目采用自研的轻量级测试框架，位于 [`test/framework/test_framework.h`](../../test/framework/test_framework.h)。该框架专为嵌入式/内核开发设计，支持双模式运行：
+Cinux 项目采用自研的轻量级测试框架，位于 [`test/framework/test_framework.h`](https://github.com/CinuxOS/Cinux/blob/main/test/framework/test_framework.h)。该框架专为嵌入式/内核开发设计，支持双模式运行：
 - **Host 模式**：在 Linux 宿主机上运行，使用标准 C 库
 - **QEMU 模式**：直接在内核中运行，通过串口输出
 

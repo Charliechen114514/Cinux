@@ -1,3 +1,7 @@
+---
+title: 005-mini-kernel-entry-3 · 内核入口
+---
+
 # 踩过的两个大坑：PDPT 索引幽灵与链接器脚本陷阱
 
 > 标签：PDPT 索引, 页表映射, linker script, LMA, SIZEOF, GDB, VSCode, 远程调试

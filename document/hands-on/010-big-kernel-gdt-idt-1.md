@@ -1,3 +1,7 @@
+---
+title: 010-big-kernel-gdt-idt-1 · GDT/IDT 重构
+---
+
 # 010-1 Hands-on: 大内核 GDT 初始化——段描述符工厂与 lgdt
 
 ## 导语

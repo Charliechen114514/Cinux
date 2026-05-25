@@ -1,3 +1,7 @@
+---
+title: 009-large-kernel-entry-1 · 大内核入口
+---
+
 # 009-1 Higher-Half 大内核启动 — 链接脚本 + 启动汇编 + C++ 运行时
 
 ## 章节导语

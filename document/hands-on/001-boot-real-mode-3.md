@@ -1,3 +1,7 @@
+---
+title: 001-boot-real-mode-3 · 实模式引导
+---
+
 # 001_boot_real_mode（调试篇） —— 构建系统、QEMU 调试与常见启动故障排查
 
 ## 导语

@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-c-3 · 内核加载 (C)
+---
+
 # 004-C 动手篇（补完）：构建系统、debugcon 配置与端到端验证
 
 > 本章完成后的可见效果：`debug.log` 输出完整序列 `OPLJ123G4===CPPGC1V123B===END`

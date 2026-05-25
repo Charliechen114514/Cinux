@@ -1,3 +1,7 @@
+---
+title: 024-shell-2 · Shell
+---
+
 # 024-shell-2: sys_read 系统调用与 RBX 寄存器保存修复
 
 ## 导语

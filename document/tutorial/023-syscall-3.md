@@ -1,3 +1,7 @@
+---
+title: 023-syscall-3 · 系统调用
+---
+
 # 踩坑实录 -- FPU/SSE、栈对齐与用户态编译
 
 > 标签：FPU, SSE, x86-64 ABI, stack alignment, boot.S, user-space compilation

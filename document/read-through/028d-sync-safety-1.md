@@ -1,3 +1,7 @@
+---
+title: 028d-sync-safety-1 · 同步安全
+---
+
 # 028d-1 Read-through: Spinlock 与 RAII 守卫完整实现
 
 ## 概览

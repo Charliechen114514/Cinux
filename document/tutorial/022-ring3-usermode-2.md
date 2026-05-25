@@ -1,3 +1,7 @@
+---
+title: 022-ring3-usermode-2 · 用户态 (Ring 3)
+---
+
 # 踩坑实录：三个让 Ring 3 起不来的致命 Bug
 
 > 标签：debug、Triple Fault、页表权限、identity mapping、MSR、wrmsr

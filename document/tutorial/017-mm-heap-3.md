@@ -1,3 +1,7 @@
+---
+title: 017-mm-heap-3 · 堆管理
+---
+
 # 释放、合并与自动扩展
 
 > 标签：Heap::free, coalesce, Heap::expand, double-free, 碎片化

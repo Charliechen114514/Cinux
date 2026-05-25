@@ -1,3 +1,7 @@
+---
+title: 035-multi-terminal-1 · 多终端
+---
+
 # COW 页错误处理与 fork 返回两次
 
 ## 导语

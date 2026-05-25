@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-c-2 · 内核加载 (C)
+---
+
 # 004 通读版 · 内核启动、BSS 陷阱与符号冲突
 
 ## 概览

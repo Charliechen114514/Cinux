@@ -1,3 +1,7 @@
+---
+title: 010-big-kernel-gdt-idt-2 · GDT/IDT 重构
+---
+
 # 010-2 教程：IDT + ISR + 异常处理——让内核学会"遗言"
 
 > 标签：x86_64, IDT, 中断描述符表, ISR, 异常处理, 中断栈帧, InterruptFrame, iretq

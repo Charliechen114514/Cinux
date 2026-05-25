@@ -1,3 +1,7 @@
+---
+title: 004-boot-load-mini-kernel-b-1 · 内核加载 (B)
+---
+
 # Bootloader 开发日记 004B（上）：BootInfo 的诞生——bootloader 和内核的握手契约
 
 > 标签：x86, 保护模式, bootloader, BootInfo, flat binary, 内存布局

@@ -1,3 +1,7 @@
+---
+title: 017-mm-heap-3 · 堆管理
+---
+
 # 017-3 释放、合并与自动扩展
 
 ## 导语
@@ -60,8 +64,10 @@ dump_stats 遍历的是空闲链表，不是堆中的所有块。已分配的块
 
 expand 的"摊还"思想类似于 `std::vector` 的扩容策略。如果每次只按需扩展，那么 n 次 100 字节的分配会触发 n 次 expand（每次映射 1 页），总开销是 O(n) 次 PMM/VMM 调用。如果每次至少扩展 16 KB，那么 n 次 100 字节的分配只需要约 n / 160 次 expand，开销降低了一个数量级。
 
-> 参考：[OSDev Wiki - Memory Allocation](https://wiki.osdev.org/Memory_Allocation)（Heap Expansion 章节）
-> 参考：[dreamportdev Osdev Notes - Heap Allocation](https://github.com/dreamportdev/Osdev-Notes/blob/master/04_Memory_Management/05_Heap_Allocation.md)
+参考：
+
+- [OSDev Wiki - Memory Allocation](https://wiki.osdev.org/Memory_Allocation)（Heap Expansion 章节）
+- [dreamportdev Osdev Notes - Heap Allocation](https://github.com/dreamportdev/Osdev-Notes/blob/master/04_Memory_Management/05_Heap_Allocation.md)
 
 ## 动手实现
 

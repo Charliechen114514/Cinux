@@ -1,3 +1,7 @@
+---
+title: 008-load-large-kernel-2 · 大内核加载
+---
+
 # 008-2 Read-through: ATA PIO 扇区读取——init() 与 read()
 
 ## 概览

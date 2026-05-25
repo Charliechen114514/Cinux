@@ -1,3 +1,7 @@
+---
+title: 008-load-large-kernel-1 · 大内核加载
+---
+
 # 008-1 Hands-on: ATA PIO 磁盘驱动与 Freestanding 工具函数
 
 ## 导语

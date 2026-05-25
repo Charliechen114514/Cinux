@@ -1,3 +1,7 @@
+---
+title: 002-boot-gdt-protected-1 · GDT 与保护模式
+---
+
 # 从实模式到保护模式：GDT 与工程修正
 
 > 标签：x86, 保护模式, GDT, 段描述符, bootloader

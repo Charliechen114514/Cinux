@@ -1,3 +1,7 @@
+---
+title: 013-driver-vga-fb-3 · VGA 帧缓冲
+---
+
 # 013-3 双输出：让内核不再"盲打"——文本控制台与 kprintf 多后端架构
 
 > 标签：Console, kprintf, OutputSink, 多后端, 双输出, 控制台滚屏

@@ -1,3 +1,7 @@
+---
+title: 014-driver-keyboard-2 · 键盘驱动
+---
+
 # 014-2 从电信号到字符：扫描码解码与修饰键追踪
 
 > 标签：scan code set 1, make/break, 查找表, modifier, ring buffer, IRQ1, 事件驱动

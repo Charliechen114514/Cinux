@@ -1,3 +1,7 @@
+---
+title: 031-gui-native-app-3 · 原生应用
+---
+
 # 让 Shell 跑在窗口里 — Cinux GUI 进程架构全解析
 
 > 标签：fork, execve, pipe, GUI, 进程架构, 系统调用路由
