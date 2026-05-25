@@ -4,7 +4,7 @@ export default defineProject({
   name: 'cinux',
   title: { 'zh-CN': 'Cinux' },
   description: { 'zh-CN': '64位OS教程' },
-  base: '/cinux/',
+  base: '/Cinux/',
   copyright: 'Copyright © 2026 Charliechen - 保留所有权利',
 
   documentsDir: 'document',
