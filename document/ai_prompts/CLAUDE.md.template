@@ -1,0 +1,67 @@
+# Cinux — x86_64 Educational OS Kernel
+
+## AI Infrastructure Index
+
+面向外部开发者的 AI 操作指引位于 `document/ai_prompts/`。
+每个 prompt 只做索引和流程指引，不重复项目细节——AI 按指引去读源文件。
+
+| 文件 | 用途 |
+|------|------|
+| `document/ai_prompts/README.md` | 总入口 + 文件清单 |
+| `document/ai_prompts/prompt_understand_project.md` | 让 AI 快速理解项目全貌 |
+| `document/ai_prompts/prompt_write_module.md` | 让 AI 写内核模块代码 |
+| `document/ai_prompts/prompt_generate_tutorial.md` | 让 AI 产出三套教程 |
+| `document/ai_prompts/prompt_review_tutorial.md` | 让 AI 审查和修复教程 |
+| `document/ai_prompts/prompt_maintain_project.md` | 让 AI 日常维护 |
+| `document/ai_prompts/writing_style.md` | 教程写作风格指南 |
+| `document/ai_prompts/code_conventions.md` | 代码规范 |
+| `document/ai_prompts/templates/` | 可复用 prompt 模板（代码生成/审查/测试） |
+
+## Tutorial Generation Workflow
+
+三套教程（完全重写全部 40 个 tag，从 000 顺序开始）：
+
+| Type | 定位 | 代码策略 | 拆分 |
+|------|------|----------|------|
+| Hands-on | OS 作业式引导 | 纯设计描述+验证命令，**绝不展示代码** | 按逻辑功能点拆分 |
+| Read-through | 完整代码讲解 | 完整代码 walkthrough | 按逻辑功能点拆分 |
+| Tutorial | 最终发布版（替代 blog） | 叙事体+代码精讲+引用 | 按逻辑功能点拆分 |
+
+**完整 Pipeline 定义请阅读 `document/ai_prompts/prompt_generate_tutorial.md`。**
+
+### 启动方式
+
+1. 用户说 `开始 tag {TAG_NAME}` 或 `准备 tag {TAG_NAME} 的检索请求`
+2. AI 先读 `document/ai_prompts/prompt_generate_tutorial.md`，然后按流程执行
+3. **不需要用户确认，直接推进直到完成**（除非需要用户手动填入外部搜索结果）
+4. **硬规则**：
+   - 所有引用必须带可验证 URL 或 Intel SDM 页码章节
+   - Hands-on 绝不展示代码
+   - 严格遵循 `document/ai_prompts/writing_style.md`
+   - **每种教程类型至少拆分为 3 篇文章**
+   - **单篇篇幅上限 500 行 markdown**
+
+### 资料检索优先级
+
+1. **Intel SDM** → **必须且只能**用 `tools/read_sdm.py`（Bash 调用）读取 `document/reference/intel/SDM-Vol*.pdf`，**禁止使用 MCP PDF 工具读取 Intel SDM**，**必须标注卷号+章节+页码**。
+2. **OSDev Wiki / 其他网页** → 优先用 `mcp__open-websearch__search` + `mcp__web-reader__webReader`，其次 `WebSearch` + `mcp__web-reader__webReader`
+3. **网络搜索不可用** → 暂停等用户拿去问外部 AI
+
+### Agent 调度
+
+- 每个 Phase 派发一个独立 Agent 执行
+- **严格串行**：同一时刻最多一个 Agent 运行
+- 目的：防止网络请求限流和上下文混乱
+
+### 教程审查修复工作流
+
+完整流程定义见 `document/ai_prompts/prompt_review_tutorial.md`。核心步骤：
+
+1. D1（格式）+ D2（代码准确，对照 diff）+ D3（技术正确，对照 Intel SDM）
+2. 发现问题直接修复
+3. **修复后必须运行验证工具**：
+   ```bash
+   .venv/bin/python3 tools/auth_url_and_line.py document/{hands-on,read-through,tutorial}/{TAG}-*.md --max-lines 500
+   ```
+   退出码非零则必须修复 dead URL 或超限行数后重新验证
+4. 写审查报告，更新进度文件

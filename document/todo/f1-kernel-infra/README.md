@@ -14,17 +14,28 @@
 ## Milestone 依赖
 
 ```
-M1 Ring Buffer ──→ M2 Kernel Logging
-     ↓
-M3 DMA Infra ──→ M4 Block Device Abstraction
+M0 Core Types ──→ M1 Ring Buffer ──→ M2 Kernel Logging
+      ↓                ↓
+      └────→ M3 DMA Infra ──→ M4 Block Device Abstraction
 ```
 
-M1 和 M3 无互相依赖，可并行。M4 依赖 M3（AHCI 适配器需要 DMA 工具）。
+M0 是所有后续 Milestone 的前置。M1 和 M3 可并行（均依赖 M0）。M4 依赖 M3。
+
+## M0 消费方汇总
+
+| M0 组件 | 消费方 |
+|---------|--------|
+| ErrorOr\<T\> | M2 日志 / F2 内存 / F6 VFS / F8 IPC / F10 syscall |
+| StringView | F6 路径 / F10 syscall 参数 / M2 日志 |
+| Span\<T\> | M1 RingBuffer / M3 DMA / F2 物理 |
+| Buffer | M3 DMA / F6 ext2 / F7 网络 |
+| Array\<T,N\> | M1 RingBuffer / F5 驱动 / F4 per-CPU |
 
 ## 文件清单
 
 | 文件 | Milestone | 说明 |
 |------|-----------|------|
+| [00-core-types.md](00-core-types.md) | M0 | 核心类型库（ErrorOr / StringView / Span / Buffer / Array） |
 | [00-ring-buffer.md](00-ring-buffer.md) | M1 | 通用环形缓冲区库 |
 | [01-kernel-logging.md](01-kernel-logging.md) | M2 | 内核日志增强 + dmesg |
 | [02-dma-infra.md](02-dma-infra.md) | M3 | DMA Buffer Pool + PRDT 工具库 |
@@ -53,3 +64,4 @@ M1 和 M3 无互相依赖，可并行。M4 依赖 M3（AHCI 适配器需要 DMA 
 2. QEMU 启动运行正常
 3. 新增代码有单元测试
 4. 每文件 ≤ 500 行
+5. 所有新增代码遵循 CFDesktop Doxygen 规范

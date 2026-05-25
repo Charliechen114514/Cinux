@@ -3,22 +3,22 @@
 > 13 个 Feature 域，按依赖顺序推进。Phase 0（基础设施加固）保持不变。
 > 每个 Feature 域内按 Milestone 排序，有明确的依赖关系。
 
-## Phase 0: 基础加固（保持不变）
+## Phase 0: 基础加固 — **已完成**
 
-| 子阶段 | 说明 | 文档 |
+| 子阶段 | 说明 | 状态 |
 |--------|------|------|
-| 0-A | CMake 架构升级 + 大文件拆分 | [phase0/00-cmake.md](phase0/00-cmake.md) |
-| 0-B | 代码优化审查（9 模块 C++23 现代化） | [phase0/01-code-optimization.md](phase0/01-code-optimization.md) |
-| 0-C | 注释优化审查（Doxygen 全覆盖） | [phase0/02-comments.md](phase0/02-comments.md) |
+| 0-A | CMake 架构升级 + 大文件拆分 | **已完成** |
+| 0-B | 代码优化审查（纯 lib 项已移至 F1-M0） | **已合并** |
+| 0-C | 注释优化审查（已分散至各 Feature 域） | **已合并** |
 
 ---
 
 ## Feature 域总览
 
 ```
-Phase 0 [固定] ─── CMake + 代码优化 + 注释
+Phase 0 [已完成] ─── CMake + 代码优化 + 注释
     │
-    ├──→ F1  内核基础设施 ─── 日志 + 块设备抽象 + DMA
+    ├──→ F1  内核基础设施 ─── 核心类型库 + 日志 + 块设备抽象 + DMA
     │         ↓
     ├──→ F2  内存管理增强 ─── VMA + mmap + brk + Page Cache
     │         ↓
@@ -49,7 +49,7 @@ Phase 0 [固定] ─── CMake + 代码优化 + 注释
 
 | F | 名称 | Milestones | 关键产出 |
 |---|------|-----------|---------|
-| [F1](f1-kernel-infra/) | 内核基础设施 | M1 Ring Buffer, M2 日志, M3 DMA, M4 块设备 | IBlockDevice + dmesg + DMA Pool |
+| [F1](f1-kernel-infra/) | 内核基础设施 | M0 核心类型, M1 Ring Buffer, M2 日志, M3 DMA, M4 块设备 | ErrorOr + StringView + Span + IBlockDevice + dmesg + DMA Pool |
 | [F2](f2-memory/) | 内存管理增强 | M1 VMA, M2 mmap, M3 brk, M4 Page Cache, M5 Demand Paging, M6 ext2 Cache, M7 Buddy+Slab | mmap + Page Cache + brk + 分层分配器 |
 | [F3](f3-process/) | 进程与线程 | M1 信号, M2 clone/futex/TLS, M3 进程组, M4 调度器 | POSIX 信号 + 线程 + futex |
 | [F4](f4-smp/) | SMP 多核 | M1 ACPI, M2 APIC, M3 AP启动, M4 多核调度, M5 同步原语 | 多核启动 + Per-CPU + ticket lock |
