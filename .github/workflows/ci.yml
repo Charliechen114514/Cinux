@@ -40,20 +40,8 @@ jobs:
         with:
           ref: ${{ github.head_ref || github.ref_name }}
 
-      - name: Install GCC 14
-        run: |
-          sudo apt-get install -y gcc-14 g++-14
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
-          echo "GCC version: $(gcc --version | head -1)"
-
-      - name: Install CMake
-        run: |
-          pip install cmake
-          echo "CMake version: $(cmake --version | head -1)"
-
       - name: Install dependencies
-        run: sudo apt-get install -y qemu-system-x86 e2fsprogs python3
+        run: sudo apt-get install -y qemu-system-x86 e2fsprogs python3 cmake
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCINUX_BUILD_TESTS=ON -S .
@@ -86,20 +74,8 @@ jobs:
         with:
           ref: ${{ github.head_ref || github.ref_name }}
 
-      - name: Install GCC 14
-        run: |
-          sudo apt-get install -y gcc-14 g++-14
-          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100
-          sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100
-          echo "GCC version: $(gcc --version | head -1)"
-
-      - name: Install CMake
-        run: |
-          pip install cmake
-          echo "CMake version: $(cmake --version | head -1)"
-
       - name: Install dependencies
-        run: sudo apt-get install -y qemu-system-x86 e2fsprogs python3
+        run: sudo apt-get install -y qemu-system-x86 e2fsprogs python3 cmake
 
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCINUX_BUILD_TESTS=ON -S .

@@ -112,7 +112,7 @@ set(CMAKE_C_FLAGS_INIT "
 set(CMAKE_CXX_FLAGS_INIT ${CMAKE_C_FLAGS_INIT} "
     -fno-exceptions
     -fno-rtti
-    -std=c++23
+    -std=c++17
 ")
 
 set(CMAKE_ASM_FLAGS_INIT "-Wa,--divide")
@@ -128,7 +128,7 @@ set(CMAKE_EXE_LINKER_FLAGS_INIT "
 
 逐个 flag 的含义：`-ffreestanding` 告诉编译器代码运行在无 OS 环境，只提供 freestanding 头文件（`<stdint.h>`, `<stddef.h>` 等）。`-fno-stack-protector` 禁用栈保护（因为栈保护的 canary 初始化依赖 `__stack_chk_fail`，这个函数需要标准库提供）。`-mno-red-zone` 禁用 x86_64 的 red zone——这是 System V ABI 给用户态程序留的 128 字节栈下空间优化，内核代码绝对不能有，因为中断可能在任何时候打断执行，如果用了 red zone 里的空间，中断处理程序的栈帧会覆盖掉还没用完的数据。`-mcmodel=kernel` 告诉编译器代码会跑在地址空间的最顶端（高半核，`0xFFFFFFFF80000000` 附近），影响它生成绝对地址引用的方式。
 
-C++ 特有的 flag：`-fno-exceptions` 禁用异常（异常需要 `.eh_frame` 段和 `__cxa_begin_catch` 等运行时支持，内核里都没有），`-fno-rtti` 禁用 RTTI（`dynamic_cast` 和 `typeid` 需要额外元数据），`-std=c++23` 选择最新的 C++ 标准。
+C++ 特有的 flag：`-fno-exceptions` 禁用异常（异常需要 `.eh_frame` 段和 `__cxa_begin_catch` 等运行时支持，内核里都没有），`-fno-rtti` 禁用 RTTI（`dynamic_cast` 和 `typeid` 需要额外元数据），`-std=c++17` 选择 C++17 标准。
 
 汇编器 flag `-Wa,--divide` 允许汇编代码里直接写除法符号 `/` 而不被 GNU AS 误解析（某些版本的 GNU AS 默认把 `/` 当注释符）。链接器 flag `-nostdlib` 不链接标准启动文件和库，`-static` 纯静态链接不依赖动态链接器。
 

@@ -7,7 +7,7 @@
 ## 项目约束
 
 - 工具链：GNU AS（AT&T 语法）+ GCC/G++ + CMake
-- C++ 规范：`-std=c++23 -ffreestanding -fno-exceptions -fno-rtti -fno-stack-protector -mno-red-zone -mcmodel=kernel`
+- C++ 规范：`-std=c++17 -ffreestanding -fno-exceptions -fno-rtti -fno-stack-protector -mno-red-zone -mcmodel=kernel`
 - 禁用标准库，允许模板/constexpr/concepts/RAII/lambda
 - 注释语言：**英文**（Doxygen、行内注释、TODO、汇编注释全部英文）
 - 代码写在 `kernel/` 目录下（大内核），新文件需更新 `kernel/CMakeLists.txt`

@@ -1,7 +1,4 @@
-# TODO: 设置 CMake 最低版本要求
-# Cinux 要求 CMake 3.20+ 以支持现代 CMake 特性
-# cmake_minimum_required(VERSION 3.20)
-cmake_minimum_required(VERSION 4.1)
+cmake_minimum_required(VERSION 3.20)
 
 project(cinux 
     VERSION 0.1.0 

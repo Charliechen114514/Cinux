@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "Cinux"
   text: "64位OS教程"
-  tagline: C++23 驱动，从 Bootloader 到用户空间的完整操作系统学习路径
+  tagline: C++17 驱动，从 Bootloader 到用户空间的完整操作系统学习路径
   actions:
     - theme: brand
       text: Hands-on 动手实践
@@ -26,8 +26,8 @@ features:
     details: Hands-on 引导式实践 + Read-through 完整代码讲解 + Tutorial 最终发布版，满足不同学习风格
     link: /tutorial/
   - icon: ⚡
-    title: C++23 现代内核
-    details: 使用 C++23 freestanding 特性，ErrorOr<T> 错误处理，concepts 约束模板，零开销抽象
+    title: C++17 现代内核
+    details: 使用 C++17 freestanding 特性，ErrorOr<T> 错误处理，concepts 约束模板，零开销抽象
     link: /read-through/
   - icon: 🖥️
     title: 完整系统栈
