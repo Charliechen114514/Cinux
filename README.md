@@ -5,11 +5,11 @@
 ### 从零手搓 x86_64 操作系统 · 中文教程 · 现代 C++ 实现
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![C++23](https://img.shields.io/badge/C%2B%2B-23-blue.svg)]()
-[![GCC](https://img.shields.io/badge/GCC-15.0%2B-blue)]()
+[![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)]()
+[![GCC](https://img.shields.io/badge/GCC-Ubuntu%2024.04%2B-blue)]()
 [![QEMU](https://img.shields.io/badge/QEMU-8.0%2B-orange)]()
 
-一个"手把手"教你从 MBR 开始写操作系统的教程项目——从 Bootloader 到 GUI 桌面，全链路完成。
+一个"手把手"教你从 MBR 开始写操作系统的教程项目——从 Bootloader 到 GUI 桌面，全链路完成。Ubuntu 24.04 默认编译器即可构建，无需额外安装 GCC。
 
 > **Note:** 为了保持轻量，笔者出于架构考虑，后续新特性的开发可能不会出手把手的三层教程了，而是以开发笔记的方式，重新发布到一个专门的组织仓库：[Cinux](https://github.com/CinuxOS/Cinux)。
 > 但是这并不意味着这个仓库就Archive了，任何我觉得很不错的 Feature 完全可以迁移和搬运的，都会按照独立的方式进行搬运，更新教程；教程中任何潜在的错误我仍然会坚持维护！欢迎提任何Issue，不管是疑惑还是错误，还是实现的bug需要fix! 仓库仍然会活跃开发！
@@ -104,7 +104,7 @@ fork/execve/CoW 页表复制 + Pipe IPC，每个终端绑定独立 shell 进程
 <tr>
 <td>
 
-🔧 **现代 C++23 实现**
+🔧 **现代 C++17 实现**
 `constexpr` 编译期生成 GDT/IDT / `concepts` 类型约束 / RAII 锁管理 / `enum class` 驱动接口 / 支持用户态内核态 SSE （故支持-O2 Release构建）
 
 </td>
@@ -226,7 +226,7 @@ bash scripts/launch_qemu_debug.sh
 <details>
 <summary><b>🔍 现代 C++ 内核开发</b></summary>
 
-- ✅ **C++23 特性**：`constexpr` / `concepts` / `requires`
+- ✅ **C++17 特性**：`constexpr` / `concepts` / `requires`
 - ✅ **编译期魔法**：GDT/IDT 描述符 `constexpr` 生成，桌面图标 `constexpr` 像素数据
 - ✅ **类型安全**：`enum class` 作为 API 一等公民，`concepts` 约束驱动接口
 - ✅ **RAII 资源管理**：Spinlock::guard、InterruptGuard、锁自动释放

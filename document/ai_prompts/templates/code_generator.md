@@ -22,7 +22,7 @@
 
 **项目**：Cinux —— 从零手搓的 x64 操作系统
 **工具链**：GNU AS（AT&T 语法）+ GCC/G++ + CMake
-**C++ 规范**：`-std=c++23 -ffreestanding -fno-exceptions -fno-rtti -fno-stack-protector -mno-red-zone -mcmodel=large`，禁用标准库，允许模板/constexpr/concepts/RAII/lambda
+**C++ 规范**：`-std=c++17 -ffreestanding -fno-exceptions -fno-rtti -fno-stack-protector -mno-red-zone -mcmodel=large`，禁用标准库，允许模板/constexpr/concepts/RAII/lambda
 
 **现代 C++ 风格硬性要求**（代码必须像 C++，绝不能像 C）：
 

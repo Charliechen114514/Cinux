@@ -132,7 +132,7 @@ set(CMAKE_C_FLAGS_INIT "
 set(CMAKE_CXX_FLAGS_INIT ${CMAKE_C_FLAGS_INIT} "
     -fno-exceptions
     -fno-rtti
-    -std=c++23
+    -std=c++17
 ")
 
 set(CMAKE_EXE_LINKER_FLAGS_INIT "

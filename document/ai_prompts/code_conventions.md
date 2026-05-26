@@ -378,7 +378,7 @@ Vector<int> v;
 
 ```cmake
 # 变量：大写下划线
-set(CMAKE_CXX_FLAGS_INIT "-std=c++23")
+set(CMAKE_CXX_FLAGS_INIT "-std=c++17")
 set(BUILD_DIR "${CMAKE_SOURCE_DIR}/build")
 
 # 目标：小写下划线
